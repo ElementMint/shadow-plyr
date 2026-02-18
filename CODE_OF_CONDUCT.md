@@ -1,9 +1,3 @@
-
-Paste this (Professional & Standard):
-
-```markdown
-# 🌍 Code of Conduct
-
 ## Our Pledge
 
 We as contributors and maintainers pledge to make participation in this project a harassment-free experience for everyone.
