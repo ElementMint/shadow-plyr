@@ -338,6 +338,28 @@ player.addEventListener('video-playing', (e) => {
 
 ---
 
+## 🌳 Branch Strategy (Git Flow)
+
+This project follows a structured Git workflow:
+
+### Branches
+
+- `master` → Stable production releases
+- `develop` → Integration branch (active development)
+- `feature/*` → New features
+- `fix/*` → Bug fixes
+- `release/*` → Release preparation
+- `hotfix/*` → Emergency production fixes
+
+### Contribution Flow
+
+1. Fork the repository
+2. Create a feature branch:
+   ```bash
+   git checkout -b feature/your-feature-name
+
+---
+
 # 🤝 Contributing
 
 1. Fork repository
