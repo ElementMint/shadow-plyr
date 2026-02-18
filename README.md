@@ -1,8 +1,3 @@
-Perfect 👌
-You now have a **serious enterprise-grade Web Component**, and what you’re asking for is exactly what makes it production-ready:
-
-> 📘 Proper configuration documentation (like an internal component README / design system doc)
-
 Below is a **complete configuration documentation** for your current `shadow-plyr` component — structured for:
 
 * AEM authors
@@ -17,7 +12,7 @@ You can directly use this in Confluence / README.md / AEM component docs.
 
 # 🎬 `shadow-plyr` – Configuration Documentation
 
-Version: 3.0.0
+Version: 1.0.0
 Type: Web Component (Shadow DOM + Constructable Stylesheet)
 
 ---
@@ -432,12 +427,12 @@ shadow-plyr.hero {
 
 Exposed parts:
 
-| Part Name       | Element              |
-| --------------- | -------------------- |
-| video-wrapper   | Wrapper div          |
-| video-container | Container            |
-| controls        | Controls bar         |
-| video           | Native video element |
+| Part Name          | Element              |
+| ---------------    | -------------------- |
+| shadow-plyr-wrapper   | Wrapper div          |
+| video-container    | Container            |
+| controls           | Controls bar         |
+| video              | Native video element |
 
 Example:
 
