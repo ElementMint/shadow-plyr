@@ -1,614 +1,366 @@
-Below is a **complete configuration documentation** for your current `shadow-plyr` component — structured for:
+# 🎬 Shadow Plyr
 
-* AEM authors
-* Frontend developers
-* QA team
-* Design system documentation
-* Analytics team
+> A fully customizable, production-grade Web Component video player built with TypeScript, Shadow DOM and zero framework dependency.
 
-You can directly use this in Confluence / README.md / AEM component docs.
+[![npm version](https://img.shields.io/npm/v/shadow-plyr.svg)](https://www.npmjs.com/package/shadow-plyr)
+[![license](https://img.shields.io/npm/l/shadow-plyr.svg)](LICENSE)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/shadow-plyr)](https://bundlephobia.com/package/shadow-plyr)
 
 ---
 
-# 🎬 `shadow-plyr` – Configuration Documentation
+## ✨ Features
 
-Version: 1.0.0
-Type: Web Component (Shadow DOM + Constructable Stylesheet)
+- 🎯 Native Web Component `<shadow-plyr>`
+- ⚡ Lazy loading + smart visibility pause
+- 📱 Mobile optimized
+- 👆 Double tap seek (YouTube style)
+- 👆👆👆 Triple tap seek (30s skip)
+- 🌊 Tap ripple animation
+- 🎛 Custom controls
+- 🎨 Fully themeable via CSS variables
+- 🔐 Secure SVG sanitization
+- 🧵 Virtual playback mode (only one video plays)
+- 📦 Framework agnostic (React / Vue / Angular / Vanilla)
 
 ---
 
-# 1️⃣ Basic Usage
+# 📦 Installation
+
+## Using npm
+
+```bash
+npm install shadow-plyr
+```
+
+Then import:
+
+```ts
+import 'shadow-plyr';
+```
+
+---
+
+## Using CDN
+
+```html
+<script type="module" src="https://unpkg.com/shadow-plyr/dist/shadow-plyr.js"></script>
+```
+
+---
+
+# 🚀 Basic Usage
 
 ```html
 <shadow-plyr
-  desktop-video="/content/dam/video.mp4"
-  mobile-video="/content/dam/video-mobile.mp4"
-  desktop-poster="/content/dam/poster.jpg"
+  desktop-video="video.mp4"
+  desktop-poster="poster.jpg"
+  show-controls="true"
+  show-center-play="true">
+</shadow-plyr>
+```
+
+---
+
+# 📱 Mobile Gestures
+
+| Gesture | Action |
+|----------|--------|
+| Double tap left | -10 seconds |
+| Double tap right | +10 seconds |
+| Triple tap left | -30 seconds |
+| Triple tap right | +30 seconds |
+| Drag seekbar | Scrub |
+| Tap ripple | Visual animation |
+
+---
+
+# ⚙️ Full Configuration Reference
+
+## 🎬 Video Settings
+
+```html
+<shadow-plyr
+  desktop-video="video.mp4"
+  mobile-video="video-mobile.mp4"
+  desktop-poster="poster.jpg"
+  mobile-poster="poster-mobile.jpg"
+  video-type="video/mp4"
+  preload="metadata"
   autoplay="true"
   muted="true"
+  loop="true"
+  playsinline="true">
+</shadow-plyr>
+```
+
+---
+
+## 🎛 Controls Configuration
+
+```html
+<shadow-plyr
   show-controls="true"
-></shadow-plyr>
+  show-play-pause="true"
+  show-seekbar="true"
+  show-volume="true"
+  show-fullscreen="true"
+  show-speed="true"
+  speed-options="0.5,0.75,1,1.25,1.5,2">
+</shadow-plyr>
 ```
 
 ---
 
-# 2️⃣ Core Video Configuration
-
-## `desktop-video`
-
-**Type:** String
-**Required:** Yes (if no mobile-video fallback)
-**Description:** Path to desktop video source.
+## 👆 Double & Triple Tap
 
 ```html
-desktop-video="/content/dam/video.mp4"
+<shadow-plyr
+  double-tap-seek="true"
+  double-tap-seek-seconds="10"
+  triple-tap-seek="true"
+  triple-tap-seconds="30"
+  enable-tap-ripple="true">
+</shadow-plyr>
 ```
 
----
-
-## `mobile-video`
-
-**Type:** String
-**Required:** Optional
-**Description:** Video source used for max-width: 768px.
+Disable triple tap:
 
 ```html
-mobile-video="/content/dam/video-mobile.mp4"
+<shadow-plyr triple-tap-seek="false"></shadow-plyr>
 ```
 
 ---
 
-## `video-type`
-
-**Type:** String
-**Default:** `"video/mp4"`
-**Description:** MIME type for `<source>` elements.
-
----
-
-## `desktop-poster`
-
-**Type:** String
-**Description:** Poster image for desktop.
-
----
-
-## `mobile-poster`
-
-**Type:** String
-**Description:** Poster image for mobile devices.
-
----
-
-# 3️⃣ Playback Behavior
-
-## `autoplay`
-
-**Type:** Boolean (`"true"` / `"false"`)
-**Default:** false
-**Note:** Must be used with `muted="true"` for browser autoplay policy.
-
----
-
-## `loop`
-
-**Type:** Boolean
-**Default:** false
-**Description:** Replays video after completion.
-
----
-
-## `muted`
-
-**Type:** Boolean
-**Default:** false
-**Description:** Starts video muted.
-
----
-
-## `playsinline`
-
-**Type:** Boolean
-**Default:** false
-**Description:** Prevents iOS fullscreen auto takeover.
-
----
-
-## `preload`
-
-**Type:** `"auto" | "metadata" | "none"`
-**Default:** `"metadata"`
-
----
-
-# 4️⃣ Visibility & Lazy Loading
-
-## `lazy`
-
-**Type:** Boolean
-**Default:** false
-**Description:** Loads video only when visible.
-
----
-
-## `lazy-threshold`
-
-**Type:** Number (0–1)
-**Default:** 0.5
-**Description:** Visibility ratio before loading.
-
----
-
-## `pause-on-out-of-view`
-
-**Type:** Boolean
-**Default:** false
-**Description:** Pauses video if not sufficiently visible.
-
----
-
-## `pause-threshold`
-
-**Type:** Number
-**Default:** 0.3
-**Description:** Visibility ratio before pausing.
-
----
-
-## `pause-on-tab-hide`
-
-**Type:** Boolean
-**Default:** true
-**Description:** Pauses video when tab becomes hidden.
-
----
-
-# 5️⃣ Controls Configuration
-
-## `show-controls`
-
-**Type:** Boolean
-**Default:** false
-**Description:** Enables custom controls UI.
-
----
-
-## `controls-type`
-
-**Type:** `"full" | "none"`
-**Default:** `"full"`
-
----
-
-## `show-play-pause`
-
-**Type:** Boolean
-**Default:** true
-
----
-
-## `show-center-play`
-
-**Type:** Boolean
-**Default:** false
-
----
-
-## `show-seekbar`
-
-**Type:** Boolean
-**Default:** false
-
----
-
-## `show-volume`
-
-**Type:** Boolean
-**Default:** false
-
----
-
-## `show-fullscreen`
-
-**Type:** Boolean
-**Default:** false
-
----
-
-## `show-speed`
-
-**Type:** Boolean
-**Default:** false
-
----
-
-## `speed-options`
-
-**Type:** Comma-separated list
-**Default:** `0.5,0.75,1,1.25,1.5,2`
-
-Example:
+## 🔘 Overlay Seek Buttons
 
 ```html
-speed-options="0.5,1,1.5,2"
+<shadow-plyr
+  show-seek-buttons="true"
+  seek-button-seconds="15">
+</shadow-plyr>
 ```
 
 ---
 
-## `seek-step`
-
-**Type:** Number (seconds)
-**Default:** 5
-**Description:** Keyboard arrow seek increment.
-
----
-
-## `controls-hide-delay`
-
-**Type:** Number (ms)
-**Default:** 3000
-
----
-
-# 6️⃣ Poster & End Behavior
-
-## `poster-click-play`
-
-**Type:** Boolean
-**Default:** true
-**Description:** Clicking poster starts playback.
-
----
-
-## `show-poster-on-ended`
-
-**Type:** Boolean
-**Default:** false
-
----
-
-## `reset-on-ended`
-
-**Type:** Boolean
-**Default:** false
-
----
-
-# 7️⃣ Theming & Design System (Enterprise Ready)
-
-Your component uses CSS Custom Properties (Design Tokens).
-
----
-
-## `theme`
-
-**Type:** String
-**Default:** `"dark"`
-
-Supported:
-
-* `dark`
-* `light`
-* (extendable via CSS)
-
-Example:
+## ⚡ Performance Mode
 
 ```html
-<responsive-video theme="light"></responsive-video>
+<shadow-plyr performance-mode="true"></shadow-plyr>
 ```
+
+Optimized for pages with many videos.
 
 ---
 
-## `accent-color`
-
-**Type:** Color
-**Description:** Overrides primary color token.
+## 🧠 Smart Visibility
 
 ```html
-accent-color="#0066ff"
+<shadow-plyr
+  lazy="true"
+  pause-on-out-of-view="true"
+  pause-on-tab-hide="true"
+  lazy-threshold="0.5"
+  pause-threshold="0.3">
+</shadow-plyr>
 ```
 
 ---
 
-## `controls-background`
-
-Overrides control background.
-
----
-
-## `center-play-background`
-
-Overrides center play background.
-
----
-
-## `center-play-size`
-
-**Type:** Number (px)
+## 🔁 Virtual Playback Mode
 
 ```html
-center-play-size="100"
+<shadow-plyr virtual-playback="true"></shadow-plyr>
 ```
 
----
-
-# 8️⃣ Performance Mode
-
-## `performance-mode`
-
-**Type:** Boolean
-**Default:** false
-**Description:**
-
-* Reduces UI updates
-* Optimized for 20+ videos on page
-* Recommended for content grids
+Only one video plays at a time.
 
 ---
 
-# 9️⃣ Virtual Playback Engine
+# 🎨 Theming
 
-## `virtual-playback`
-
-**Type:** Boolean
-**Description:**
-Ensures only ONE video plays at a time globally.
+## Dark Theme
 
 ```html
-virtual-playback="true"
+<shadow-plyr
+  theme="dark"
+  accent-color="#ff3b30"
+  controls-background="rgba(0,0,0,0.9)"
+  center-play-background="rgba(0,0,0,0.8)"
+  center-play-size="100">
+</shadow-plyr>
+```
+
+## Light Theme
+
+```html
+<shadow-plyr theme="light"></shadow-plyr>
 ```
 
 ---
 
-# 🔟 Public API Methods
+## 🎨 CSS Custom Properties
 
-Available via JS:
+You can override styles externally:
 
-```js
-const video = document.querySelector('responsive-video');
-
-video.play();
-video.pause();
-video.mute();
-video.unmute();
-video.seek(30);
+```css
+shadow-plyr {
+  --accent-color: #00ffcc;
+  --controls-bg: rgba(0,0,0,0.95);
+  --center-play-size: 90px;
+}
 ```
 
 ---
 
-# 1️⃣1️⃣ Custom Events (Analytics Ready)
+# 🧩 Custom SVG Icons
 
-All events bubble outside Shadow DOM.
+```html
+<shadow-plyr
+  play-icon="<svg>...</svg>"
+  pause-icon="<svg>...</svg>"
+  volume-icon="<svg>...</svg>"
+  muted-icon="<svg>...</svg>"
+  fullscreen-icon="<svg>...</svg>"
+  exit-fullscreen-icon="<svg>...</svg>"
+  speed-icon="<svg>...</svg>">
+</shadow-plyr>
+```
+
+Icons are sanitized automatically.
 
 ---
 
-## Playback Events
+# 🧑‍💻 JavaScript API
 
-| Event                  | Trigger          |
-| ---------------------- | ---------------- |
-| video-ready            | Metadata loaded  |
-| video-playing          | Playback started |
-| video-paused           | Paused           |
-| video-ended            | Ended            |
-| video-seeking          | Seeking          |
-| video-seeked           | Seek complete    |
-| video-volume-change    | Volume changed   |
-| video-error            | Load error       |
-| video-fullscreen-enter | Enter fullscreen |
-| video-fullscreen-exit  | Exit fullscreen  |
+```ts
+const player = document.querySelector('shadow-plyr');
 
-Example:
+player.play();
+player.pause();
+player.mute();
+player.unmute();
+player.seek(120);
+```
 
-```js
-document.addEventListener('video-playing', e => {
-  console.log(e.detail);
+---
+
+# 📡 Events
+
+```ts
+player.addEventListener('video-playing', (e) => {
+  console.log('Playing', e.detail);
 });
 ```
 
----
+### Available Events
 
-# 1️⃣2️⃣ CSS Custom Properties (Design Tokens)
-
-These can be overridden in AEM clientlibs:
-
-```css
-shadow-plyr.hero {
-  --accent-color: #0066ff;
-  --controls-bg: rgba(0,0,0,0.9);
-  --center-play-bg: rgba(0,102,255,0.8);
-  --center-play-size: 100px;
-  --seekbar-height: 6px;
-}
-```
-
----
-
-# 1️⃣3️⃣ Shadow Parts (Styling Hooks)
-
-Exposed parts:
-
-| Part Name          | Element              |
-| ---------------    | -------------------- |
-| shadow-plyr-wrapper   | Wrapper div          |
-| video-container    | Container            |
-| controls           | Controls bar         |
-| video              | Native video element |
-
-Example:
-
-```css
-shadow-plyr::part(controls) {
-  border-radius: 12px;
-}
-```
+| Event | Description |
+|--------|-------------|
+| video-ready | Metadata loaded |
+| video-playing | Playback started |
+| video-paused | Playback paused |
+| video-ended | Playback ended |
+| video-seeking | Seeking started |
+| video-seeked | Seeking finished |
+| video-volume-change | Volume changed |
+| video-error | Load error |
+| video-fullscreen-enter | Enter fullscreen |
+| video-fullscreen-exit | Exit fullscreen |
 
 ---
 
-# 1️⃣4️⃣ AEM Integration Notes
+# 🧪 Real World Presets
 
-✔ Works inside HTL
-✔ Compatible with ClientLib CSS overrides
-✔ No global CSS leakage
-✔ Safe for multi-instance pages
-✔ Supports DAM video paths
+---
 
-Recommended pattern:
+## 🎬 Netflix Style
 
 ```html
 <shadow-plyr
-  class="cmp-video"
-  data-sly-use.video="..."
-  desktop-video="${video.path}"
-></shadow-plyr>
+  show-controls="true"
+  show-center-play="true"
+  double-tap-seek="true"
+  triple-tap-seek="true"
+  enable-tap-ripple="true"
+  theme="dark"
+  accent-color="#e50914">
+</shadow-plyr>
 ```
 
 ---
 
-# ⌨️ Keyboard Controls – `shadow-plyr`
-
-Keyboard controls are active when:
-
-* The video wrapper is focused (`tabindex="0"`)
-* Video is initialized
-* Controls are enabled (recommended: `show-controls="true"`)
-
-The wrapper has:
+## 📱 Minimal Mobile Player
 
 ```html
-<div class="shadow-plyr-wrapper" tabindex="0" role="application">
-```
-
-So users must first **Tab into the player**.
-
----
-
-# 🎮 Supported Keyboard Shortcuts
-
-| Key           | Action        | Description                         |
-| ------------- | ------------- | ----------------------------------- |
-| `Space`       | Play / Pause  | Toggle playback                     |
-| `K`           | Play / Pause  | YouTube-style shortcut              |
-| `Arrow Left`  | Seek Back     | Jump back by `seek-step` seconds    |
-| `Arrow Right` | Seek Forward  | Jump forward by `seek-step` seconds |
-| `Arrow Up`    | Volume Up     | +0.1 volume                         |
-| `Arrow Down`  | Volume Down   | -0.1 volume                         |
-| `M`           | Mute / Unmute | Toggle mute                         |
-| `F`           | Fullscreen    | Toggle fullscreen                   |
-| `Home`        | Go to Start   | Seek to 0                           |
-| `End`         | Go to End     | Seek to duration                    |
-| `0 – 9`       | Jump %        | Jump to 0% – 90% of duration        |
-
----
-
-# 🔢 Number Key Behavior
-
-Pressing number keys jumps to percentage:
-
-| Key | Jump To |
-| --- | ------- |
-| `0` | 0%      |
-| `1` | 10%     |
-| `5` | 50%     |
-| `9` | 90%     |
-
-Implementation:
-
-```js
-this.state.videoElement.currentTime =
-  this.state.videoElement.duration * (parseInt(key) / 10);
+<shadow-plyr
+  show-controls="false"
+  show-center-play="true"
+  double-tap-seek="true"
+  triple-tap-seek="false">
+</shadow-plyr>
 ```
 
 ---
 
-# ⚙️ Config Affecting Keyboard
-
-## `seek-step`
-
-Controls arrow key jump duration.
+## 🎨 Brand Custom Player
 
 ```html
-seek-step="10"
+<shadow-plyr
+  theme="light"
+  accent-color="#6c5ce7"
+  controls-background="rgba(255,255,255,0.95)"
+  center-play-background="rgba(255,255,255,0.8)">
+</shadow-plyr>
 ```
 
-Arrow keys will now jump 10 seconds.
+---
 
-Default: 5 seconds
+# 🌍 Browser Support
+
+| Browser | Supported |
+|----------|-----------|
+| Chrome | ✅ |
+| Edge | ✅ |
+| Safari | ✅ |
+| iOS Safari | ✅ |
+| Android Chrome | ✅ |
+| Firefox | ✅ |
 
 ---
 
-# 🎯 Accessibility Notes (Important for AEM)
+# 🏗 Built With
 
-✔ Wrapper has `tabindex="0"`
-✔ ARIA role: `application`
-✔ Seekbar uses `role="slider"`
-✔ Volume uses `role="slider"`
-✔ Buttons have `aria-label`
-
-If you want enterprise accessibility compliance (WCAG 2.1 AA), I would recommend:
-
-* Add `aria-valuetext` for seekbar
-* Add `aria-valuetext` for volume slider
-* Add focus ring styling via CSS token
-* Announce time updates for screen readers (optional)
+- Web Components
+- Shadow DOM
+- TypeScript
+- Constructable Stylesheets
+- DOMPurify
 
 ---
 
-# 🧠 Focus Behavior
+# 🤝 Contributing
 
-When keyboard interaction occurs:
-
-```js
-if (handled && this.state.$wrapper) {
-  this.state.$wrapper.classList.add('show-controls');
-}
-```
-
-So controls auto-show on keyboard interaction.
+1. Fork repository
+2. Create feature branch
+3. Commit changes
+4. Open PR
 
 ---
 
-# 📌 Important Usage Tip (AEM)
+# 📄 License
 
-If video is used in a hero banner, ensure it receives focus:
-
-```html
-<shadow-plyr class="hero-video" tabindex="0"></shadow-plyr>
-```
-
-Or auto-focus via JS if required.
+MIT
 
 ---
 
-# 🚀 If You Want Next-Level Keyboard UX
+# ⭐ Why Shadow Plyr?
 
-I can enhance it with:
+Native `<video controls>` is limited.
 
-* `J` / `L` for ±10 sec (YouTube style)
-* Shift + Arrow = ±30 sec
-* `C` for captions (future feature)
-* `>` and `<` for speed control
-* Better ARIA live region support
-* Focus trap when fullscreen
-* Configurable keyboard mapping
+Shadow Plyr provides:
 
----
-
-
-# 🏆 Final Summary
-
-This component now supports:
-
-* Lazy loading
-* IntersectionObserver optimization
-* Virtual playback engine
-* Performance mode
-* Design token theming
-* CSS custom properties
-* Shadow parts
-* Analytics hooks
-* AEM ready architecture
-* Multi-instance optimization
-
----
-
-
+- Full customization
+- Modern mobile gestures
+- Performance optimization
+- Clean architecture
+- Production-ready UX

@@ -6,7 +6,7 @@
     <title>Responsive Video Player Test</title>
     <style>
         body { margin: 0; background: #333; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; }
-        shadow-plyr { width: 800px; max-width: 90%; height:500px}
+        shadow-plyr {height:500px}
     </style>
 </head>
 <body>
@@ -33,10 +33,12 @@
                 playsinline="true" show-controls="true" controls-type="full" show-center-play="true"
                 show-play-pause="true" show-seekbar="true" show-volume="true" show-fullscreen="true" show-speed="true"
                 speed-options="0.5,0.75,1,1.5,2" theme="light" accent-color="#0066ff" show-tooltips="true"
+                double-tap-seek="true" double-tap-seek-seconds="10" triple-tap-seek="true" triple-tap-seconds="30" enable-tap-ripple="false"
+                showSeekButtons="true"
                 desktop-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop"
                 mobile-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"
-                desktop-video="https://mgmotor.scene7.com/is/content/mgmotor/banner-vid-001-portrait-0x360-730k"
-                mobile-video="https://mgmotor.scene7.com/is/content/mgmotor/banner-vid-001-portrait-0x360-730k">
+                desktop-video="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-1080p.mp4"
+                mobile-video="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-720p.mp4">
             </shadow-plyr>
         </div>
     </div>
