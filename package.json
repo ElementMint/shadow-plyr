@@ -1,7 +1,7 @@
 {
   "name": "shadow-plyr",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A fully customizable, responsive web component for video playback with advanced features.",
   "main": "dist/index.umd.js",
   "module": "dist/index.js",

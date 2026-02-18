@@ -162,6 +162,67 @@ sheet.replaceSync(`
     .video-volume-slider { display: none; }
     .video-time-display { font-size: 11px; }
   }
+
+  .tap-ripple {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: rgba(255,255,255,0.4);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple-expand 0.6s ease-out forwards;
+  pointer-events: none;
+  z-index: 50;
+}
+
+@keyframes ripple-expand {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(8);
+  }
+}
+
+.video-seek-buttons {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  pointer-events: none;
+}
+
+.video-seek-buttons button {
+  pointer-events: auto;
+  width: 30%;
+  height: 60%;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+  opacity: 0.6;
+}
+.seek-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 32px;
+  color: white;
+  font-weight: bold;
+  pointer-events: none;
+  animation: fadeOut 0.6s forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 `);
 
 // ---------- GLOBAL VIDEO ENGINE ----------
@@ -208,6 +269,9 @@ export class ShadowPlyr extends HTMLElement {
   #$volumeProgress: HTMLElement | null = null;
   #$speedMenu: HTMLElement | null = null;
   #$speedText: HTMLElement | null = null;
+  #tapCount = 0;
+  #tapTimeout: number | null = null;
+
 
   // Event handlers as arrow properties (auto-bound)
   #handleKeyboard = (e: KeyboardEvent): void => {
@@ -346,6 +410,36 @@ export class ShadowPlyr extends HTMLElement {
     document.addEventListener('mouseup', onMouseUp);
   };
 
+  #onSeekbarTouchStart = (e: TouchEvent): void => {
+    if (!this.#videoElement) return;
+    this.#isDraggingSeekbar = true;
+  
+    const seekbar = e.currentTarget as HTMLElement;
+  
+    const move = (touch: Touch) => {
+      const rect = seekbar.getBoundingClientRect();
+      const percent = (touch.clientX - rect.left) / rect.width;
+      this.#seekTo(percent);
+    };
+  
+    move(e.touches[0]);
+  
+    const onTouchMove = (e: TouchEvent) => {
+      if (!this.#isDraggingSeekbar) return;
+      move(e.touches[0]);
+    };
+  
+    const onTouchEnd = () => {
+      this.#isDraggingSeekbar = false;
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+    };
+  
+    document.addEventListener('touchmove', onTouchMove, { passive: true });
+    document.addEventListener('touchend', onTouchEnd);
+  };
+  
+
   #onVolumeMouseDown = (e: MouseEvent): void => {
     e.preventDefault();
     this.#isDraggingVolume = true;
@@ -438,6 +532,79 @@ export class ShadowPlyr extends HTMLElement {
     this.#emit(isFull ? 'video-fullscreen-enter' : 'video-fullscreen-exit');
   };
 
+  #handleTouchTap = (e: TouchEvent): void => {
+    const config = this.#getConfig();
+    if (!this.#videoElement) return;
+  
+    const rect = this.#$wrapper!.getBoundingClientRect();
+    const touchX = e.changedTouches[0].clientX;
+    const isLeft = touchX < rect.left + rect.width / 2;
+  
+    if (config.enableTapRipple) {
+      this.#createRipple(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    }
+  
+    this.#tapCount++;
+  
+    if (this.#tapTimeout) clearTimeout(this.#tapTimeout);
+  
+    this.#tapTimeout = window.setTimeout(() => {
+      const doubleSeconds = config.doubleTapSeekSeconds;
+      const tripleSeconds = config.tripleTapSeconds;
+  
+      if (this.#tapCount === 2 && config.doubleTapSeek) {
+        this.#seekBy(isLeft ? -doubleSeconds : doubleSeconds);
+      }
+  
+      if (this.#tapCount >= 3 && config.tripleTapSeek) {
+        this.#seekBy(isLeft ? -tripleSeconds : tripleSeconds);
+      }
+  
+      this.#tapCount = 0;
+    }, 300);
+  };
+
+  #showSeekOverlay(seconds: number): void {
+    const overlay = document.createElement('div');
+    overlay.className = 'seek-overlay';
+    overlay.textContent = (seconds > 0 ? '+' : '') + seconds + 's';
+  
+    this.#$wrapper?.appendChild(overlay);
+  
+    setTimeout(() => overlay.remove(), 600);
+  }
+  
+  #seekBy(seconds: number): void {
+    if (!this.#videoElement) return;
+  
+    const newTime = Math.min(
+      Math.max(0, this.#videoElement.currentTime + seconds),
+      this.#videoElement.duration
+    );
+  
+    this.#videoElement.currentTime = newTime;
+    this.#showSeekOverlay(seconds);
+  }
+
+  
+  #createRipple(x: number, y: number): void {
+    if (!this.#$wrapper) return;
+  
+    const rect = this.#$wrapper.getBoundingClientRect();
+  
+    const ripple = document.createElement("div");
+    ripple.className = "tap-ripple";
+  
+    ripple.style.left = x - rect.left + "px";
+    ripple.style.top = y - rect.top + "px";
+  
+    this.#$wrapper.appendChild(ripple);
+  
+    setTimeout(() => ripple.remove(), 600);
+  }
+  
+  
+
   #throttledSeekbarUpdate: () => void;
 
   constructor() {
@@ -461,7 +628,10 @@ export class ShadowPlyr extends HTMLElement {
       "lazy-threshold", "pause-threshold", "pause-on-tab-hide",
       "show-poster-on-ended", "reset-on-ended", "poster-click-play", "performance-mode",
       "show-tooltips", "tooltip-play", "tooltip-pause", "tooltip-mute", "tooltip-unmute",
-      "tooltip-fullscreen", "tooltip-exit-fullscreen", "tooltip-speed", "tooltip-center-play"
+      "tooltip-fullscreen", "tooltip-exit-fullscreen", "tooltip-speed", "tooltip-center-play",
+      "double-tap-seek","double-tap-seek-seconds","show-seek-buttons","seek-button-seconds",
+      "triple-tap-seek","triple-tap-seconds","enable-tap-ripple"
+
     ];
   }
 
@@ -516,6 +686,14 @@ export class ShadowPlyr extends HTMLElement {
       tooltipExitFullscreen: this.getAttribute("tooltip-exit-fullscreen") || "Exit fullscreen",
       tooltipSpeed: this.getAttribute("tooltip-speed") || "Playback speed",
       tooltipCenterPlay: this.getAttribute("tooltip-center-play") || "Play",
+      doubleTapSeek: this.getAttribute("double-tap-seek") !== "false",
+      doubleTapSeekSeconds: parseInt(this.getAttribute("double-tap-seek-seconds") || "10"),
+      showSeekButtons: this.getAttribute("show-seek-buttons") === "true",
+      seekButtonSeconds: parseInt(this.getAttribute("seek-button-seconds") || "10"),
+      tripleTapSeek: this.getAttribute("triple-tap-seek") !== "false",
+      tripleTapSeconds: parseInt(this.getAttribute("triple-tap-seconds") || "30"),
+      enableTapRipple: this.getAttribute("enable-tap-ripple") !== "false",
+
     };
     this.#configCache = config;
     this.#configCacheTime = now;
@@ -611,6 +789,11 @@ export class ShadowPlyr extends HTMLElement {
       wrapper.appendChild(this.#createControlsHTML(config));
     }
 
+    if (config.showSeekButtons) {
+      wrapper.appendChild(this.#createSeekButtons(config));
+    }
+    
+
     // Container
     const container = document.createElement('div');
     container.className = 'video-container';
@@ -643,6 +826,41 @@ export class ShadowPlyr extends HTMLElement {
     }
     return svg;
   }
+
+  #createSeekButtons(config: VideoPlayerConfig): HTMLElement {
+    const container = document.createElement('div');
+    container.className = 'video-seek-buttons';
+  
+    const left = document.createElement('button');
+    left.className = 'seek-left';
+    left.textContent = `-${config.seekButtonSeconds}s`;
+  
+    const right = document.createElement('button');
+    right.className = 'seek-right';
+    right.textContent = `+${config.seekButtonSeconds}s`;
+  
+    left.addEventListener('click', () => {
+      if (!this.#videoElement) return;
+      this.#videoElement.currentTime = Math.max(
+        0,
+        this.#videoElement.currentTime - config.seekButtonSeconds
+      );
+    });
+  
+    right.addEventListener('click', () => {
+      if (!this.#videoElement) return;
+      this.#videoElement.currentTime = Math.min(
+        this.#videoElement.duration,
+        this.#videoElement.currentTime + config.seekButtonSeconds
+      );
+    });
+  
+    container.appendChild(left);
+    container.appendChild(right);
+  
+    return container;
+  }
+  
 
   // ---------- ICON CACHING WITH SANITIZATION ----------
   #getIcons(): IconSet {
@@ -1136,7 +1354,8 @@ export class ShadowPlyr extends HTMLElement {
     const seekbarEl = wrapper.querySelector('.video-seekbar');
     if (seekbarEl) {
       seekbarEl.addEventListener('mousedown', this.#onSeekbarMouseDown as EventListener);
-    }
+      seekbarEl.addEventListener('touchstart', this.#onSeekbarTouchStart as EventListener, { passive: true });
+    }    
 
     const volumeSliderEl = wrapper.querySelector('.video-volume-slider');
     if (volumeSliderEl) {
@@ -1154,6 +1373,7 @@ export class ShadowPlyr extends HTMLElement {
     wrapper.addEventListener('keydown', this.#handleKeyboard);
     wrapper.addEventListener('mouseenter', () => { if (this.#videoLoaded) wrapper.classList.add('show-controls'); }, { passive: true });
     wrapper.addEventListener('mouseleave', () => { wrapper.classList.remove('show-controls'); }, { passive: true });
+    wrapper.addEventListener('touchend', this.#handleTouchTap);
   }
 
   // ---------- UI UPDATE METHODS ----------

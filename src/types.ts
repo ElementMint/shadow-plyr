@@ -46,6 +46,13 @@ export interface VideoPlayerConfig {
     tooltipExitFullscreen: string;
     tooltipSpeed: string;
     tooltipCenterPlay: string;
+    doubleTapSeek:boolean;
+    doubleTapSeekSeconds:number;
+    showSeekButtons:boolean;
+    seekButtonSeconds:number;
+    tripleTapSeek:boolean;
+    tripleTapSeconds:number;
+    enableTapRipple:boolean;
   }
   
   /**
