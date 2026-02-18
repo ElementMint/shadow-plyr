@@ -1,0 +1,8 @@
+# All source code requires maintainer review
+/src/ @simrndeepsingh
+
+# Documentation
+/docs/ @simrndeepsingh
+
+# Config files
+package.json @simrndeepsingh

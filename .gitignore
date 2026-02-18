@@ -137,3 +137,17 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+
+.husky/_
+.lighthouseci/
+.bundlesize-cache/
+.DS_Store
+Thumbs.db
+
+# Local demo build (if exists)
+demo/dist/
+
+# Temporary release notes
+CHANGELOG.tmp
+

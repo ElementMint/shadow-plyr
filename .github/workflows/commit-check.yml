@@ -1,0 +1,13 @@
+name: Commit Check
+
+on:
+  pull_request:
+
+jobs:
+  lint-commits:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - run: npm install
+      - run: npx commitlint --from=origin/master --to=HEAD
