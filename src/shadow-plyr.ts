@@ -1,3 +1,17 @@
+/**
+ * Shadow Plyr
+ * A production-grade Web Component video player
+ *
+ * @version 1.1.0
+ * @license MIT
+ * @author Simrndeep Singh
+ * @copyright (c) 2026 Simrndeep Singh
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files.
+ */
+
+
 import { VideoPlayerConfig, IconSet } from './types';
 import { DEFAULT_ICONS, IconCache } from './icons';
 import { throttle } from './utils';
