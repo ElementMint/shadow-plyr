@@ -8,6 +8,16 @@
 
 ---
 
+## ❤️ Support the Project
+
+If **shadow-plyr** helps you, consider supporting development:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/YOUR_USERNAME)
+
+Your support helps maintain and improve the Shadow Web Components ecosystem.
+
+---
+
 ## ✨ Features
 
 - 🎯 Native Web Component `<shadow-plyr>`
