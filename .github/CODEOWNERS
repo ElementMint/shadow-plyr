@@ -1,8 +1,8 @@
 # All source code requires maintainer review
-/src/ @simrndeepsingh
+/src/ @elementmint/maintainers
 
 # Documentation
-/docs/ @simrndeepsingh
+/docs/ @elementmint/maintainers
 
 # Config files
-package.json @simrndeepsingh
+package.json @elementmint/maintainers
