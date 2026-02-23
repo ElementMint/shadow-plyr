@@ -1,0 +1,8 @@
+# All source code requires maintainer review
+/src/ @elementmint/maintainers
+
+# Documentation
+/docs/ @elementmint/maintainers
+
+# Config files
+package.json @elementmint/maintainers

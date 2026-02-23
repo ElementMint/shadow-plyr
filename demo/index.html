@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="Shadow Plyr - Modern Web Component Video Player">
+    <meta property="og:description" content="Production-grade customizable video player built with Web Components.">
+    <meta property="og:image" content="/demo/social-preview.svg">
+    <meta property="og:type" content="website">
+
+    <title>Responsive Video Player Test</title>
+    <style>
+        body { margin: 0; background: #333; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; }
+        shadow-plyr {height:500px}
+    </style>
+</head>
+<body>
+    <div class="demo-section">
+        <h2>Web Component Example 1: Center Play with Custom Theme</h2>
+        <p>Custom red theme with larger center play button</p>
+        <div class="video-container-full">
+            <shadow-plyr class="full-width" lazy="false" autoplay="true" pause-on-out-of-view="true" loop="true" muted="true"
+                playsinline="true" theme="custom" accent-color="#ff0000" center-play-background="rgba(255, 0, 0, 0.2)"
+                center-play-size="100"
+                desktop-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=800&fit=crop"
+                mobile-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=600&fit=crop"
+                desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4"
+                mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4">
+            </shadow-plyr>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Web Component Example 2: Full Controls with Light Theme</h2>
+        <p>Light theme with blue accent, speed control, pause on out of view</p>
+        <div class="video-container-half">
+            <shadow-plyr lazy="true" pause-on-out-of-view="true" autoplay="false" loop="false" muted="false"
+                playsinline="true" show-controls="true" controls-type="full" show-center-play="true"
+                show-play-pause="true" show-seekbar="true" show-volume="true" show-fullscreen="true" show-speed="true"
+                speed-options="0.5,0.75,1,1.5,2" theme="light" accent-color="#0066ff" show-tooltips="true"
+                double-tap-seek="true" double-tap-seek-seconds="10" triple-tap-seek="true" triple-tap-seconds="30" enable-tap-ripple="false"
+                showSeekButtons="true"
+                desktop-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop"
+                mobile-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"
+                desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4"
+                mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4">
+            </shadow-plyr>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Web Component Example 3: Lazy Load with Green Theme</h2>
+        <p>Lazy loading enabled, custom green accent color</p>
+        <div class="video-container-half">
+            <shadow-plyr lazy="true" pause-on-out-of-view="true" autoplay="true" loop="false" muted="true"
+                playsinline="true" reset-on-ended="true" show-poster-on-ended="true" show-controls="true"
+                controls-type="full" show-play-pause="true" show-seekbar="true" show-volume="true" show-speed="true"
+                theme="custom" accent-color="#00ff88"
+                desktop-poster="https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5?w=1200&h=675&fit=crop"
+                mobile-poster="https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5?w=800&h=450&fit=crop"
+                desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4"
+                mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4">
+            </shadow-plyr>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Web Component Example 4: Custom Icons</h2>
+        <p>Custom play/pause icons using Font Awesome or custom SVG</p>
+        <div class="video-container-full">
+            <shadow-plyr lazy="true" pause-on-out-of-view="true" autoplay="false" loop="false" muted="true"
+                playsinline="true" show-controls="true" controls-type="full" show-center-play="true"
+                show-play-pause="true" show-seekbar="true" theme="dark" accent-color="#ff6b6b"
+                play-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 8l6 4-6 4z" fill="currentColor"/></svg>'
+                pause-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="8" width="2" height="8" fill="currentColor"/><rect x="13" y="8" width="2" height="8" fill="currentColor"/></svg>'
+                desktop-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=675&fit=crop"
+                mobile-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=450&fit=crop"
+                desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4"
+                mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4">
+            </shadow-plyr>
+        </div>
+    </div>
+
+    <!-- Load the built script -->
+    <script type="module" src="/dist/index.js"></script>
+    <!-- Alternatively, if you prefer UMD: -->
+    <!-- <script src="./dist/index.umd.js"></script> -->
+</body>
+</html>
