@@ -37,7 +37,7 @@
   },
   "homepage": "https://github.com/elementmint/shadow-plyr/blob/develop/README.md",
   "devDependencies": {
-    "@commitlint/cli": "^20.4.1",
+    "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.1",
     "@lhci/cli": "^0.15.1",
     "@rollup/plugin-node-resolve": "^16.0.3",
