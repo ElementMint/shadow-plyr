@@ -3,87 +3,626 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta property="og:title" content="Shadow Plyr - Modern Web Component Video Player">
-    <meta property="og:description" content="Production-grade customizable video player built with Web Components.">
+    <meta property="og:title" content="ElementMint Shadow Plyr - Complete Demo Studio">
+    <meta property="og:description" content="Creative, intuitive demo website with complete Shadow Plyr configurations and ElementMint branding.">
     <meta property="og:image" content="social-preview.svg">
     <meta property="og:type" content="website">
 
-    <title>Responsive Video Player Test</title>
+    <title>ElementMint • Shadow Plyr Demo Studio</title>
+
     <style>
-        body { margin: 0; background: #333; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; }
-        shadow-plyr {height:500px}
+        :root {
+            --bg: #050912;
+            --bg-soft: #0c1326;
+            --panel: rgba(12, 19, 36, 0.74);
+            --panel-strong: rgba(11, 17, 31, 0.95);
+            --line: rgba(255, 255, 255, 0.12);
+            --text: #f3f6ff;
+            --text-soft: #b4c0e6;
+            --brand: #6f8dff;
+            --brand-2: #5ee1ff;
+            --brand-3: #18d89a;
+            --shadow: 0 20px 70px rgba(2, 6, 20, 0.52);
+            --radius-lg: 16px;
+            --radius-xl: 26px;
+            --max: 1320px;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { margin: 0; }
+
+        body {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 5% 0%, rgba(111, 141, 255, 0.27), transparent 34%),
+                radial-gradient(circle at 98% 0%, rgba(94, 225, 255, 0.2), transparent 28%),
+                radial-gradient(circle at 95% 95%, rgba(24, 216, 154, 0.17), transparent 30%),
+                var(--bg);
+            min-height: 100vh;
+        }
+
+        a { color: inherit; text-decoration: none; }
+        .container { width: min(var(--max), calc(100% - 1.6rem)); margin: 0 auto; }
+
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            border-bottom: 1px solid var(--line);
+            backdrop-filter: blur(12px);
+            background: linear-gradient(to bottom, rgba(5, 9, 18, 0.95), rgba(5, 9, 18, 0.7));
+        }
+
+        .header-row {
+            min-height: 72px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding: 0.6rem 0;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+        }
+
+        .brand-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, var(--brand), var(--brand-2));
+            box-shadow: 0 8px 22px rgba(94, 225, 255, 0.35);
+        }
+
+        .brand small {
+            display: block;
+            color: var(--text-soft);
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .top-nav {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-soft);
+            padding: 0.42rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .hero {
+            margin-top: 1.3rem;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--line);
+            background: linear-gradient(150deg, rgba(13, 22, 41, 0.9), rgba(8, 14, 29, 0.9));
+            box-shadow: var(--shadow);
+            padding: 1.8rem;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1rem;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+
+        .hero h1 span { color: var(--brand-2); }
+
+        .hero p {
+            margin: 0.9rem 0 0;
+            color: var(--text-soft);
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 780px;
+        }
+
+        .stats {
+            display: grid;
+            gap: 0.65rem;
+            grid-template-columns: repeat(2, minmax(110px, 1fr));
+        }
+
+        .stat {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0.72rem;
+        }
+
+        .stat b { display: block; font-size: 1.2rem; margin-bottom: 0.2rem; }
+        .stat span { color: var(--text-soft); font-size: 0.8rem; }
+
+        .showcase-bar {
+            margin-top: 1rem;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--panel-strong);
+            padding: 0.8rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 0.72rem;
+            border-radius: 999px;
+            border: 1px solid rgba(184, 204, 255, 0.35);
+            padding: 0.3rem 0.62rem;
+            background: rgba(91, 125, 233, 0.2);
+            color: #e9eeff;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .section-heading {
+            margin: 1.7rem 0 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .section-heading h2 { margin: 0; font-size: clamp(1.2rem, 2vw, 1.65rem); }
+        .section-heading p { margin: 0; color: var(--text-soft); font-size: 0.9rem; }
+
+        .demo-grid {
+            display: grid;
+            gap: 0.95rem;
+            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+        }
+
+        .demo-card {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            padding: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .demo-card h3 { margin: 0; font-size: 1.02rem; }
+        .demo-card p { margin: 0.35rem 0 0; color: var(--text-soft); font-size: 0.89rem; line-height: 1.55; }
+
+        .chip-row { margin-top: 0.55rem; display: flex; gap: 0.35rem; flex-wrap: wrap; }
+        .chip {
+            border: 1px solid rgba(177, 201, 255, 0.28);
+            border-radius: 999px;
+            background: rgba(85, 116, 218, 0.2);
+            color: #e7edff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 0.24rem 0.53rem;
+            text-transform: uppercase;
+        }
+
+        .chip.good { border-color: rgba(24, 216, 154, 0.45); background: rgba(24, 216, 154, 0.18); }
+
+        .player-box {
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #02040b;
+            aspect-ratio: 16 / 9;
+        }
+
+        shadow-plyr { width: 100%; height: 100%; display: block; }
+
+        .notes {
+            margin-top: 1rem;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            background: var(--panel-strong);
+            padding: 0.95rem;
+            display: grid;
+            gap: 0.7rem;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .note {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.72rem;
+        }
+
+        .note h4 { margin: 0 0 0.35rem; font-size: 0.9rem; }
+        .note p { margin: 0; color: var(--text-soft); font-size: 0.84rem; line-height: 1.55; }
+
+
+        .brand-links {
+            margin-top: 0.9rem;
+            display: flex;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+        }
+
+        .brand-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.42rem 0.72rem;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-soft);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .brand-link svg,
+        .footer-social a svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
+        .footer-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .made-with {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.28rem;
+            color: var(--text-soft);
+        }
+
+        .made-with svg {
+            width: 14px;
+            height: 14px;
+            fill: #ff5f8f;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-social a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.4rem 0.68rem;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-soft);
+            font-weight: 650;
+            font-size: 0.8rem;
+        }
+
+        .site-footer {
+            margin-top: 1.9rem;
+            border-top: 1px solid var(--line);
+            padding: 1rem 0 1.4rem;
+            position: sticky;
+            z-index: 99;
+            bottom:0;
+            backdrop-filter: blur(12px);
+            background: linear-gradient(to bottom, rgba(5, 9, 18, 0.95), rgba(5, 9, 18, 0.7));
+        }
+
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            color: var(--text-soft);
+            font-size: 0.86rem;
+        }
+
+        @media (max-width: 980px) {
+            .hero { grid-template-columns: 1fr; padding: 1.25rem; }
+            .container { width: min(var(--max), calc(100% - 1.1rem)); }
+            .header-row { min-height: 62px; }
+        }
     </style>
 </head>
 <body>
-    <div class="demo-section">
-        <h2>Web Component Example 1: Center Play with Custom Theme</h2>
-        <p>Custom red theme with larger center play button</p>
-        <div class="video-container-full">
-            <shadow-plyr class="full-width" lazy="false" autoplay="true" pause-on-out-of-view="true" loop="true" muted="true"
-                playsinline="true" theme="custom" accent-color="#ff0000" center-play-background="rgba(255, 0, 0, 0.2)"
-                center-play-size="100"
-                desktop-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=800&fit=crop"
-                mobile-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=600&fit=crop"
-                desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4"
-                mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4">
-            </shadow-plyr>
+    <header class="site-header">
+        <div class="container header-row">
+            <a class="brand" href="#top" aria-label="ElementMint Shadow Plyr home">
+                <span class="brand-badge"></span>
+                <span>
+                    ElementMint • Shadow Plyr
+                    <small>Creative Web Component Demo Studio</small>
+                </span>
+            </a>
+            <nav class="top-nav">
+                <a class="pill" href="#core-demos">Core Demos</a>
+                <a class="pill" href="#advanced-demos">Advanced Demos</a>
+                <a class="pill" href="https://github.com/elementmint/shadow-plyr" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </nav>
         </div>
-    </div>
+    </header>
 
-    <div class="demo-section">
-        <h2>Web Component Example 2: Full Controls with Light Theme</h2>
-        <p>Light theme with blue accent, speed control, pause on out of view</p>
-        <div class="video-container-half">
-            <shadow-plyr lazy="true" pause-on-out-of-view="true" autoplay="false" loop="false" muted="false"
-                playsinline="true" show-controls="true" controls-type="full" show-center-play="true"
-                show-play-pause="true" show-seekbar="true" show-volume="true" show-fullscreen="true" show-speed="true"
-                speed-options="0.5,0.75,1,1.5,2" theme="light" accent-color="#0066ff" show-tooltips="true"
-                double-tap-seek="true" double-tap-seek-seconds="10" triple-tap-seek="true" triple-tap-seconds="30" enable-tap-ripple="false"
-                showSeekButtons="true"
-                desktop-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop"
-                mobile-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"
-                desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4"
-                mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4">
-            </shadow-plyr>
+    <main class="container" id="top">
+        <section class="hero">
+            <div>
+                <h1>Complete <span>Shadow Plyr</span> Experience</h1>
+                <div class="brand-links">
+                    <a class="brand-link" href="https://github.com/elementmint/shadow-plyr" target="_blank" rel="noopener noreferrer" aria-label="Shadow Plyr on GitHub">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.3-1.6-1.3-1.6-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6A4.7 4.7 0 0 1 6.4 8c-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1a4.7 4.7 0 0 1 1.2 3.2c0 4.7-2.8 5.7-5.5 6 .4.3.8 1 .8 2.1v3.1c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+                        GitHub
+                    </a>
+                    <a class="brand-link" href="https://www.npmjs.com/package/@elementmints/shadow-plyr" target="_blank" rel="noopener noreferrer" aria-label="Shadow Plyr npm package">
+                        <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M1 17V1h16v16h-4V5H9v12H1Zm4-4h2V7H5v6Zm4 0h2V7H9v6Zm4 0h2V7h-2v6Z"/></svg>
+                        npm
+                    </a>
+                    <a class="brand-link" href="https://www.buymeacoffee.com/elementmint" target="_blank" rel="noopener noreferrer" aria-label="Buy Me a Coffee for ElementMint">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6h1a3 3 0 0 1 0 6h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V6h16Zm1 2v2a1 1 0 0 0 0-2v0ZM6 3h2v2H6V3Zm4 0h2v2h-2V3Zm4 0h2v2h-2V3Z"/></svg>
+                        Buy me a coffee
+                    </a>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat"><b>12</b><span>Playable demo cards</span></div>
+                <div class="stat"><b>2</b><span>Theme systems</span></div>
+                <div class="stat"><b>Tap</b><span>Double/triple gesture modes</span></div>
+                <div class="stat"><b>Lazy</b><span>Out-of-view optimizations</span></div>
+            </div>
+        </section>
+
+        <section class="section-heading" id="core-demos">
+            <h2>Core Demos</h2>
+            <p>Foundational setups covering theme, controls, autoplay, and icon customization.</p>
+        </section>
+
+        <section class="demo-grid">
+            <article class="demo-card">
+                <div>
+                    <h3>1) Hero Autoplay</h3>
+                    <p>Landing-page hero with autoplay loop, large center play button, and branded accent.</p>
+                    <div class="chip-row"><span class="chip good">autoplay</span><span class="chip">loop</span><span class="chip">center-play-size</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="false" autoplay="true" pause-on-out-of-view="true" loop="true" muted="true" playsinline="true"
+                        show-controls="true" controls-type="full" show-center-play="true" show-play-pause="true" show-seekbar="true"
+                        show-volume="true" show-fullscreen="true" theme="dark" accent-color="#66d4ff" center-play-size="100"
+                        desktop-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>2) Full Controls + Tooltips</h3>
+                    <p>Production control bar with speed selector and custom tooltip text labels.</p>
+                    <div class="chip-row"><span class="chip">full-controls</span><span class="chip good">tooltips</span><span class="chip">speed-options</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="false" playsinline="true" theme="light" accent-color="#305bff"
+                        show-controls="true" controls-type="full" show-center-play="true" show-play-pause="true" show-seekbar="true"
+                        show-volume="true" show-fullscreen="true" show-speed="true" show-tooltips="true"
+                        tooltip-play="Play video" tooltip-pause="Pause video" tooltip-fullscreen="Enter fullscreen" tooltip-center-play="Start"
+                        speed-options="0.5,0.75,1,1.25,1.5,2" desktop-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>3) Minimal Controls</h3>
+                    <p>Lean setup for blog embeds with only critical controls visible.</p>
+                    <div class="chip-row"><span class="chip">minimal</span><span class="chip">compact ui</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="false" loop="false" playsinline="true" theme="dark"
+                        show-controls="true" controls-type="minimal" show-center-play="true" show-play-pause="true" show-seekbar="true"
+                        show-volume="false" show-fullscreen="true"
+                        desktop-poster="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>4) Controls Hidden + Poster Start</h3>
+                    <p>Poster-first story mode with hidden controls and click-to-play behavior.</p>
+                    <div class="chip-row"><span class="chip">show-controls=false</span><span class="chip good">poster-click-play</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="true" playsinline="true" show-controls="false"
+                        show-center-play="true" poster-click-play="true" theme="dark" center-play-background="rgba(0,0,0,0.55)"
+                        desktop-poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>5) Custom Icon Branding</h3>
+                    <p>Replace default controls with custom SVG icons to match ElementMint visual language.</p>
+                    <div class="chip-row"><span class="chip good">custom icons</span><span class="chip">brand ui</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="true" playsinline="true" theme="dark" accent-color="#ffbf59"
+                        show-controls="true" controls-type="full" show-center-play="true" show-play-pause="true" show-seekbar="true"
+                        play-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 8l6 4-6 4z" fill="currentColor"/></svg>'
+                        pause-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="8" width="2" height="8" fill="currentColor"/><rect x="13" y="8" width="2" height="8" fill="currentColor"/></svg>'
+                        volume-icon='<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 4V6L7 10H3z" fill="currentColor"/></svg>'
+                        muted-icon='<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 4V6L7 10H3z" fill="currentColor"/><line x1="18" y1="8" x2="22" y2="16" stroke="currentColor" stroke-width="2"/><line x1="22" y1="8" x2="18" y2="16" stroke="currentColor" stroke-width="2"/></svg>'
+                        desktop-poster="https://images.unsplash.com/photo-1520034475321-cbe63696469a?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1520034475321-cbe63696469a?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>6) End-State Poster Restore</h3>
+                    <p>Campaign-ready behavior: reset progress when finished and return to poster.</p>
+                    <div class="chip-row"><span class="chip">reset-on-ended</span><span class="chip good">show-poster-on-ended</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="true" muted="true" playsinline="true" show-controls="true" controls-type="full"
+                        show-play-pause="true" show-seekbar="true" show-volume="true" show-speed="true" theme="dark" accent-color="#00d98c"
+                        reset-on-ended="true" show-poster-on-ended="true"
+                        desktop-poster="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+        </section>
+
+        <section class="section-heading" id="advanced-demos">
+            <h2>Advanced Demos</h2>
+            <p>Interaction, performance, timing, and behavior-focused presets from source attributes.</p>
+        </section>
+
+        <section class="demo-grid">
+            <article class="demo-card">
+                <div>
+                    <h3>7) Gesture + Ripple Interaction</h3>
+                    <p>YouTube-style double tap + triple tap seek plus visual ripple feedback.</p>
+                    <div class="chip-row"><span class="chip">double tap</span><span class="chip">triple tap</span><span class="chip good">ripple</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="false" playsinline="true" theme="dark" accent-color="#ff5f97"
+                        show-controls="true" controls-type="full" pause-on-out-of-view="true"
+                        show-seek-buttons="true" seek-button-seconds="15" double-tap-seek="true" double-tap-seek-seconds="10"
+                        triple-tap-seek="true" triple-tap-seconds="30" enable-tap-ripple="true"
+                        desktop-poster="https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>8) Fast Controls Hide + Custom Seek Step</h3>
+                    <p>Quick UI fade and larger seek step for short-form videos.</p>
+                    <div class="chip-row"><span class="chip">controls-hide-delay</span><span class="chip">seek-step=15</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="false" playsinline="true" theme="dark" accent-color="#69a1ff"
+                        show-controls="true" controls-type="full" show-seekbar="true" show-volume="true" show-fullscreen="true"
+                        controls-hide-delay="1200" seek-step="15"
+                        desktop-poster="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>9) Smart Visibility Thresholds</h3>
+                    <p>Custom lazy/pause intersection thresholds for scroll-heavy pages.</p>
+                    <div class="chip-row"><span class="chip good">lazy-threshold</span><span class="chip">pause-threshold</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="true" playsinline="true" theme="dark" accent-color="#8ea5ff"
+                        pause-on-out-of-view="true" pause-on-tab-hide="true" lazy-threshold="0.35" pause-threshold="0.25"
+                        show-controls="true" controls-type="full" show-center-play="true"
+                        desktop-poster="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>10) Performance Mode Grid Preview</h3>
+                    <p>Use this on pages with many players to optimize operations.</p>
+                    <div class="chip-row"><span class="chip good">performance-mode</span><span class="chip">lazy=true</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" performance-mode="true" autoplay="false" muted="true" playsinline="true"
+                        theme="dark" accent-color="#63d9ff" show-controls="true" controls-type="minimal" show-center-play="true"
+                        desktop-poster="https://images.unsplash.com/photo-1499084732479-de2c02d45fc4?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1499084732479-de2c02d45fc4?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>11) Theme + Background Overrides</h3>
+                    <p>Custom controls and center-play backgrounds for brand color systems.</p>
+                    <div class="chip-row"><span class="chip">controls-background</span><span class="chip">center-play-background</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="false" playsinline="true" theme="light" accent-color="#6f8dff"
+                        controls-background="rgba(255,255,255,0.88)" center-play-background="rgba(111,141,255,0.25)"
+                        show-controls="true" controls-type="full" show-play-pause="true" show-seekbar="true" show-volume="true"
+                        desktop-poster="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>12) Custom Preload + Video Type</h3>
+                    <p>Explicit preload and mime-type configuration for stricter environments.</p>
+                    <div class="chip-row"><span class="chip">preload=metadata</span><span class="chip">video-type</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="false" preload="metadata" video-type="video/mp4" autoplay="false" muted="false"
+                        playsinline="true" show-controls="true" controls-type="full" theme="dark" accent-color="#8e72ff"
+                        desktop-poster="https://images.unsplash.com/photo-1496171367470-9ed9a91ea931?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1496171367470-9ed9a91ea931?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-row">
+            <div class="footer-left">
+                <span>© ElementMint • Shadow Plyr Demo Studio</span>
+                <span class="made-with">Made with
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 15 3.95 4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z"/></svg>
+                    by ElementMint
+                </span>
+            </div>
+            <div class="footer-social">
+                <a href="https://github.com/elementmint/shadow-plyr" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.3-1.6-1.3-1.6-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6A4.7 4.7 0 0 1 6.4 8c-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1a4.7 4.7 0 0 1 1.2 3.2c0 4.7-2.8 5.7-5.5 6 .4.3.8 1 .8 2.1v3.1c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+                    GitHub
+                </a>
+                <a href="https://www.npmjs.com/package/@elementmints/shadow-plyr" target="_blank" rel="noopener noreferrer" aria-label="npm package">
+                    <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M1 17V1h16v16h-4V5H9v12H1Zm4-4h2V7H5v6Zm4 0h2V7H9v6Zm4 0h2V7h-2v6Z"/></svg>
+                    npm
+                </a>
+                <a href="https://www.buymeacoffee.com/elementmint" target="_blank" rel="noopener noreferrer" aria-label="Buy me a coffee">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6h1a3 3 0 0 1 0 6h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V6h16Zm1 2v2a1 1 0 0 0 0-2v0ZM6 3h2v2H6V3Zm4 0h2v2h-2V3Zm4 0h2v2h-2V3Z"/></svg>
+                    Buy me a coffee
+                </a>
+            </div>
         </div>
-    </div>
+    </footer>
 
-    <div class="demo-section">
-        <h2>Web Component Example 3: Lazy Load with Green Theme</h2>
-        <p>Lazy loading enabled, custom green accent color</p>
-        <div class="video-container-half">
-            <shadow-plyr lazy="true" pause-on-out-of-view="true" autoplay="true" loop="false" muted="true"
-                playsinline="true" reset-on-ended="true" show-poster-on-ended="true" show-controls="true"
-                controls-type="full" show-play-pause="true" show-seekbar="true" show-volume="true" show-speed="true"
-                theme="custom" accent-color="#00ff88"
-                desktop-poster="https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5?w=1200&h=675&fit=crop"
-                mobile-poster="https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5?w=800&h=450&fit=crop"
-                desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4"
-                mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4">
-            </shadow-plyr>
-        </div>
-    </div>
-
-    <div class="demo-section">
-        <h2>Web Component Example 4: Custom Icons</h2>
-        <p>Custom play/pause icons using Font Awesome or custom SVG</p>
-        <div class="video-container-full">
-            <shadow-plyr lazy="true" pause-on-out-of-view="true" autoplay="false" loop="false" muted="true"
-                playsinline="true" show-controls="true" controls-type="full" show-center-play="true"
-                show-play-pause="true" show-seekbar="true" theme="dark" accent-color="#ff6b6b"
-                play-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 8l6 4-6 4z" fill="currentColor"/></svg>'
-                pause-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="8" width="2" height="8" fill="currentColor"/><rect x="13" y="8" width="2" height="8" fill="currentColor"/></svg>'
-                desktop-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=675&fit=crop"
-                mobile-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=450&fit=crop"
-                desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4"
-                mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4">
-            </shadow-plyr>
-        </div>
-    </div>
-
-    <!-- Load the built script -->
-    <script type="module" src="dist/index.js"></script>
-    <!-- Alternatively, if you prefer UMD: -->
-    <!-- <script src="./dist/index.umd.js"></script> -->
+    <script type="module" src="../dist/index.js"></script>
 </body>
 </html>
