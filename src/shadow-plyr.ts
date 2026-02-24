@@ -4,8 +4,8 @@
  *
  * @version 1.1.0
  * @license MIT
- * @author Simrndeep Singh
- * @copyright (c) 2026 Simrndeep Singh
+ * @author Element Mint
+ * @copyright (c) 2026 Element Mint
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files.
