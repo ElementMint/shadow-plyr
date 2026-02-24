@@ -248,6 +248,73 @@
         .note h4 { margin: 0 0 0.35rem; font-size: 0.9rem; }
         .note p { margin: 0; color: var(--text-soft); font-size: 0.84rem; line-height: 1.55; }
 
+
+        .brand-links {
+            margin-top: 0.9rem;
+            display: flex;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+        }
+
+        .brand-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.42rem 0.72rem;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-soft);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .brand-link svg,
+        .footer-social a svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
+        .footer-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .made-with {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.28rem;
+            color: var(--text-soft);
+        }
+
+        .made-with svg {
+            width: 14px;
+            height: 14px;
+            fill: #ff5f8f;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-social a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.4rem 0.68rem;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-soft);
+            font-weight: 650;
+            font-size: 0.8rem;
+        }
+
         .site-footer {
             margin-top: 1.9rem;
             border-top: 1px solid var(--line);
@@ -305,6 +372,20 @@
                     <span class="badge">Responsive Layout</span>
                     <span class="badge">ElementMint Branding</span>
                     <span class="badge">Feature Complete Preview</span>
+                </div>
+                <div class="brand-links">
+                    <a class="brand-link" href="https://github.com/elementmint/shadow-plyr" target="_blank" rel="noopener noreferrer" aria-label="Shadow Plyr on GitHub">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.3-1.6-1.3-1.6-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6A4.7 4.7 0 0 1 6.4 8c-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1a4.7 4.7 0 0 1 1.2 3.2c0 4.7-2.8 5.7-5.5 6 .4.3.8 1 .8 2.1v3.1c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+                        GitHub
+                    </a>
+                    <a class="brand-link" href="https://www.npmjs.com/package/@elementmints/shadow-plyr" target="_blank" rel="noopener noreferrer" aria-label="Shadow Plyr npm package">
+                        <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M1 17V1h16v16h-4V5H9v12H1Zm4-4h2V7H5v6Zm4 0h2V7H9v6Zm4 0h2V7h-2v6Z"/></svg>
+                        npm
+                    </a>
+                    <a class="brand-link" href="https://www.buymeacoffee.com/elementmint" target="_blank" rel="noopener noreferrer" aria-label="Buy Me a Coffee for ElementMint">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6h1a3 3 0 0 1 0 6h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V6h16Zm1 2v2a1 1 0 0 0 0-2v0ZM6 3h2v2H6V3Zm4 0h2v2h-2V3Zm4 0h2v2h-2V3Z"/></svg>
+                        Buy me a coffee
+                    </a>
                 </div>
             </div>
             <div class="stats">
@@ -545,8 +626,27 @@
 
     <footer class="site-footer">
         <div class="container footer-row">
-            <span>© ElementMint • Shadow Plyr Demo Studio</span>
-            <span>Creative UI • Intuitive Presets • Web Components</span>
+            <div class="footer-left">
+                <span>© ElementMint • Shadow Plyr Demo Studio</span>
+                <span class="made-with">Made with
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 15 3.95 4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z"/></svg>
+                    by ElementMint
+                </span>
+            </div>
+            <div class="footer-social">
+                <a href="https://github.com/elementmint/shadow-plyr" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.3-1.6-1.3-1.6-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6A4.7 4.7 0 0 1 6.4 8c-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1a4.7 4.7 0 0 1 1.2 3.2c0 4.7-2.8 5.7-5.5 6 .4.3.8 1 .8 2.1v3.1c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></svg>
+                    GitHub
+                </a>
+                <a href="https://www.npmjs.com/package/@elementmints/shadow-plyr" target="_blank" rel="noopener noreferrer" aria-label="npm package">
+                    <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M1 17V1h16v16h-4V5H9v12H1Zm4-4h2V7H5v6Zm4 0h2V7H9v6Zm4 0h2V7h-2v6Z"/></svg>
+                    npm
+                </a>
+                <a href="https://www.buymeacoffee.com/elementmint" target="_blank" rel="noopener noreferrer" aria-label="Buy me a coffee">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6h1a3 3 0 0 1 0 6h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V6h16Zm1 2v2a1 1 0 0 0 0-2v0ZM6 3h2v2H6V3Zm4 0h2v2h-2V3Zm4 0h2v2h-2V3Z"/></svg>
+                    Buy me a coffee
+                </a>
+            </div>
         </div>
     </footer>
 
