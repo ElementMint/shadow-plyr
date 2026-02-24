@@ -2,7 +2,7 @@
 
 > A fully customizable, production-grade Web Component video player built with TypeScript, Shadow DOM and zero framework dependency.
 
-[![npm version](https://img.shields.io/npm/v/shadow-plyr.svg)](https://www.npmjs.com/package/shadow-plyr)
+[![npm version](https://img.shields.io/npm/v/shadow-plyr.svg)](https://www.npmjs.com/package/@elementmints/shadow-plyr)
 [![license](https://img.shields.io/npm/l/shadow-plyr.svg)](LICENSE)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/shadow-plyr)](https://bundlephobia.com/package/shadow-plyr)
 
