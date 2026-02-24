@@ -3,375 +3,367 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta property="og:title" content="Shadow Plyr - Professional Web Component Video Player Demos">
-    <meta property="og:description" content="Explore complete Shadow Plyr demo configurations with premium UI, controls, gestures, and customization.">
+    <meta property="og:title" content="ElementMint Shadow Plyr - Complete Demo Studio">
+    <meta property="og:description" content="Creative, intuitive demo website with complete Shadow Plyr configurations and ElementMint branding.">
     <meta property="og:image" content="social-preview.svg">
     <meta property="og:type" content="website">
 
-    <title>Shadow Plyr • Professional Demo Site</title>
+    <title>ElementMint • Shadow Plyr Demo Studio</title>
 
     <style>
         :root {
-            --bg: #070b17;
-            --bg-soft: #0d1426;
-            --panel: rgba(13, 20, 39, 0.75);
-            --panel-strong: rgba(12, 18, 33, 0.92);
-            --panel-border: rgba(255, 255, 255, 0.14);
-            --text: #eff3ff;
-            --text-soft: #b7c2e8;
-            --brand: #6d8bff;
-            --brand-2: #66d4ff;
-            --ok: #00da96;
-            --warning: #ffb95d;
-            --shadow: 0 18px 70px rgba(0, 0, 0, 0.45);
-            --radius-xl: 24px;
+            --bg: #050912;
+            --bg-soft: #0c1326;
+            --panel: rgba(12, 19, 36, 0.74);
+            --panel-strong: rgba(11, 17, 31, 0.95);
+            --line: rgba(255, 255, 255, 0.12);
+            --text: #f3f6ff;
+            --text-soft: #b4c0e6;
+            --brand: #6f8dff;
+            --brand-2: #5ee1ff;
+            --brand-3: #18d89a;
+            --shadow: 0 20px 70px rgba(2, 6, 20, 0.52);
             --radius-lg: 16px;
+            --radius-xl: 26px;
+            --max: 1320px;
         }
 
         * { box-sizing: border-box; }
-
         html, body { margin: 0; }
 
         body {
-            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
             color: var(--text);
             background:
-                radial-gradient(circle at 0% 0%, rgba(109, 139, 255, 0.22), transparent 36%),
-                radial-gradient(circle at 100% 0%, rgba(102, 212, 255, 0.2), transparent 31%),
-                radial-gradient(circle at 90% 100%, rgba(104, 66, 255, 0.18), transparent 35%),
+                radial-gradient(circle at 5% 0%, rgba(111, 141, 255, 0.27), transparent 34%),
+                radial-gradient(circle at 98% 0%, rgba(94, 225, 255, 0.2), transparent 28%),
+                radial-gradient(circle at 95% 95%, rgba(24, 216, 154, 0.17), transparent 30%),
                 var(--bg);
             min-height: 100vh;
         }
 
         a { color: inherit; text-decoration: none; }
-
-        .shell {
-            width: min(1280px, calc(100% - 2rem));
-            margin: 0 auto;
-        }
+        .container { width: min(var(--max), calc(100% - 1.6rem)); margin: 0 auto; }
 
         .site-header {
             position: sticky;
             top: 0;
-            z-index: 20;
-            backdrop-filter: blur(10px);
-            background: linear-gradient(to bottom, rgba(7, 11, 23, 0.92), rgba(7, 11, 23, 0.62));
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 99;
+            border-bottom: 1px solid var(--line);
+            backdrop-filter: blur(12px);
+            background: linear-gradient(to bottom, rgba(5, 9, 18, 0.95), rgba(5, 9, 18, 0.7));
         }
 
-        .header-inner {
+        .header-row {
+            min-height: 72px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 1rem;
-            min-height: 70px;
+            flex-wrap: wrap;
+            padding: 0.6rem 0;
         }
 
         .brand {
             display: inline-flex;
             align-items: center;
-            gap: 0.65rem;
+            gap: 0.75rem;
             font-weight: 800;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.01em;
         }
 
-        .brand-mark {
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
+        .brand-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 11px;
             background: linear-gradient(135deg, var(--brand), var(--brand-2));
-            box-shadow: 0 8px 20px rgba(102, 212, 255, 0.33);
+            box-shadow: 0 8px 22px rgba(94, 225, 255, 0.35);
         }
 
-        .nav-links {
+        .brand small {
+            display: block;
+            color: var(--text-soft);
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .top-nav {
             display: flex;
-            align-items: center;
-            gap: 0.55rem;
+            gap: 0.45rem;
             flex-wrap: wrap;
         }
 
-        .nav-link {
+        .pill {
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
             color: var(--text-soft);
-            border: 1px solid rgba(255, 255, 255, 0.12);
             padding: 0.42rem 0.8rem;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.04);
-            font-size: 0.84rem;
+            font-size: 0.82rem;
             font-weight: 600;
         }
 
         .hero {
-            margin-top: 1.4rem;
-            border: 1px solid var(--panel-border);
+            margin-top: 1.3rem;
             border-radius: var(--radius-xl);
-            padding: 2rem;
-            background: linear-gradient(145deg, rgba(13, 21, 42, 0.8), rgba(10, 17, 33, 0.85));
+            border: 1px solid var(--line);
+            background: linear-gradient(150deg, rgba(13, 22, 41, 0.9), rgba(8, 14, 29, 0.9));
             box-shadow: var(--shadow);
+            padding: 1.8rem;
             display: grid;
             grid-template-columns: 1.2fr 0.8fr;
-            gap: 1.2rem;
-            align-items: center;
+            gap: 1rem;
         }
 
         .hero h1 {
             margin: 0;
-            font-size: clamp(2rem, 4vw, 3.3rem);
-            line-height: 1.08;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1.05;
             letter-spacing: -0.03em;
         }
+
+        .hero h1 span { color: var(--brand-2); }
 
         .hero p {
             margin: 0.9rem 0 0;
             color: var(--text-soft);
-            line-height: 1.72;
-            max-width: 760px;
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 780px;
         }
 
-        .hero-metrics {
+        .stats {
             display: grid;
-            grid-template-columns: repeat(2, minmax(100px, 1fr));
-            gap: 0.75rem;
+            gap: 0.65rem;
+            grid-template-columns: repeat(2, minmax(110px, 1fr));
         }
 
-        .metric {
-            border: 1px solid rgba(255, 255, 255, 0.14);
+        .stat {
+            border: 1px solid var(--line);
+            border-radius: 12px;
             background: rgba(255, 255, 255, 0.04);
+            padding: 0.72rem;
+        }
+
+        .stat b { display: block; font-size: 1.2rem; margin-bottom: 0.2rem; }
+        .stat span { color: var(--text-soft); font-size: 0.8rem; }
+
+        .showcase-bar {
+            margin-top: 1rem;
+            border: 1px solid var(--line);
             border-radius: 14px;
-            padding: 0.75rem;
-        }
-
-        .metric b {
-            display: block;
-            font-size: 1.15rem;
-            margin-bottom: 0.22rem;
-        }
-
-        .metric span {
-            color: var(--text-soft);
-            font-size: 0.82rem;
-        }
-
-        .section-title {
-            margin: 2rem 0 0.85rem;
+            background: var(--panel-strong);
+            padding: 0.8rem;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
 
-        .section-title h2 {
-            margin: 0;
-            font-size: clamp(1.2rem, 2vw, 1.6rem);
-        }
-
-        .section-title p {
-            margin: 0;
-            color: var(--text-soft);
-            font-size: 0.93rem;
-        }
-
-        .demo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
-            gap: 1rem;
-        }
-
-        .demo-card {
-            border: 1px solid var(--panel-border);
-            border-radius: var(--radius-lg);
-            background: var(--panel);
-            padding: 0.9rem;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            gap: 0.8rem;
-        }
-
-        .card-top h3 {
-            margin: 0;
-            font-size: 1.04rem;
-        }
-
-        .card-top p {
-            margin: 0.42rem 0 0;
-            color: var(--text-soft);
-            line-height: 1.55;
-            font-size: 0.9rem;
-        }
-
-        .chips {
-            display: flex;
-            gap: 0.4rem;
-            flex-wrap: wrap;
-            margin-top: 0.6rem;
-        }
-
-        .chip {
+        .badge {
+            font-size: 0.72rem;
             border-radius: 999px;
-            border: 1px solid rgba(180, 200, 255, 0.3);
-            background: rgba(91, 119, 214, 0.2);
-            padding: 0.25rem 0.58rem;
-            font-size: 0.7rem;
-            color: #e6ebff;
+            border: 1px solid rgba(184, 204, 255, 0.35);
+            padding: 0.3rem 0.62rem;
+            background: rgba(91, 125, 233, 0.2);
+            color: #e9eeff;
             font-weight: 700;
-            letter-spacing: 0.015em;
+            letter-spacing: 0.02em;
             text-transform: uppercase;
         }
 
-        .chip.ok { border-color: rgba(0, 218, 150, 0.4); background: rgba(0, 218, 150, 0.15); }
-        .chip.warn { border-color: rgba(255, 185, 93, 0.45); background: rgba(255, 185, 93, 0.15); }
+        .section-heading {
+            margin: 1.7rem 0 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
 
-        .player-wrap {
+        .section-heading h2 { margin: 0; font-size: clamp(1.2rem, 2vw, 1.65rem); }
+        .section-heading p { margin: 0; color: var(--text-soft); font-size: 0.9rem; }
+
+        .demo-grid {
+            display: grid;
+            gap: 0.95rem;
+            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+        }
+
+        .demo-card {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            padding: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .demo-card h3 { margin: 0; font-size: 1.02rem; }
+        .demo-card p { margin: 0.35rem 0 0; color: var(--text-soft); font-size: 0.89rem; line-height: 1.55; }
+
+        .chip-row { margin-top: 0.55rem; display: flex; gap: 0.35rem; flex-wrap: wrap; }
+        .chip {
+            border: 1px solid rgba(177, 201, 255, 0.28);
+            border-radius: 999px;
+            background: rgba(85, 116, 218, 0.2);
+            color: #e7edff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 0.24rem 0.53rem;
+            text-transform: uppercase;
+        }
+
+        .chip.good { border-color: rgba(24, 216, 154, 0.45); background: rgba(24, 216, 154, 0.18); }
+
+        .player-box {
             border: 1px solid rgba(255, 255, 255, 0.09);
             border-radius: 12px;
             overflow: hidden;
-            background: #02040e;
+            background: #02040b;
             aspect-ratio: 16 / 9;
         }
 
-        shadow-plyr {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
+        shadow-plyr { width: 100%; height: 100%; display: block; }
 
-        .info-panel {
-            margin-top: 1.2rem;
-            border: 1px solid var(--panel-border);
+        .notes {
+            margin-top: 1rem;
+            border: 1px solid var(--line);
             border-radius: var(--radius-lg);
             background: var(--panel-strong);
-            padding: 1rem;
+            padding: 0.95rem;
             display: grid;
+            gap: 0.7rem;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 0.75rem;
         }
 
-        .info-item {
+        .note {
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
+            border-radius: 10px;
             background: rgba(255, 255, 255, 0.03);
-            padding: 0.75rem;
+            padding: 0.72rem;
         }
 
-        .info-item h4 { margin: 0 0 0.35rem; font-size: 0.93rem; }
-        .info-item p { margin: 0; color: var(--text-soft); font-size: 0.85rem; line-height: 1.55; }
+        .note h4 { margin: 0 0 0.35rem; font-size: 0.9rem; }
+        .note p { margin: 0; color: var(--text-soft); font-size: 0.84rem; line-height: 1.55; }
 
         .site-footer {
-            margin-top: 2rem;
-            padding: 1.1rem 0 1.7rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 1.9rem;
+            border-top: 1px solid var(--line);
+            padding: 1rem 0 1.4rem;
         }
 
-        .footer-inner {
+        .footer-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 1rem;
+            gap: 0.8rem;
             flex-wrap: wrap;
             color: var(--text-soft);
-            font-size: 0.88rem;
+            font-size: 0.86rem;
         }
 
-        @media (max-width: 950px) {
-            .hero {
-                grid-template-columns: 1fr;
-                padding: 1.35rem;
-            }
-
-            .shell { width: min(1280px, calc(100% - 1.2rem)); }
-
-            .header-inner { min-height: 62px; }
+        @media (max-width: 980px) {
+            .hero { grid-template-columns: 1fr; padding: 1.25rem; }
+            .container { width: min(var(--max), calc(100% - 1.1rem)); }
+            .header-row { min-height: 62px; }
         }
     </style>
 </head>
 <body>
     <header class="site-header">
-        <div class="shell header-inner">
-            <a class="brand" href="#top">
-                <span class="brand-mark"></span>
-                <span>Shadow Plyr</span>
+        <div class="container header-row">
+            <a class="brand" href="#top" aria-label="ElementMint Shadow Plyr home">
+                <span class="brand-badge"></span>
+                <span>
+                    ElementMint • Shadow Plyr
+                    <small>Creative Web Component Demo Studio</small>
+                </span>
             </a>
-            <nav class="nav-links">
-                <a class="nav-link" href="#demos">Demo Gallery</a>
-                <a class="nav-link" href="#feature-notes">Feature Notes</a>
-                <a class="nav-link" href="https://github.com/elementmint/shadow-plyr" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <nav class="top-nav">
+                <a class="pill" href="#core-demos">Core Demos</a>
+                <a class="pill" href="#advanced-demos">Advanced Demos</a>
+                <a class="pill" href="#notes">Implementation Notes</a>
+                <a class="pill" href="https://github.com/elementmint/shadow-plyr" target="_blank" rel="noopener noreferrer">GitHub</a>
             </nav>
         </div>
     </header>
 
-    <main class="shell" id="top">
+    <main class="container" id="top">
         <section class="hero">
             <div>
-                <h1>Professional Shadow Plyr Demo Website</h1>
+                <h1>Complete <span>Shadow Plyr</span> Demo Experience</h1>
                 <p>
-                    A full showcase for GitHub Pages with production-style UI. Browse all major player modes in one place:
-                    autoplay hero, complete controls, minimal embeds, gesture navigation, end-state recovery, and custom icon
-                    branding. This layout is intentionally built like a product demo page, not just a test file.
+                    Built with ElementMint branding and production-style UI, this page demonstrates nearly every meaningful
+                    player configuration from the component source and README: control modes, gestures, tooltips, poster
+                    behavior, thresholds, seek steps, custom icons, and performance-friendly setups.
                 </p>
+                <div class="showcase-bar">
+                    <span class="badge">GitHub Pages Ready</span>
+                    <span class="badge">12 Demo Variants</span>
+                    <span class="badge">Responsive Layout</span>
+                    <span class="badge">ElementMint Branding</span>
+                    <span class="badge">Feature Complete Preview</span>
+                </div>
             </div>
-            <div class="hero-metrics">
-                <div class="metric"><b>6</b><span>Ready-to-use demos</span></div>
-                <div class="metric"><b>100%</b><span>Responsive layout</span></div>
-                <div class="metric"><b>2</b><span>Built-in themes</span></div>
-                <div class="metric"><b>Touch</b><span>Gesture interactions</span></div>
+            <div class="stats">
+                <div class="stat"><b>12</b><span>Playable demo cards</span></div>
+                <div class="stat"><b>2</b><span>Theme systems</span></div>
+                <div class="stat"><b>Tap</b><span>Double/triple gesture modes</span></div>
+                <div class="stat"><b>Lazy</b><span>Out-of-view optimizations</span></div>
             </div>
         </section>
 
-        <section class="section-title" id="demos">
-            <h2>Demo Gallery</h2>
-            <p>Each card highlights a practical use-case and set of component attributes.</p>
+        <section class="section-heading" id="core-demos">
+            <h2>Core Demos</h2>
+            <p>Foundational setups covering theme, controls, autoplay, and icon customization.</p>
         </section>
 
         <section class="demo-grid">
             <article class="demo-card">
-                <div class="card-top">
-                    <h3>1) Hero Autoplay Banner</h3>
-                    <p>Landing-page style video block with autoplay loop, out-of-view pause, and large center button.</p>
-                    <div class="chips">
-                        <span class="chip ok">Autoplay</span><span class="chip">Muted</span><span class="chip">Loop</span>
-                    </div>
+                <div>
+                    <h3>1) Hero Autoplay</h3>
+                    <p>Landing-page hero with autoplay loop, large center play button, and branded accent.</p>
+                    <div class="chip-row"><span class="chip good">autoplay</span><span class="chip">loop</span><span class="chip">center-play-size</span></div>
                 </div>
-                <div class="player-wrap">
-                    <shadow-plyr lazy="false" autoplay="true" pause-on-out-of-view="true" loop="true" muted="true"
-                        playsinline="true" theme="dark" accent-color="#7fceff" center-play-background="rgba(127, 206, 255, 0.2)"
-                        center-play-size="100" desktop-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=800&fit=crop"
-                        mobile-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=600&fit=crop"
+                <div class="player-box">
+                    <shadow-plyr lazy="false" autoplay="true" pause-on-out-of-view="true" loop="true" muted="true" playsinline="true"
+                        show-controls="true" controls-type="full" show-center-play="true" show-play-pause="true" show-seekbar="true"
+                        show-volume="true" show-fullscreen="true" theme="dark" accent-color="#66d4ff" center-play-size="100"
+                        desktop-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=450&fit=crop"
                         desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
                 </div>
             </article>
 
             <article class="demo-card">
-                <div class="card-top">
-                    <h3>2) Full Controls (Light)</h3>
-                    <p>Complete control stack for learning platforms or media portals, with speed controls and tooltips.</p>
-                    <div class="chips">
-                        <span class="chip">Full Controls</span><span class="chip">Speed</span><span class="chip ok">Tooltips</span>
-                    </div>
+                <div>
+                    <h3>2) Full Controls + Tooltips</h3>
+                    <p>Production control bar with speed selector and custom tooltip text labels.</p>
+                    <div class="chip-row"><span class="chip">full-controls</span><span class="chip good">tooltips</span><span class="chip">speed-options</span></div>
                 </div>
-                <div class="player-wrap">
-                    <shadow-plyr lazy="true" pause-on-out-of-view="true" autoplay="false" loop="false" muted="false"
-                        playsinline="true" show-controls="true" controls-type="full" show-center-play="true" show-play-pause="true"
-                        show-seekbar="true" show-volume="true" show-fullscreen="true" show-speed="true" speed-options="0.5,0.75,1,1.25,1.5,2"
-                        theme="light" accent-color="#2463ff" show-tooltips="true"
-                        desktop-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=800&fit=crop"
-                        mobile-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="false" playsinline="true" theme="light" accent-color="#305bff"
+                        show-controls="true" controls-type="full" show-center-play="true" show-play-pause="true" show-seekbar="true"
+                        show-volume="true" show-fullscreen="true" show-speed="true" show-tooltips="true"
+                        tooltip-play="Play video" tooltip-pause="Pause video" tooltip-fullscreen="Enter fullscreen" tooltip-center-play="Start"
+                        speed-options="0.5,0.75,1,1.25,1.5,2" desktop-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=450&fit=crop"
                         desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
                 </div>
             </article>
 
             <article class="demo-card">
-                <div class="card-top">
+                <div>
                     <h3>3) Minimal Controls</h3>
-                    <p>Compact setup for article embeds and simple portfolio pages with reduced UI complexity.</p>
-                    <div class="chips">
-                        <span class="chip warn">Minimal</span><span class="chip">Dark Theme</span>
-                    </div>
+                    <p>Lean setup for blog embeds with only critical controls visible.</p>
+                    <div class="chip-row"><span class="chip">minimal</span><span class="chip">compact ui</span></div>
                 </div>
-                <div class="player-wrap">
+                <div class="player-box">
                     <shadow-plyr lazy="true" autoplay="false" muted="false" loop="false" playsinline="true" theme="dark"
-                        show-controls="true" controls-type="minimal" show-center-play="true" show-play-pause="true"
-                        show-seekbar="true" show-volume="false" show-fullscreen="true"
+                        show-controls="true" controls-type="minimal" show-center-play="true" show-play-pause="true" show-seekbar="true"
+                        show-volume="false" show-fullscreen="true"
                         desktop-poster="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&h=675&fit=crop"
                         mobile-poster="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=450&fit=crop"
                         desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
@@ -379,17 +371,72 @@
             </article>
 
             <article class="demo-card">
-                <div class="card-top">
-                    <h3>4) Gesture + Ripple Mode</h3>
-                    <p>Mobile interaction demo with double-tap/triple-tap seek and visual tap ripple feedback.</p>
-                    <div class="chips">
-                        <span class="chip">Double Tap</span><span class="chip">Triple Tap</span><span class="chip ok">Ripple</span>
-                    </div>
+                <div>
+                    <h3>4) Controls Hidden + Poster Start</h3>
+                    <p>Poster-first story mode with hidden controls and click-to-play behavior.</p>
+                    <div class="chip-row"><span class="chip">show-controls=false</span><span class="chip good">poster-click-play</span></div>
                 </div>
-                <div class="player-wrap">
-                    <shadow-plyr lazy="true" autoplay="false" muted="false" loop="false" playsinline="true"
-                        pause-on-out-of-view="true" show-controls="true" controls-type="full" theme="dark"
-                        accent-color="#ff5d94" show-seek-buttons="true" double-tap-seek="true" double-tap-seek-seconds="10"
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="true" playsinline="true" show-controls="false"
+                        show-center-play="true" poster-click-play="true" theme="dark" center-play-background="rgba(0,0,0,0.55)"
+                        desktop-poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>5) Custom Icon Branding</h3>
+                    <p>Replace default controls with custom SVG icons to match ElementMint visual language.</p>
+                    <div class="chip-row"><span class="chip good">custom icons</span><span class="chip">brand ui</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="true" playsinline="true" theme="dark" accent-color="#ffbf59"
+                        show-controls="true" controls-type="full" show-center-play="true" show-play-pause="true" show-seekbar="true"
+                        play-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 8l6 4-6 4z" fill="currentColor"/></svg>'
+                        pause-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="8" width="2" height="8" fill="currentColor"/><rect x="13" y="8" width="2" height="8" fill="currentColor"/></svg>'
+                        volume-icon='<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 4V6L7 10H3z" fill="currentColor"/></svg>'
+                        muted-icon='<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 4V6L7 10H3z" fill="currentColor"/><line x1="18" y1="8" x2="22" y2="16" stroke="currentColor" stroke-width="2"/><line x1="22" y1="8" x2="18" y2="16" stroke="currentColor" stroke-width="2"/></svg>'
+                        desktop-poster="https://images.unsplash.com/photo-1520034475321-cbe63696469a?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1520034475321-cbe63696469a?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>6) End-State Poster Restore</h3>
+                    <p>Campaign-ready behavior: reset progress when finished and return to poster.</p>
+                    <div class="chip-row"><span class="chip">reset-on-ended</span><span class="chip good">show-poster-on-ended</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="true" muted="true" playsinline="true" show-controls="true" controls-type="full"
+                        show-play-pause="true" show-seekbar="true" show-volume="true" show-speed="true" theme="dark" accent-color="#00d98c"
+                        reset-on-ended="true" show-poster-on-ended="true"
+                        desktop-poster="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+        </section>
+
+        <section class="section-heading" id="advanced-demos">
+            <h2>Advanced Demos</h2>
+            <p>Interaction, performance, timing, and behavior-focused presets from source attributes.</p>
+        </section>
+
+        <section class="demo-grid">
+            <article class="demo-card">
+                <div>
+                    <h3>7) Gesture + Ripple Interaction</h3>
+                    <p>YouTube-style double tap + triple tap seek plus visual ripple feedback.</p>
+                    <div class="chip-row"><span class="chip">double tap</span><span class="chip">triple tap</span><span class="chip good">ripple</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="false" playsinline="true" theme="dark" accent-color="#ff5f97"
+                        show-controls="true" controls-type="full" pause-on-out-of-view="true"
+                        show-seek-buttons="true" seek-button-seconds="15" double-tap-seek="true" double-tap-seek-seconds="10"
                         triple-tap-seek="true" triple-tap-seconds="30" enable-tap-ripple="true"
                         desktop-poster="https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5?w=1200&h=675&fit=crop"
                         mobile-poster="https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5?w=800&h=450&fit=crop"
@@ -398,64 +445,108 @@
             </article>
 
             <article class="demo-card">
-                <div class="card-top">
-                    <h3>5) End-State Reset Flow</h3>
-                    <p>Great for product explainers: when video completes, restore poster state and allow replay.</p>
-                    <div class="chips">
-                        <span class="chip">Reset On End</span><span class="chip">Poster on End</span><span class="chip ok">Campaigns</span>
-                    </div>
+                <div>
+                    <h3>8) Fast Controls Hide + Custom Seek Step</h3>
+                    <p>Quick UI fade and larger seek step for short-form videos.</p>
+                    <div class="chip-row"><span class="chip">controls-hide-delay</span><span class="chip">seek-step=15</span></div>
                 </div>
-                <div class="player-wrap">
-                    <shadow-plyr lazy="true" autoplay="true" muted="true" loop="false" playsinline="true" show-controls="true"
-                        controls-type="full" reset-on-ended="true" show-poster-on-ended="true" show-play-pause="true" show-seekbar="true"
-                        show-volume="true" show-speed="true" theme="dark" accent-color="#00d98c"
-                        desktop-poster="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?w=1200&h=675&fit=crop"
-                        mobile-poster="https://images.unsplash.com/photo-1434626881859-194d67b2b86f?w=800&h=450&fit=crop"
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="false" playsinline="true" theme="dark" accent-color="#69a1ff"
+                        show-controls="true" controls-type="full" show-seekbar="true" show-volume="true" show-fullscreen="true"
+                        controls-hide-delay="1200" seek-step="15"
+                        desktop-poster="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=800&h=450&fit=crop"
                         desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
                 </div>
             </article>
 
             <article class="demo-card">
-                <div class="card-top">
-                    <h3>6) Custom Icon Branding</h3>
-                    <p>Swap default icons with your own SVG set to align player visuals with brand guidelines.</p>
-                    <div class="chips">
-                        <span class="chip">Custom SVG</span><span class="chip">Branding</span><span class="chip warn">Design System</span>
-                    </div>
+                <div>
+                    <h3>9) Smart Visibility Thresholds</h3>
+                    <p>Custom lazy/pause intersection thresholds for scroll-heavy pages.</p>
+                    <div class="chip-row"><span class="chip good">lazy-threshold</span><span class="chip">pause-threshold</span></div>
                 </div>
-                <div class="player-wrap">
-                    <shadow-plyr lazy="true" pause-on-out-of-view="true" autoplay="false" loop="false" muted="true"
-                        playsinline="true" show-controls="true" controls-type="full" show-center-play="true" show-play-pause="true"
-                        show-seekbar="true" theme="dark" accent-color="#ffbd4a"
-                        play-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 8l6 4-6 4z" fill="currentColor"/></svg>'
-                        pause-icon='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9" y="8" width="2" height="8" fill="currentColor"/><rect x="13" y="8" width="2" height="8" fill="currentColor"/></svg>'
-                        desktop-poster="https://images.unsplash.com/photo-1520034475321-cbe63696469a?w=1200&h=675&fit=crop"
-                        mobile-poster="https://images.unsplash.com/photo-1520034475321-cbe63696469a?w=800&h=450&fit=crop"
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="true" playsinline="true" theme="dark" accent-color="#8ea5ff"
+                        pause-on-out-of-view="true" pause-on-tab-hide="true" lazy-threshold="0.35" pause-threshold="0.25"
+                        show-controls="true" controls-type="full" show-center-play="true"
+                        desktop-poster="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>10) Performance Mode Grid Preview</h3>
+                    <p>Use this on pages with many players to optimize operations.</p>
+                    <div class="chip-row"><span class="chip good">performance-mode</span><span class="chip">lazy=true</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" performance-mode="true" autoplay="false" muted="true" playsinline="true"
+                        theme="dark" accent-color="#63d9ff" show-controls="true" controls-type="minimal" show-center-play="true"
+                        desktop-poster="https://images.unsplash.com/photo-1499084732479-de2c02d45fc4?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1499084732479-de2c02d45fc4?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>11) Theme + Background Overrides</h3>
+                    <p>Custom controls and center-play backgrounds for brand color systems.</p>
+                    <div class="chip-row"><span class="chip">controls-background</span><span class="chip">center-play-background</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="true" autoplay="false" muted="false" playsinline="true" theme="light" accent-color="#6f8dff"
+                        controls-background="rgba(255,255,255,0.88)" center-play-background="rgba(111,141,255,0.25)"
+                        show-controls="true" controls-type="full" show-play-pause="true" show-seekbar="true" show-volume="true"
+                        desktop-poster="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800&h=450&fit=crop"
+                        desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
+                </div>
+            </article>
+
+            <article class="demo-card">
+                <div>
+                    <h3>12) Custom Preload + Video Type</h3>
+                    <p>Explicit preload and mime-type configuration for stricter environments.</p>
+                    <div class="chip-row"><span class="chip">preload=metadata</span><span class="chip">video-type</span></div>
+                </div>
+                <div class="player-box">
+                    <shadow-plyr lazy="false" preload="metadata" video-type="video/mp4" autoplay="false" muted="false"
+                        playsinline="true" show-controls="true" controls-type="full" theme="dark" accent-color="#8e72ff"
+                        desktop-poster="https://images.unsplash.com/photo-1496171367470-9ed9a91ea931?w=1200&h=675&fit=crop"
+                        mobile-poster="https://images.unsplash.com/photo-1496171367470-9ed9a91ea931?w=800&h=450&fit=crop"
                         desktop-video="https://media.w3.org/2010/05/sintel/trailer.mp4" mobile-video="https://media.w3.org/2010/05/sintel/trailer.mp4"></shadow-plyr>
                 </div>
             </article>
         </section>
 
-        <section class="info-panel" id="feature-notes">
-            <article class="info-item">
-                <h4>Developer Tip</h4>
-                <p>This page is fully static and ideal for GitHub Pages. Keep `dist/index.js` built before deployment.</p>
+        <section class="notes" id="notes">
+            <article class="note">
+                <h4>From README + Source</h4>
+                <p>These demos are intentionally aligned with `README.md` examples and `observedAttributes` in `shadow-plyr.ts`.</p>
             </article>
-            <article class="info-item">
-                <h4>Accessibility Note</h4>
-                <p>Use clear focus styles and tooltips for keyboard users when full controls are enabled.</p>
+            <article class="note">
+                <h4>GitHub Pages Ready</h4>
+                <p>This page references the local build using <code>../dist/index.js</code> so the demo works from the <code>demo/</code> folder.</p>
             </article>
-            <article class="info-item">
-                <h4>Performance Note</h4>
-                <p>For heavy pages, prefer `lazy="true"` and pause videos when out of view for reduced CPU usage.</p>
+            <article class="note">
+                <h4>ElementMint Branding</h4>
+                <p>Brand-colored hero, badges, chips, and accents create a consistent demo identity for presentations and QA.</p>
+            </article>
+            <article class="note">
+                <h4>Quick Extension</h4>
+                <p>Add or remove cards by duplicating a <code>.demo-card</code> block—each card is a standalone preset module.</p>
             </article>
         </section>
     </main>
 
     <footer class="site-footer">
-        <div class="shell footer-inner">
-            <span>© Shadow Plyr Demo • Built for GitHub Pages showcase</span>
-            <span>Made with Web Components • Responsive • Production Ready</span>
+        <div class="container footer-row">
+            <span>© ElementMint • Shadow Plyr Demo Studio</span>
+            <span>Creative UI • Intuitive Presets • Web Components</span>
         </div>
     </footer>
 
