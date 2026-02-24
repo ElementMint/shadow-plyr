@@ -12,10 +12,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - run: npm install
-      - run: npm run build
+      - name: Install Dependencies
+        run: npm install
 
-      - uses: peaceiris/actions-gh-pages@v3
+      - name: Build Library
+        run: npm run build
+
+      # 🔥 IMPORTANT: Copy dist into demo
+      - name: Copy dist to demo
+        run: |
+          rm -rf demo/dist
+          cp -r dist demo/dist
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./demo
