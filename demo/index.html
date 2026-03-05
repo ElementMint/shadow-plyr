@@ -814,6 +814,45 @@
                   </shadow-plyr>
                 </div>
             </article>
+            <article class="demo-card">
+                <div>
+                    <h3>14) Custom full controls</h3>
+                    <!-- <div class="chip-row"><span class=ship></span></div> -->
+                </div>
+                <div class="player-box">
+                    <shadow-plyr
+                    show-controls="true"
+                    show-quality="true"
+                    show-speed="true"
+                    show-loop="true"
+                    show-pip="true"
+                    show-subtitles="true"
+                    screenshot="true"
+                    theater-mode="true"
+                    single-active="true"
+                    responsive-controls="true"
+                    show-seekbar="true"
+                  >
+
+                  <picture>
+                    <source media="(max-width: 768px)" srcset="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=675&fit=crop">
+                    <source media="(min-width: 769px)" srcset="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=675&fit=crop">
+                    <img src="https://example.com/poster.jpg" alt="Custom poster">
+                  </picture>
+                    <!-- Desktop sources -->
+                    <source src="https://cdn.jsdelivr.net/npm/video-media-samples/big-buck-bunny-480p-30sec.mp4"  data-quality="480"  media="(min-width: 769px)" type="video/mp4">
+                    <source src="https://cdn.jsdelivr.net/npm/video-media-samples/big-buck-bunny-1080p-30sec.mp4"  data-quality="1080"  media="(min-width: 769px)" type="video/mp4">
+                
+                    <!-- Mobile sources -->
+                    <source src="https://placeholdervideo.dev/640x480"   data-quality="480"  media="(max-width: 768px)" type="video/mp4">
+                    <source src="https://placeholdervideo.dev/640x1080"   data-quality="1080"  media="(max-width: 768px)" type="video/mp4">
+                
+                    <!-- Subtitles -->
+                    <track kind="subtitles" src="https://raw.githubusercontent.com/chintan9/Big-Buck-Bunny/master/subtitles-en.vtt" srclang="en" label="English">
+                    <track kind="subtitles" src="https://raw.githubusercontent.com/chintan9/Big-Buck-Bunny/master/subtitles-en.vtt" srclang="es" label="Español">
+                  </shadow-plyr>
+                </div>
+            </article>
         </section>
     </main>
 

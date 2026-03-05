@@ -800,11 +800,6 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   /**
-   * Sets up HLS.js after the module has been loaded.
-   * @param hlsModule - The entire hls.js module (including default export and Events)
-   * @param src - The video source URL
-   */
-  /**
    * Sets up the HLS.js instance after the module has been loaded.
    * @param hlsModule - The entire hls.js module object (containing the constructor and Events)
    * @param src - The URL of the HLS stream (must be a valid HTTPS URL)
@@ -829,6 +824,7 @@ export class ShadowPlyr extends HTMLElement {
       this.#populateQualityMenu();
     });
   }
+
   #populateQualityMenu(): void {
     if (!this.#$qualityMenu) return;
     this.#$qualityMenu.innerHTML = "";
@@ -1184,6 +1180,21 @@ export class ShadowPlyr extends HTMLElement {
     }
   }
 
+  /**
+ * Validates all sources inside a <picture> element.
+ * Returns true only if every img.src and source.srcset is a valid HTTPS URL.
+ */
+#isValidPicture(picture: HTMLPictureElement): boolean {
+  const img = picture.querySelector('img');
+  if (img && !this.#isValidMediaUrl(img.src)) return false;
+  const sources = picture.querySelectorAll('source');
+  // Convert NodeList to array to ensure iterability in all TS environments
+  for (const source of Array.from(sources)) {
+    if (source.srcset && !this.#isValidMediaUrl(source.srcset)) return false;
+  }
+  return true;
+}
+
   #getConfig(): VideoPlayerConfig {
     const now = Date.now();
     if (
@@ -1296,7 +1307,11 @@ export class ShadowPlyr extends HTMLElement {
 
   #render(): void {
     const config = this.#getConfig();
-    this.#hasPoster = !!(config.desktopPoster || config.mobilePoster);
+
+    // Check if a <picture> exists in light DOM and is valid
+    const lightPicture = this.querySelector('picture') as HTMLPictureElement | null;
+    const useLightPicture = lightPicture && this.#isValidPicture(lightPicture);
+    this.#hasPoster = !!(useLightPicture || config.desktopPoster || config.mobilePoster);
     this.#posterVisible = this.#hasPoster && !this.#hasPlayedOnce;
     this.#resumeKey = config.resume
       ? `shadowplyr-${config.desktopVideo || config.mobileVideo}`
@@ -1309,22 +1324,34 @@ export class ShadowPlyr extends HTMLElement {
     wrapper.setAttribute("aria-label", "Video player");
     wrapper.setAttribute("part", "shadow-plyr-wrapper");
 
-    if (
-      this.#isValidMediaUrl(config.desktopPoster) ||
-      this.#isValidMediaUrl(config.mobilePoster)
-    ) {
+    // Handle poster: use light‑DOM picture if available and valid, otherwise create from attributes
+    if (useLightPicture) {
+      // Sanitize: remove any on* attributes from the picture and its children
+      const allElements = [lightPicture, ...Array.from(lightPicture.querySelectorAll('*'))];
+      allElements.forEach(el => {
+        for (let i = el.attributes.length - 1; i >= 0; i--) {
+          const attr = el.attributes[i];
+          if (attr.name.startsWith('on')) {
+            el.removeAttribute(attr.name);
+          }
+        }
+      });
+      wrapper.appendChild(lightPicture);
+    } else if (this.#isValidMediaUrl(config.desktopPoster) || this.#isValidMediaUrl(config.mobilePoster)) {
       const picture = document.createElement("picture");
-      if (config.mobilePoster) {
+      if (config.mobilePoster && this.#isValidMediaUrl(config.mobilePoster)) {
         const source = document.createElement("source");
         source.media = "(max-width: 768px)";
         source.srcset = config.mobilePoster;
         picture.appendChild(source);
       }
-      const img = document.createElement("img");
-      img.src = config.desktopPoster;
-      img.alt = "Video thumbnail";
-      img.loading = "lazy";
-      picture.appendChild(img);
+      if (this.#isValidMediaUrl(config.desktopPoster)) {
+        const img = document.createElement("img");
+        img.src = config.desktopPoster;
+        img.alt = "Video thumbnail";
+        img.loading = "lazy";
+        picture.appendChild(img);
+      }
       wrapper.appendChild(picture);
     }
 
