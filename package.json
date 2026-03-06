@@ -42,10 +42,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/elementmint/shadow-plyr.git"
+    "url": "https://github.com/ElementMint/shadow-plyr.git"
   },
   "bugs": {
-    "url": "https://github.com/elementmint/shadow-plyr/issues"
+    "url": "https://github.com/ElementMint/shadow-plyr/issues"
   },
   "homepage": "https://elementmint.github.io/shadow-plyr/",
   "peerDependencies": {
