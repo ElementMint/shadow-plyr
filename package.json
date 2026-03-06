@@ -1,14 +1,25 @@
 {
   "name": "@elementmints/shadow-plyr",
   "type": "module",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "publishConfig": {
     "access": "public"
   },
   "description": "A fully customizable, responsive web component for video playback with advanced features.",
   "main": "dist/index.umd.js",
   "module": "dist/index.js",
-  "types": "dist/types/index.d.ts",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.js"
+    }
+  },
   "files": [
     "dist"
   ],
@@ -19,6 +30,7 @@
     "prepare": "husky"
   },
   "keywords": [
+    "Element Mint",
     "video",
     "player",
     "web-component",
@@ -35,8 +47,17 @@
   "bugs": {
     "url": "https://github.com/elementmint/shadow-plyr/issues"
   },
-  "homepage": "https://github.com/elementmint/shadow-plyr/blob/develop/README.md",
+  "homepage": "https://elementmint.github.io/shadow-plyr/",
+  "peerDependencies": {
+    "hls.js": "^1.6.0"
+  },
+  "peerDependenciesMeta": {
+    "hls.js": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "hls.js": "^1.6.15",
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@lhci/cli": "^0.15.1",
