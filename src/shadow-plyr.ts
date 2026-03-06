@@ -2,11 +2,11 @@
  * Shadow Plyr
  * A production-grade Web Component video player
  *
- * @version 2.2.0
+ * @version 2.0.0
  * @license MIT
  * @author Element Mint
  * @copyright (c) 2026 Element Mint
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files.
  */
@@ -32,19 +32,21 @@ sheet.replaceSync(`
   }
   video {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    object-fit: contain !important; display: block; pointer-events: auto !important;
+    object-fit: contain; display: block; pointer-events: auto;
     opacity: 0; transition: opacity .3s ease; will-change: opacity;
+    will-change: opacity, transform;
+  transform: translateZ(0);
   }
   .video-loaded.is-playing video,
-  .video-loaded:not(.poster-visible) video { opacity: 1 !important; }
-  video::-webkit-media-controls { display: none !important; }
+  .video-loaded:not(.poster-visible) video { opacity: 1 }
+  video::-webkit-media-controls { display: none }
   picture {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block;
     z-index: 5; opacity: 0; transition: opacity .3s ease; pointer-events: none;
     cursor: pointer;
   }
-  picture img { width: 100%; height: 100%; object-fit: contain !important; display: block; }
-  .poster-visible picture { opacity: 1 !important; pointer-events: auto !important; }
+  picture img { width: 100%; height: 100%; object-fit: contain display: block; }
+  .poster-visible picture { opacity: 1; pointer-events: auto; }
   .video-loading::after {
     content: ''; position: absolute; top: 50%; left: 50%; width: 40px; height: 40px;
     margin: -20px 0 0 -20px; border: 3px solid rgba(255,255,255,.3);
@@ -85,23 +87,54 @@ sheet.replaceSync(`
     opacity: 1; transform: translateY(0); pointer-events: auto;
   }
   .video-loaded.is-playing .video-controls-bar { opacity: 0; transform: translateY(100%); pointer-events: none; }
-  .video-seekbar {
-    width: 100%; height: var(--seekbar-height, 5px); background: rgba(255,255,255,.3);
-    border-radius: 3px; cursor: pointer; position: relative; margin-bottom: 5px;
-  }
-  .video-seekbar-progress {
-    height: 100%; border-radius: 3px; width: 0%; position: relative;
-    transition: width .1s linear; background: var(--accent-color, #fff); will-change: width;
-  }
-  .video-seekbar-buffer {
-    position: absolute; top: 0; left: 0; height: 100%;
-    background: rgba(255,255,255,.2); border-radius: 3px; pointer-events: none;
-  }
-  .video-seekbar-handle {
-    position: absolute; right: -6px; top: 50%; transform: translateY(-50%);
-    width: 12px; height: 12px; border-radius: 50%; background: var(--accent-color, #fff);
-    opacity: 0; transition: opacity .2s;
-  }
+ .video-seekbar {
+  position: relative;
+  width: 100%;
+  height: 14px;
+}
+
+.video-seekbar-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  transform: translateY(-50%);
+  background: rgba(255,255,255,.3);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.video-seekbar-buffer {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,.2);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.video-seekbar-progress{
+height:8px;
+}
+
+.video-seekbar-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--accent-color,#ff8c42);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.video-seekbar-handle {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-color,#ff8c42);
+  transform: translate(-50%, -50%);
+}
   .video-seekbar:hover .video-seekbar-handle { opacity: 1; }
   .video-controls-row { display: flex; align-items: center; gap: 15px; }
   .video-control-btn {
@@ -171,6 +204,13 @@ sheet.replaceSync(`
   .video-center-play:hover .tooltip {
     opacity: 1;
   }
+
+  .video-control-btn.disabled,
+.video-control-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
   @media (max-width: 768px) {
     .video-center-play { width: 60px; height: 60px; }
     .video-center-play svg { width: 30px; height: 30px; }
@@ -179,7 +219,7 @@ sheet.replaceSync(`
     .video-volume-slider { display: none; }
     .video-time-display { font-size: 11px; }
   }
-  .responsive-hidden { display: none !important; }
+  .responsive-hidden { display: none }
   .responsive-more-menu .video-control-btn { display: flex; width: 100%; padding: 10px; }
 
   .tap-ripple {
@@ -247,6 +287,8 @@ sheet.replaceSync(`
     box-shadow: 0 0 20px rgba(0,0,0,.5);
     top:auto;
     left:auto;
+    border-radius:8px;
+    overflow:hidden;
   }
   .mini-player .video-volume-slider,
 .mini-player .video-time-display,
@@ -316,6 +358,7 @@ export class ShadowPlyr extends HTMLElement {
   #$seekbar: HTMLElement | null = null;
   #$seekbarProgress: HTMLElement | null = null;
   #$seekbarBuffer: HTMLElement | null = null;
+  #$seekbarHandle!: HTMLElement;
   #$timeDisplay: HTMLElement | null = null;
   #$volumeProgress: HTMLElement | null = null;
   #$speedMenu: HTMLElement | null = null;
@@ -326,6 +369,7 @@ export class ShadowPlyr extends HTMLElement {
   #$subtitleText: HTMLElement | null = null;
   #$moreMenu: HTMLElement | null = null;
   #$moreBtn: HTMLElement | null = null;
+  #$seekbarFill!: HTMLElement;
   #tapCount = 0;
   #tapTimeout: number | null = null;
   #resizeObserver: ResizeObserver | null = null;
@@ -402,10 +446,18 @@ export class ShadowPlyr extends HTMLElement {
   #toggleFullscreen = (e?: Event): void => {
     if (e) e.stopPropagation();
     const elem = this.#$container;
+    const video = this.#videoElement;
+
     if (
       !document.fullscreenElement &&
       !(document as any).webkitFullscreenElement
     ) {
+      // Safari prefers fullscreen on video element
+      if (video && "webkitEnterFullscreen" in video) {
+        (video as any).webkitEnterFullscreen();
+        return;
+      }
+
       if (elem?.requestFullscreen) elem.requestFullscreen();
       else if (elem && "webkitRequestFullscreen" in elem)
         (elem as any).webkitRequestFullscreen();
@@ -441,6 +493,7 @@ export class ShadowPlyr extends HTMLElement {
   #toggleTheaterMode = (): void => {
     this.#theaterMode = !this.#theaterMode;
     this.#$container?.classList.toggle("theater-mode", this.#theaterMode);
+    this.classList.toggle("theater-mode", this.#theaterMode);
     this.#emit("theater-mode-change", { enabled: this.#theaterMode });
   };
 
@@ -449,9 +502,11 @@ export class ShadowPlyr extends HTMLElement {
     if (!this.#miniPlayerActive) {
       this.#miniPlayerActive = true;
       this.#$wrapper?.classList.add("mini-player");
+      this.classList.add("mini-player");
     } else {
       this.#miniPlayerActive = false;
       this.#$wrapper?.classList.remove("mini-player");
+      this.classList.remove("mini-player");
     }
     this.#emit("mini-player-change", { active: this.#miniPlayerActive });
   };
@@ -581,7 +636,14 @@ export class ShadowPlyr extends HTMLElement {
     video.pause();
 
     video.src = source.src;
+
+    // Safari rendering fix
+    video.style.display = "none";
     video.load();
+
+    requestAnimationFrame(() => {
+      video.style.display = "";
+    });
 
     video.addEventListener(
       "loadedmetadata",
@@ -732,6 +794,8 @@ export class ShadowPlyr extends HTMLElement {
     if (!this.#videoElement) return;
     wrapper.classList.remove("video-loading");
     wrapper.classList.add("video-loaded");
+    this.classList.remove("video-loading");
+    this.classList.add("video-loaded");
     this.#isInitialized = true;
     this.#videoLoaded = true;
 
@@ -739,8 +803,33 @@ export class ShadowPlyr extends HTMLElement {
     this.#subtitlesTracks = Array.from(this.#videoElement.textTracks).filter(
       (t) => t.kind === "subtitles" || t.kind === "captions"
     );
-    if (config.showSubtitles && this.#subtitlesTracks.length > 0) {
-      this.#populateSubtitleMenu(wrapper);
+    const subtitleBtn = wrapper.querySelector(
+      ".video-subtitle-btn"
+    ) as HTMLButtonElement | null;
+    
+    if (config.showSubtitles) {
+      if (this.#subtitlesTracks.length > 0) {
+        this.#populateSubtitleMenu(wrapper);
+    
+        if (subtitleBtn) {
+          subtitleBtn.disabled = false;
+          subtitleBtn.classList.remove("disabled");
+          subtitleBtn.setAttribute("aria-disabled", "false");
+    
+          const tooltip = subtitleBtn.querySelector(".subtitle-tooltip");
+          if (tooltip) tooltip.textContent = "Subtitles";
+        }
+      } else {
+        // Disable button when no subtitle tracks
+        if (subtitleBtn) {
+          subtitleBtn.disabled = true;
+          subtitleBtn.classList.add("disabled");
+          subtitleBtn.setAttribute("aria-disabled", "true");
+    
+          const tooltip = subtitleBtn.querySelector(".subtitle-tooltip");
+          if (tooltip) tooltip.textContent = "No subtitles available";
+        }
+      }
     }
 
     // Setup quality menu
@@ -768,6 +857,7 @@ export class ShadowPlyr extends HTMLElement {
       this.#hasPlayedOnce = false;
       this.#posterVisible = true;
       wrapper.classList.add("poster-visible");
+      this.classList.add("poster-visible");
     }
     this.#updateFullscreenIcon(false, wrapper);
     this.#emit("video-ready", { duration: this.#videoElement.duration });
@@ -839,6 +929,7 @@ export class ShadowPlyr extends HTMLElement {
       opt.className = "video-quality-option";
       opt.disabled = true;
       opt.textContent = "No qualities available";
+      opt.setAttribute("part", "quality-option");
       this.#$qualityMenu?.appendChild(opt);
       return;
     }
@@ -850,6 +941,7 @@ export class ShadowPlyr extends HTMLElement {
     }`;
     auto.setAttribute("data-quality", "auto");
     auto.textContent = "Auto";
+    auto.setAttribute("part", "quality-option");
     auto.addEventListener("click", () => this.#setAutoQuality());
     this.#$qualityMenu?.appendChild(auto);
 
@@ -864,10 +956,9 @@ export class ShadowPlyr extends HTMLElement {
         opt.className = `video-quality-option ${
           this.#currentQualityIndex === index ? "active" : ""
         }`;
-
         opt.setAttribute("data-quality", index.toString());
         opt.textContent = levelLabel;
-
+        opt.setAttribute("part", "quality-option");
         opt.addEventListener("click", () => this.#setHlsQuality(index));
 
         this.#$qualityMenu?.appendChild(opt);
@@ -882,6 +973,7 @@ export class ShadowPlyr extends HTMLElement {
       }`;
       opt.setAttribute("data-quality", label);
       opt.textContent = `${label}p`;
+      opt.setAttribute("part", "quality-option");
       opt.addEventListener("click", () => this.#setManualQuality(label));
       this.#$qualityMenu?.appendChild(opt);
     });
@@ -917,6 +1009,7 @@ export class ShadowPlyr extends HTMLElement {
     }`;
     off.setAttribute("data-subtitle", "");
     off.textContent = "Off";
+    off.setAttribute("part", "subtitle-option");
     off.addEventListener("click", () => this.#setSubtitle(null));
     menu?.appendChild(off);
     // Track options
@@ -927,9 +1020,30 @@ export class ShadowPlyr extends HTMLElement {
       }`;
       opt.setAttribute("data-subtitle", track.label);
       opt.textContent = track.label || "Subtitles";
+      opt.setAttribute("part", "subtitle-option");
       opt.addEventListener("click", () => this.#setSubtitle(track.label));
       menu?.appendChild(opt);
     });
+  }
+
+  #startVideoFrameLoop(): void {
+    const video = this.#videoElement;
+    if (!video) return;
+
+    const loop = () => {
+      if (!this.#videoElement) return;
+
+      this.#updateSeekbar();
+      this.#updateTimeDisplay();
+
+      if ("requestVideoFrameCallback" in video) {
+        (video as any).requestVideoFrameCallback(loop);
+      } else {
+        this.#rafId = requestAnimationFrame(loop);
+      }
+    };
+
+    loop();
   }
 
   #onPlaying = (wrapper: HTMLElement): void => {
@@ -939,17 +1053,25 @@ export class ShadowPlyr extends HTMLElement {
     });
     wrapper.classList.add("is-playing");
     wrapper.classList.remove("poster-visible");
+    this.classList.add("is-playing");
+    this.classList.remove("poster-visible");
     this.#isPlaying = true;
     this.#hasPlayedOnce = true;
     this.#posterVisible = false;
     this.#updatePlayPauseIcon(true, wrapper);
+    this.#startVideoFrameLoop();
   };
 
   #onPause = (wrapper: HTMLElement): void => {
+    if (this.#rafId) {
+      cancelAnimationFrame(this.#rafId);
+      this.#rafId = null;
+    }
     this.#emit("video-paused", {
       currentTime: this.#videoElement!.currentTime,
     });
     wrapper.classList.remove("is-playing");
+    this.classList.remove("is-playing");
     this.#isPlaying = false;
     this.#updatePlayPauseIcon(false, wrapper);
     const config = this.#getConfig();
@@ -969,12 +1091,14 @@ export class ShadowPlyr extends HTMLElement {
   #onEnded = (wrapper: HTMLElement, config: VideoPlayerConfig): void => {
     this.#emit("video-ended", { duration: this.#videoElement!.duration });
     wrapper.classList.remove("is-playing");
+    this.classList.remove("is-playing");
     this.#isPlaying = false;
     this.#updatePlayPauseIcon(false, wrapper);
     if (!config.loop) {
       if (config.resetOnEnded) this.#videoElement!.currentTime = 0;
       if (config.showPosterOnEnded && this.#hasPoster) {
         wrapper.classList.add("poster-visible");
+        this.classList.add("poster-visible");
         this.#posterVisible = true;
       }
     }
@@ -990,12 +1114,20 @@ export class ShadowPlyr extends HTMLElement {
   #onError = (wrapper: HTMLElement): void => {
     console.error("Video load error");
     wrapper.classList.remove("video-loading", "video-loaded");
+    this.classList.remove("video-loading", "video-loaded");
     this.#videoLoaded = false;
     this.#emit("video-error", { code: this.#videoElement?.error?.code });
   };
 
   #onFullscreenChange = (): void => {
-    const isFull = document.fullscreenElement === this.#$container;
+    const fsElement =
+      document.fullscreenElement || (document as any).webkitFullscreenElement;
+
+    const isFull =
+      fsElement === this.#$container ||
+      fsElement === this ||
+      (fsElement && this.contains(fsElement));
+
     this.#updateFullscreenIcon(isFull);
     this.#emit(isFull ? "video-fullscreen-enter" : "video-fullscreen-exit");
   };
@@ -1005,8 +1137,8 @@ export class ShadowPlyr extends HTMLElement {
     const buffered = this.#videoElement.buffered;
     if (buffered.length === 0) return;
     const end = buffered.end(buffered.length - 1);
-    const percent = (end / this.#videoElement.duration) * 100;
-    this.#$seekbarBuffer.style.width = percent + "%";
+    const percent = end / this.#videoElement.duration;
+    this.#$seekbarBuffer.style.transform = `scaleX(${percent})`;
   };
 
   #onPipEnter = (): void => {
@@ -1076,6 +1208,7 @@ export class ShadowPlyr extends HTMLElement {
 
   #throttledSeekbarUpdate: () => void;
   #throttledProgressUpdate: () => void;
+  #boundFullscreenChange: () => void;
 
   constructor() {
     super();
@@ -1084,9 +1217,10 @@ export class ShadowPlyr extends HTMLElement {
 
     this.#throttledSeekbarUpdate = throttle(
       this.#updateSeekbar.bind(this),
-      100
+      200
     );
-    this.#throttledProgressUpdate = throttle(this.#onProgress.bind(this), 500);
+    this.#throttledProgressUpdate = throttle(this.#onProgress.bind(this), 1000);
+    this.#boundFullscreenChange = this.#onFullscreenChange.bind(this);
   }
 
   static get observedAttributes(): string[] {
@@ -1181,19 +1315,19 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   /**
- * Validates all sources inside a <picture> element.
- * Returns true only if every img.src and source.srcset is a valid HTTPS URL.
- */
-#isValidPicture(picture: HTMLPictureElement): boolean {
-  const img = picture.querySelector('img');
-  if (img && !this.#isValidMediaUrl(img.src)) return false;
-  const sources = picture.querySelectorAll('source');
-  // Convert NodeList to array to ensure iterability in all TS environments
-  for (const source of Array.from(sources)) {
-    if (source.srcset && !this.#isValidMediaUrl(source.srcset)) return false;
+   * Validates all sources inside a <picture> element.
+   * Returns true only if every img.src and source.srcset is a valid HTTPS URL.
+   */
+  #isValidPicture(picture: HTMLPictureElement): boolean {
+    const img = picture.querySelector("img");
+    if (img && !this.#isValidMediaUrl(img.src)) return false;
+    const sources = picture.querySelectorAll("source");
+    // Convert NodeList to array to ensure iterability in all TS environments
+    for (const source of Array.from(sources)) {
+      if (source.srcset && !this.#isValidMediaUrl(source.srcset)) return false;
+    }
+    return true;
   }
-  return true;
-}
 
   #getConfig(): VideoPlayerConfig {
     const now = Date.now();
@@ -1309,9 +1443,15 @@ export class ShadowPlyr extends HTMLElement {
     const config = this.#getConfig();
 
     // Check if a <picture> exists in light DOM and is valid
-    const lightPicture = this.querySelector('picture') as HTMLPictureElement | null;
+    const lightPicture = this.querySelector(
+      "picture"
+    ) as HTMLPictureElement | null;
     const useLightPicture = lightPicture && this.#isValidPicture(lightPicture);
-    this.#hasPoster = !!(useLightPicture || config.desktopPoster || config.mobilePoster);
+    this.#hasPoster = !!(
+      useLightPicture ||
+      config.desktopPoster ||
+      config.mobilePoster
+    );
     this.#posterVisible = this.#hasPoster && !this.#hasPlayedOnce;
     this.#resumeKey = config.resume
       ? `shadowplyr-${config.desktopVideo || config.mobileVideo}`
@@ -1327,18 +1467,26 @@ export class ShadowPlyr extends HTMLElement {
     // Handle poster: use light‑DOM picture if available and valid, otherwise create from attributes
     if (useLightPicture) {
       // Sanitize: remove any on* attributes from the picture and its children
-      const allElements = [lightPicture, ...Array.from(lightPicture.querySelectorAll('*'))];
-      allElements.forEach(el => {
+      const allElements = [
+        lightPicture,
+        ...Array.from(lightPicture.querySelectorAll("*")),
+      ];
+      allElements.forEach((el) => {
         for (let i = el.attributes.length - 1; i >= 0; i--) {
           const attr = el.attributes[i];
-          if (attr.name.startsWith('on')) {
+          if (attr.name.startsWith("on")) {
             el.removeAttribute(attr.name);
           }
         }
       });
+      lightPicture.setAttribute("part", "poster");
       wrapper.appendChild(lightPicture);
-    } else if (this.#isValidMediaUrl(config.desktopPoster) || this.#isValidMediaUrl(config.mobilePoster)) {
+    } else if (
+      this.#isValidMediaUrl(config.desktopPoster) ||
+      this.#isValidMediaUrl(config.mobilePoster)
+    ) {
       const picture = document.createElement("picture");
+      picture.setAttribute("part", "poster");
       if (config.mobilePoster && this.#isValidMediaUrl(config.mobilePoster)) {
         const source = document.createElement("source");
         source.media = "(max-width: 768px)";
@@ -1366,6 +1514,7 @@ export class ShadowPlyr extends HTMLElement {
       centerPlay.setAttribute("role", "button");
       centerPlay.tabIndex = 0;
       centerPlay.setAttribute("aria-label", "Play video");
+      centerPlay.setAttribute("part", "center-play");
 
       const playSpan = document.createElement("span");
       playSpan.className = "play-icon";
@@ -1447,14 +1596,16 @@ export class ShadowPlyr extends HTMLElement {
   #createSeekButtons(config: VideoPlayerConfig): HTMLElement {
     const container = document.createElement("div");
     container.className = "video-seek-buttons";
+    container.setAttribute("part", "seek-buttons");
 
     const left = document.createElement("button");
     left.className = "seek-left";
     left.textContent = `-${config.seekButtonSeconds}s`;
-
+    left.setAttribute("part", "seek-left");
     const right = document.createElement("button");
     right.className = "seek-right";
     right.textContent = `+${config.seekButtonSeconds}s`;
+    right.setAttribute("part", "seek-right");
 
     left.addEventListener("click", () => {
       if (!this.#videoElement) return;
@@ -1481,12 +1632,12 @@ export class ShadowPlyr extends HTMLElement {
       this.getAttribute("pause-icon") || ""
     }`;
     if (IconCache.has(cacheKey)) return IconCache.get(cacheKey)!;
-  
+
     // Use DOMPurify's SVG profile – safe, and preserves all SVG content.
     const purifyOptions = {
       USE_PROFILES: { svg: true },
     };
-  
+
     const icons: IconSet = {
       play: DOMPurify.sanitize(
         this.getAttribute("play-icon") || DEFAULT_ICONS.play,
@@ -1509,7 +1660,8 @@ export class ShadowPlyr extends HTMLElement {
         purifyOptions
       ),
       exitFullscreen: DOMPurify.sanitize(
-        this.getAttribute("exit-fullscreen-icon") || DEFAULT_ICONS.exitFullscreen,
+        this.getAttribute("exit-fullscreen-icon") ||
+          DEFAULT_ICONS.exitFullscreen,
         purifyOptions
       ),
       speed: DOMPurify.sanitize(
@@ -1557,7 +1709,7 @@ export class ShadowPlyr extends HTMLElement {
         purifyOptions
       ),
     };
-  
+
     IconCache.set(cacheKey, icons);
     return icons;
   }
@@ -1580,24 +1732,62 @@ export class ShadowPlyr extends HTMLElement {
       seekbar.setAttribute("aria-valuemin", "0");
       seekbar.setAttribute("aria-valuemax", "100");
       seekbar.setAttribute("aria-valuenow", "0");
+      seekbar.setAttribute("part", "seekbar");
+
+      this.#$seekbar = seekbar;
+
+      /* TRACK (clipping layer) */
+
+      const track = document.createElement("div");
+      track.className = "video-seekbar-track";
+      track.setAttribute("part", "video-seekbar-track");
+
+      /* BUFFER */
 
       if (config.bufferProgress) {
         const buffer = document.createElement("div");
         buffer.className = "video-seekbar-buffer";
-        seekbar.appendChild(buffer);
+        buffer.setAttribute("part", "seekbar-buffer");
+
+        this.#$seekbarBuffer = buffer;
+        track.appendChild(buffer);
       }
+
+      /* PROGRESS */
 
       const progress = document.createElement("div");
       progress.className = "video-seekbar-progress";
+      progress.setAttribute("part", "video-seekbar-progress");
+
+      const fill = document.createElement("div");
+      fill.className = "video-seekbar-fill";
+      fill.setAttribute("part", "seekbar-progress");
+
+      this.#$seekbarFill = fill;
+
+      progress.appendChild(fill);
+      track.appendChild(progress);
+
+      /* HANDLE (outside track so it can overflow) */
+
       const handle = document.createElement("div");
       handle.className = "video-seekbar-handle";
-      progress.appendChild(handle);
-      seekbar.appendChild(progress);
+      handle.setAttribute("part", "seekbar-handle");
+
+      this.#$seekbarHandle = handle;
+
+      /* assemble */
+
+      seekbar.appendChild(track);
+      seekbar.appendChild(handle);
+
       controlsBar.appendChild(seekbar);
     }
 
     const row = document.createElement("div");
     row.className = "video-controls-row";
+    row.setAttribute("part", "controls-row");
+    controlsBar.appendChild(row);
 
     if (config.showPlayPause) {
       row.appendChild(this.#createPlayPauseButton(icons, config));
@@ -1609,10 +1799,12 @@ export class ShadowPlyr extends HTMLElement {
     const timeDisplay = document.createElement("div");
     timeDisplay.className = "video-time-display";
     timeDisplay.textContent = "0:00 / 0:00";
+    timeDisplay.setAttribute("part", "time-display");
     row.appendChild(timeDisplay);
 
     const spacer = document.createElement("div");
     spacer.className = "video-controls-spacer";
+    spacer.setAttribute("part", "controls-spacer");
     row.appendChild(spacer);
 
     if (config.showLoop) {
@@ -1652,7 +1844,6 @@ export class ShadowPlyr extends HTMLElement {
       row.appendChild(this.#createMoreButton(icons, config));
     }
 
-    controlsBar.appendChild(row);
     frag.appendChild(controlsBar);
     return frag;
   }
@@ -1666,6 +1857,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.className = "video-control-btn play-pause";
     btn.setAttribute("aria-label", "Play");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "play-pause");
 
     const playSpan = document.createElement("span");
     playSpan.className = "play-icon";
@@ -1685,9 +1877,11 @@ export class ShadowPlyr extends HTMLElement {
       const playTooltip = document.createElement("span");
       playTooltip.className = "tooltip play-tooltip";
       playTooltip.textContent = config.tooltipPlay;
+      playTooltip.setAttribute("part", "play-tooltip");
 
       const pauseTooltip = document.createElement("span");
       pauseTooltip.className = "tooltip pause-tooltip";
+      playTooltip.setAttribute("part", "pause-tooltip");
       pauseTooltip.style.display = "none";
       pauseTooltip.textContent = config.tooltipPause;
 
@@ -1700,11 +1894,13 @@ export class ShadowPlyr extends HTMLElement {
   #createVolumeControl(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
     const volumeControl = document.createElement("div");
     volumeControl.className = "video-volume-control";
+    volumeControl.setAttribute("part", "volume-control");
 
     const btn = document.createElement("button");
     btn.className = "video-control-btn volume-btn";
     btn.setAttribute("aria-label", "Mute");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "volume-btn");
 
     const volumeSpan = document.createElement("span");
     volumeSpan.className = "volume-icon";
@@ -1724,11 +1920,13 @@ export class ShadowPlyr extends HTMLElement {
       const volTooltip = document.createElement("span");
       volTooltip.className = "tooltip volume-tooltip";
       volTooltip.textContent = config.tooltipMute;
+      volTooltip.setAttribute("part", "volume-tooltip");
 
       const mutedTooltip = document.createElement("span");
       mutedTooltip.className = "tooltip muted-tooltip";
       mutedTooltip.style.display = "none";
       mutedTooltip.textContent = config.tooltipUnmute;
+      volTooltip.setAttribute("part", "mute-tooltip");
 
       btn.appendChild(volTooltip);
       btn.appendChild(mutedTooltip);
@@ -1744,9 +1942,11 @@ export class ShadowPlyr extends HTMLElement {
     slider.setAttribute("aria-valuemin", "0");
     slider.setAttribute("aria-valuemax", "100");
     slider.setAttribute("aria-valuenow", "100");
+    slider.setAttribute("part", "volume-slider");
 
     const progress = document.createElement("div");
     progress.className = "video-volume-progress";
+    progress.setAttribute("part", "volume-progress");
     slider.appendChild(progress);
 
     volumeControl.appendChild(slider);
@@ -1756,8 +1956,9 @@ export class ShadowPlyr extends HTMLElement {
   #createLoopButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
     const btn = document.createElement("button");
     btn.className = "video-control-btn loop-btn";
-    btn.setAttribute("aria-label", "Loop");
+    btn.setAttribute("aria-label", "Enable loop");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "loop-btn");
 
     const loopSpan = document.createElement("span");
     loopSpan.className = "loop-icon";
@@ -1766,10 +1967,18 @@ export class ShadowPlyr extends HTMLElement {
     btn.appendChild(loopSpan);
 
     if (config.showTooltips) {
-      const tooltip = document.createElement("span");
-      tooltip.className = "tooltip loop-tooltip";
-      tooltip.textContent = "Toggle loop";
-      btn.appendChild(tooltip);
+      // Tooltip when loop is ON
+      const onTooltip = document.createElement("span");
+      onTooltip.className = "tooltip loop-on-tooltip";
+      onTooltip.textContent = "Disable loop";
+      onTooltip.style.display = "none"; // initially hidden
+      btn.appendChild(onTooltip);
+
+      // Tooltip when loop is OFF
+      const offTooltip = document.createElement("span");
+      offTooltip.className = "tooltip loop-off-tooltip";
+      offTooltip.textContent = "Enable loop";
+      btn.appendChild(offTooltip);
     }
     return btn;
   }
@@ -1779,6 +1988,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.className = "video-control-btn pip-btn";
     btn.setAttribute("aria-label", "Picture in Picture");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "pip-btn");
 
     const pipSpan = document.createElement("span");
     pipSpan.className = "pip-icon";
@@ -1790,6 +2000,7 @@ export class ShadowPlyr extends HTMLElement {
       const tooltip = document.createElement("span");
       tooltip.className = "tooltip pip-tooltip";
       tooltip.textContent = "Picture in Picture";
+      tooltip.setAttribute("part", "pip-tooltip");
       btn.appendChild(tooltip);
     }
     return btn;
@@ -1801,6 +2012,7 @@ export class ShadowPlyr extends HTMLElement {
   ): HTMLElement {
     const container = document.createElement("div");
     container.className = "video-subtitle-control";
+    container.setAttribute("part", "subtitle-control");
 
     const btn = document.createElement("button");
     btn.className = "video-control-btn video-subtitle-btn";
@@ -1808,6 +2020,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.setAttribute("aria-haspopup", "true");
     btn.setAttribute("aria-expanded", "false");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "subtitle-btn");
 
     const iconSpan = document.createElement("span");
     iconSpan.setAttribute("aria-hidden", "true");
@@ -1817,12 +2030,14 @@ export class ShadowPlyr extends HTMLElement {
     const textSpan = document.createElement("span");
     textSpan.className = "subtitle-text";
     textSpan.textContent = "CC";
+    textSpan.setAttribute("part", "subtitle-text");
     btn.appendChild(textSpan);
 
     if (config.showTooltips) {
       const tooltip = document.createElement("span");
       tooltip.className = "tooltip subtitle-tooltip";
       tooltip.textContent = "Subtitles";
+      tooltip.setAttribute("part", "subtitle-tooltip");
       btn.appendChild(tooltip);
     }
 
@@ -1831,6 +2046,7 @@ export class ShadowPlyr extends HTMLElement {
     const menu = document.createElement("div");
     menu.className = "video-subtitle-menu";
     menu.setAttribute("role", "menu");
+    menu.setAttribute("part", "subtitle-menu");
     container.appendChild(menu);
 
     return container;
@@ -1839,6 +2055,7 @@ export class ShadowPlyr extends HTMLElement {
   #createQualityButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
     const container = document.createElement("div");
     container.className = "video-quality-control";
+    container.setAttribute("part", "quality-control");
 
     const btn = document.createElement("button");
     btn.className = "video-control-btn video-quality-btn";
@@ -1846,6 +2063,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.setAttribute("aria-haspopup", "true");
     btn.setAttribute("aria-expanded", "false");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "quality-btn");
 
     const iconSpan = document.createElement("span");
     iconSpan.setAttribute("aria-hidden", "true");
@@ -1855,12 +2073,14 @@ export class ShadowPlyr extends HTMLElement {
     const textSpan = document.createElement("span");
     textSpan.className = "quality-text";
     textSpan.textContent = "Auto";
+    textSpan.setAttribute("part", "quality-text");
     btn.appendChild(textSpan);
 
     if (config.showTooltips) {
       const tooltip = document.createElement("span");
       tooltip.className = "tooltip quality-tooltip";
       tooltip.textContent = "Quality";
+      tooltip.setAttribute("part", "quality-tooltip");
       btn.appendChild(tooltip);
     }
 
@@ -1869,6 +2089,7 @@ export class ShadowPlyr extends HTMLElement {
     const menu = document.createElement("div");
     menu.className = "video-quality-menu";
     menu.setAttribute("role", "menu");
+    menu.setAttribute("part", "quality-menu");
     container.appendChild(menu);
 
     return container;
@@ -1877,6 +2098,7 @@ export class ShadowPlyr extends HTMLElement {
   #createSpeedButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
     const container = document.createElement("div");
     container.className = "video-speed-control";
+    container.setAttribute("part", "speed-control");
 
     const btn = document.createElement("button");
     btn.className = "video-control-btn video-speed-btn";
@@ -1884,6 +2106,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.setAttribute("aria-haspopup", "true");
     btn.setAttribute("aria-expanded", "false");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "speed-btn");
 
     const iconSpan = document.createElement("span");
     iconSpan.setAttribute("aria-hidden", "true");
@@ -1893,12 +2116,14 @@ export class ShadowPlyr extends HTMLElement {
     const textSpan = document.createElement("span");
     textSpan.className = "speed-text";
     textSpan.textContent = "1x";
+    textSpan.setAttribute("part", "speed-text");
     btn.appendChild(textSpan);
 
     if (config.showTooltips) {
       const tooltip = document.createElement("span");
       tooltip.className = "tooltip speed-tooltip";
       tooltip.textContent = config.tooltipSpeed;
+      tooltip.setAttribute("part", "speed-tooltip");
       btn.appendChild(tooltip);
     }
 
@@ -1907,6 +2132,7 @@ export class ShadowPlyr extends HTMLElement {
     const menu = document.createElement("div");
     menu.className = "video-speed-menu";
     menu.setAttribute("role", "menu");
+    menu.setAttribute("part", "speed-menu");
 
     config.speedOptions.forEach((speed) => {
       const opt = document.createElement("button");
@@ -1915,6 +2141,7 @@ export class ShadowPlyr extends HTMLElement {
       opt.tabIndex = -1;
       opt.setAttribute("data-speed", speed.toString());
       opt.textContent = speed + "x";
+      opt.setAttribute("part", "speed-option");
       menu.appendChild(opt);
     });
 
@@ -1927,6 +2154,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.className = "video-control-btn theater-btn";
     btn.setAttribute("aria-label", "Theater mode");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "theater-btn");
 
     const theaterSpan = document.createElement("span");
     theaterSpan.className = "theater-icon";
@@ -1938,6 +2166,7 @@ export class ShadowPlyr extends HTMLElement {
       const tooltip = document.createElement("span");
       tooltip.className = "tooltip theater-tooltip";
       tooltip.textContent = "Theater mode";
+      tooltip.setAttribute("part", "theater-tooltip");
       btn.appendChild(tooltip);
     }
     return btn;
@@ -1951,6 +2180,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.className = "video-control-btn screenshot-btn";
     btn.setAttribute("aria-label", "Screenshot");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "screenshot-btn");
 
     const screenSpan = document.createElement("span");
     screenSpan.className = "screenshot-icon";
@@ -1962,6 +2192,7 @@ export class ShadowPlyr extends HTMLElement {
       const tooltip = document.createElement("span");
       tooltip.className = "tooltip screenshot-tooltip";
       tooltip.textContent = "Take screenshot";
+      tooltip.setAttribute("part", "screenshot-tooltip");
       btn.appendChild(tooltip);
     }
     return btn;
@@ -1972,6 +2203,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.className = "video-control-btn airplay-btn";
     btn.setAttribute("aria-label", "AirPlay");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "airplay-btn");
 
     const airSpan = document.createElement("span");
     airSpan.className = "airplay-icon";
@@ -1983,6 +2215,7 @@ export class ShadowPlyr extends HTMLElement {
       const tooltip = document.createElement("span");
       tooltip.className = "tooltip airplay-tooltip";
       tooltip.textContent = "AirPlay";
+      tooltip.setAttribute("part", "airplay-tooltip");
       btn.appendChild(tooltip);
     }
     return btn;
@@ -1996,6 +2229,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.className = "video-control-btn miniplayer-btn";
     btn.setAttribute("aria-label", "Mini player");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "miniplayer-btn");
 
     const miniSpan = document.createElement("span");
     miniSpan.className = "miniplayer-icon";
@@ -2007,6 +2241,7 @@ export class ShadowPlyr extends HTMLElement {
       const tooltip = document.createElement("span");
       tooltip.className = "tooltip miniplayer-tooltip";
       tooltip.textContent = "Mini player";
+      tooltip.setAttribute("part", "miniplayer-tooltip");
       btn.appendChild(tooltip);
     }
     return btn;
@@ -2020,6 +2255,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.className = "video-control-btn fullscreen-btn";
     btn.setAttribute("aria-label", "Fullscreen");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "fullscreen-btn");
 
     const fullSpan = document.createElement("span");
     fullSpan.className = "fullscreen-icon";
@@ -2039,11 +2275,13 @@ export class ShadowPlyr extends HTMLElement {
       const fullTooltip = document.createElement("span");
       fullTooltip.className = "tooltip fullscreen-tooltip";
       fullTooltip.textContent = config.tooltipFullscreen;
+      fullTooltip.setAttribute("part", "fullscreen-tooltip");
 
       const exitTooltip = document.createElement("span");
       exitTooltip.className = "tooltip exit-fullscreen-tooltip";
       exitTooltip.style.display = "none";
       exitTooltip.textContent = config.tooltipExitFullscreen;
+      exitTooltip.setAttribute("part", "exit-fullscreen-tooltip");
 
       btn.appendChild(fullTooltip);
       btn.appendChild(exitTooltip);
@@ -2054,6 +2292,7 @@ export class ShadowPlyr extends HTMLElement {
   #createMoreButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
     const container = document.createElement("div");
     container.className = "video-more-control";
+    container.setAttribute("part", "more-control");
 
     const btn = document.createElement("button");
     btn.className = "video-control-btn video-more-btn";
@@ -2061,6 +2300,7 @@ export class ShadowPlyr extends HTMLElement {
     btn.setAttribute("aria-haspopup", "true");
     btn.setAttribute("aria-expanded", "false");
     btn.tabIndex = 0;
+    btn.setAttribute("part", "more-btn");
 
     const iconSpan = document.createElement("span");
     iconSpan.setAttribute("aria-hidden", "true");
@@ -2072,6 +2312,7 @@ export class ShadowPlyr extends HTMLElement {
     const menu = document.createElement("div");
     menu.className = "video-more-menu";
     menu.setAttribute("role", "menu");
+    menu.setAttribute("part", "more-menu");
     container.appendChild(menu);
 
     return container;
@@ -2082,6 +2323,11 @@ export class ShadowPlyr extends HTMLElement {
     this.#render();
     this.#init();
     this.#setupVisibilityHandling();
+    document.addEventListener("fullscreenchange", this.#boundFullscreenChange);
+    document.addEventListener(
+      "webkitfullscreenchange",
+      this.#boundFullscreenChange
+    );
     if (
       this.getAttribute("virtual-playback") === "true" ||
       this.#getConfig().singleActive
@@ -2093,6 +2339,10 @@ export class ShadowPlyr extends HTMLElement {
   disconnectedCallback(): void {
     this.#destroy();
     this.#removeVisibilityHandling();
+    document.removeEventListener(
+      "fullscreenchange",
+      this.#boundFullscreenChange
+    );
     if (this.#rafId) cancelAnimationFrame(this.#rafId);
     GlobalVideoEngine.unregister(this);
     if (this.#resizeObserver) this.#resizeObserver.disconnect();
@@ -2237,9 +2487,11 @@ export class ShadowPlyr extends HTMLElement {
   #loadVideo(wrapper: HTMLElement, config: VideoPlayerConfig): void {
     if (this.#isInitialized) return;
     wrapper.classList.add("video-loading");
-
+    this.classList.add("video-loading");
     const video = document.createElement("video");
     this.#videoElement = video;
+    video.muted = config.muted;
+    video.defaultMuted = config.muted;
 
     const attrs: Record<string, string> = {
       preload: config.preload,
@@ -2251,6 +2503,7 @@ export class ShadowPlyr extends HTMLElement {
     };
     Object.entries(attrs).forEach(([k, v]) => video.setAttribute(k, v));
     video.setAttribute("part", "video");
+    video.playsInline = true;
 
     // ---------- SECURITY: Move and sanitize <track> elements ----------
     const tracks = Array.from(this.querySelectorAll("track"));
@@ -2336,7 +2589,7 @@ export class ShadowPlyr extends HTMLElement {
 
     // ---------- (Rest of the method unchanged) ----------
     video.addEventListener(
-      "loadeddata",
+      "loadedmetadata",
       this.#onLoadedData.bind(this, wrapper, config),
       { once: true }
     );
@@ -2349,9 +2602,6 @@ export class ShadowPlyr extends HTMLElement {
     video.addEventListener("seeking", () =>
       this.#emit("video-seeking", { currentTime: video.currentTime })
     );
-    video.addEventListener("timeupdate", this.#throttledSeekbarUpdate, {
-      passive: true,
-    });
     video.addEventListener("progress", this.#throttledProgressUpdate, {
       passive: true,
     });
@@ -2359,14 +2609,19 @@ export class ShadowPlyr extends HTMLElement {
       "volumechange",
       this.#onVolumeChange.bind(this, wrapper)
     );
+
+    // Safari fix
+    if (video.muted || config.muted) {
+      this.#updateVolumeIcon(true, wrapper);
+    }
+
     video.addEventListener("error", this.#onError.bind(this, wrapper));
     video.addEventListener("enterpictureinpicture", this.#onPipEnter);
     video.addEventListener("leavepictureinpicture", this.#onPipLeave);
 
-    document.addEventListener("fullscreenchange", this.#onFullscreenChange);
-
     const placeholder = wrapper.querySelector(".video-placeholder");
     if (placeholder) placeholder.replaceWith(video);
+    video.load();
     video.style.pointerEvents = "auto";
 
     const picture = wrapper.querySelector("picture");
@@ -2409,7 +2664,10 @@ export class ShadowPlyr extends HTMLElement {
     if (promise) {
       promise.catch(() => {
         this.#posterVisible = true;
-        if (this.#$wrapper) this.#$wrapper.classList.add("poster-visible");
+        if (this.#$wrapper) {
+          this.#$wrapper.classList.add("poster-visible");
+          this.classList.add("poster-visible");
+        }
       });
     }
   }
@@ -2537,7 +2795,10 @@ export class ShadowPlyr extends HTMLElement {
     wrapper.addEventListener(
       "mouseenter",
       () => {
-        if (this.#videoLoaded) wrapper.classList.add("show-controls");
+        if (this.#videoLoaded) {
+          wrapper.classList.add("show-controls");
+          this.classList.add("show-controls");
+        }
       },
       { passive: true }
     );
@@ -2545,6 +2806,7 @@ export class ShadowPlyr extends HTMLElement {
       "mouseleave",
       () => {
         wrapper.classList.remove("show-controls");
+        this.classList.remove("show-controls");
         this.#closeAllMenus();
       },
       { passive: true }
@@ -2631,14 +2893,24 @@ export class ShadowPlyr extends HTMLElement {
   #updateSeekbar(): void {
     const v = this.#videoElement;
     if (!v || !v.duration) return;
-    const percent = (v.currentTime / v.duration) * 100;
-    if (this.#$seekbarProgress)
-      this.#$seekbarProgress.style.width = percent + "%";
-    if (this.#$seekbar)
+
+    const percent = v.currentTime / v.duration;
+
+    if (this.#$seekbarFill) {
+      this.#$seekbarFill.style.transform = `scaleX(${percent})`;
+    }
+
+    if (this.#$seekbarHandle) {
+      this.#$seekbarHandle.style.left = `${percent * 100}%`;
+    }
+
+    if (this.#$seekbar) {
       this.#$seekbar.setAttribute(
         "aria-valuenow",
-        Math.round(percent).toString()
+        Math.round(percent * 100).toString()
       );
+    }
+
     this.#updateTimeDisplay();
   }
 
@@ -2694,28 +2966,28 @@ export class ShadowPlyr extends HTMLElement {
   #updateFullscreenIcon(isFullscreen: boolean, wrapper?: HTMLElement): void {
     if (!wrapper) wrapper = this.#$wrapper!;
     const btn = wrapper.querySelector(".fullscreen-btn");
-    if (btn) {
-      const fullIcon = btn.querySelector(".fullscreen-icon") as HTMLElement;
-      const exitIcon = btn.querySelector(
-        ".exit-fullscreen-icon"
-      ) as HTMLElement;
-      if (fullIcon) fullIcon.style.display = isFullscreen ? "none" : "block";
-      if (exitIcon) exitIcon.style.display = isFullscreen ? "block" : "none";
-      btn.setAttribute(
-        "aria-label",
-        isFullscreen ? "Exit fullscreen" : "Fullscreen"
-      );
-      const fullTooltip = btn.querySelector(
-        ".fullscreen-tooltip"
-      ) as HTMLElement;
-      const exitTooltip = btn.querySelector(
-        ".exit-fullscreen-tooltip"
-      ) as HTMLElement;
-      if (fullTooltip)
-        fullTooltip.style.display = isFullscreen ? "none" : "block";
-      if (exitTooltip)
-        exitTooltip.style.display = isFullscreen ? "block" : "none";
-    }
+    if (!btn) return;
+
+    const fullIcon = btn.querySelector(".fullscreen-icon") as HTMLElement;
+    const exitIcon = btn.querySelector(".exit-fullscreen-icon") as HTMLElement;
+
+    if (fullIcon) fullIcon.style.display = isFullscreen ? "none" : "block";
+    if (exitIcon) exitIcon.style.display = isFullscreen ? "block" : "none";
+
+    btn.setAttribute(
+      "aria-label",
+      isFullscreen ? "Exit fullscreen" : "Fullscreen"
+    );
+
+    const fullTooltip = btn.querySelector(".fullscreen-tooltip") as HTMLElement;
+    const exitTooltip = btn.querySelector(
+      ".exit-fullscreen-tooltip"
+    ) as HTMLElement;
+
+    if (fullTooltip)
+      fullTooltip.style.display = isFullscreen ? "none" : "block";
+    if (exitTooltip)
+      exitTooltip.style.display = isFullscreen ? "block" : "none";
   }
 
   #updateLoopIcon(isLoop: boolean): void {
@@ -2728,21 +3000,26 @@ export class ShadowPlyr extends HTMLElement {
     const icons = this.#getIcons();
 
     iconContainer.innerHTML = "";
-
     const newSvg = this.#createSVGFromString(
       isLoop ? icons.loop : icons.loopOnce
     );
-
     iconContainer.appendChild(newSvg);
 
-    btn.classList.toggle("active", isLoop);
     btn.setAttribute("aria-label", isLoop ? "Disable loop" : "Enable loop");
+
+    const onTooltip = btn.querySelector(".loop-on-tooltip") as HTMLElement;
+    const offTooltip = btn.querySelector(".loop-off-tooltip") as HTMLElement;
+    if (onTooltip && offTooltip) {
+      onTooltip.style.display = isLoop ? "block" : "none";
+      offTooltip.style.display = isLoop ? "none" : "block";
+    }
   }
 
   #updatePipIcon(isPip: boolean): void {
     const btn = this.#$wrapper?.querySelector(".pip-btn");
     if (btn) {
       btn.classList.toggle("active", isPip);
+      this.classList.toggle("active", isPip);
     }
   }
 
@@ -2831,7 +3108,10 @@ export class ShadowPlyr extends HTMLElement {
 
   // ---------- PERFORMANCE MODE ----------
   #enablePerformanceMode(): void {
-    if (this.#$wrapper) this.#$wrapper.classList.add("perf-mode");
+    if (this.#$wrapper) {
+      this.#$wrapper.classList.add("perf-mode");
+      this.classList.add("perf-mode");
+    }
   }
 
   // ---------- REINITIALIZE / DESTROY ----------
@@ -2874,6 +3154,15 @@ export class ShadowPlyr extends HTMLElement {
       this.#videoElement.load();
       this.#videoElement = null;
     }
+    this.classList.remove(
+      "video-loading",
+      "video-loaded",
+      "is-playing",
+      "poster-visible",
+      "show-controls",
+      "theater-mode",
+      "mini-player"
+    );
     if (this.#rafId) cancelAnimationFrame(this.#rafId);
     if (this.#hls) this.#hls.destroy();
     this.#isInitialized = false;
@@ -2901,6 +3190,10 @@ export class ShadowPlyr extends HTMLElement {
     this.#configCache = null;
     this.#qualityLevels = [];
     this.#manualQualities = [];
+    document.removeEventListener(
+      "webkitfullscreenchange",
+      this.#boundFullscreenChange
+    );
   }
 
   #emit(name: string, detail: Record<string, any> = {}): void {
