@@ -1,59 +1,84 @@
-# 🎬 Shadow Plyr
+# Shadow Plyr
 
-> A fully customizable, production-grade Web Component video player built with TypeScript, Shadow DOM and zero framework dependency.
+<h1 align="center">Shadow Plyr</h1>
 
-[![npm version](https://img.shields.io/npm/v/shadow-plyr.svg)](https://www.npmjs.com/package/@elementmints/shadow-plyr)
-[![license](https://img.shields.io/npm/l/shadow-plyr.svg)](LICENSE)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/shadow-plyr)](https://bundlephobia.com/package/shadow-plyr)
+<p align="center">
+A modern Web Component video player built with Shadow DOM.
+</p>
 
----
+<p align="center">
 
-## ❤️ Support the Project
+![npm version](https://img.shields.io/npm/v/@elementmints/shadow-plyr)
+![npm downloads](https://img.shields.io/npm/dm/@elementmints/shadow-plyr)
+![bundle size](https://img.shields.io/bundlephobia/min/@elementmints/shadow-plyr)
+![license](https://img.shields.io/npm/l/@elementmints/shadow-plyr)
 
-If **shadow-plyr** helps you, consider supporting development:
+</p>
 
-[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/elementmint)
-
-Your support helps maintain and improve the Shadow Web Components ecosystem.
-
----
-
-## ✨ Features
-
-- 🎯 Native Web Component `<shadow-plyr>`
-- ⚡ Lazy loading + smart visibility pause
-- 📱 Mobile optimized
-- 👆 Double tap seek (YouTube style)
-- 👆👆👆 Triple tap seek (30s skip)
-- 🌊 Tap ripple animation
-- 🎛 Custom controls
-- 🎨 Fully themeable via CSS variables
-- 🔐 Secure SVG sanitization
-- 🧵 Virtual playback mode (only one video plays)
-- 📦 Framework agnostic (React / Vue / Angular / Vanilla)
+<p align="center">
+<a href="https://elementmints.github.io/shadow-plyr/">Live Demo</a>
+|
+<a href="https://www.npmjs.com/package/@elementmints/shadow-plyr">NPM</a>
+</p>
 
 ---
 
-# 📦 Installation
-
-## Using npm
-
-```bash
-npm install shadow-plyr
-```
-
-Then import:
-
-```ts
-import 'shadow-plyr';
-```
-
----
-
-## Using CDN
+# 🎬 Demo
 
 ```html
-<script type="module" src="https://unpkg.com/shadow-plyr/dist/shadow-plyr.js"></script>
+<shadow-plyr
+  desktop-video="https://example.com/video.mp4"
+  desktop-poster="https://example.com/poster.jpg"
+  show-controls="true"
+  show-center-play="true">
+</shadow-plyr>
+```
+
+---
+
+# ✨ Features
+
+| Feature | Supported |
+|------|------|
+| Web Component architecture | ✅ |
+| Shadow DOM encapsulation | ✅ |
+| Adaptive HLS streaming | ✅ |
+| Quality selector | ✅ |
+| Subtitles / captions | ✅ |
+| Mobile gestures | ✅ |
+| Theater mode | ✅ |
+| Mini player | ✅ |
+| Picture-in-Picture | ✅ |
+| Screenshot capture | ✅ |
+| AirPlay support | ✅ |
+| Custom SVG icons | ✅ |
+| CSS theming | ✅ |
+| `::part` styling | ✅ |
+| Lazy loading | ✅ |
+| Resume playback | ✅ |
+
+---
+
+# ⚡ Quick Start
+
+## Install
+
+```bash
+npm install @elementmints/shadow-plyr
+```
+
+Import the component:
+
+```ts
+import "@elementmints/shadow-plyr";
+```
+
+---
+
+## Or use CDN
+
+```html
+<script type="module" src="https://unpkg.com/@elementmints/shadow-plyr@2.2.0/dist/shadow-plyr.js"></script>
 ```
 
 ---
@@ -64,8 +89,22 @@ import 'shadow-plyr';
 <shadow-plyr
   desktop-video="video.mp4"
   desktop-poster="poster.jpg"
-  show-controls="true"
-  show-center-play="true">
+  show-controls="true">
+</shadow-plyr>
+```
+
+---
+
+# 🖼 Poster with `<picture>`
+
+Art-directed responsive posters are supported.
+
+```html
+<shadow-plyr>
+  <picture>
+    <source media="(max-width:768px)" srcset="mobile-poster.jpg">
+    <img src="desktop-poster.jpg" alt="Poster">
+  </picture>
 </shadow-plyr>
 ```
 
@@ -74,38 +113,57 @@ import 'shadow-plyr';
 # 📱 Mobile Gestures
 
 | Gesture | Action |
-|----------|--------|
-| Double tap left | -10 seconds |
+|------|------|
+| Double tap left | −10 seconds |
 | Double tap right | +10 seconds |
-| Triple tap left | -30 seconds |
+| Triple tap left | −30 seconds |
 | Triple tap right | +30 seconds |
-| Drag seekbar | Scrub |
-| Tap ripple | Visual animation |
+| Tap video | Play / pause |
+| Seekbar drag | Scrub |
 
 ---
 
-# ⚙️ Full Configuration Reference
+# 🎬 Quality Switching
 
-## 🎬 Video Settings
+Provide multiple sources using `data-quality`.
 
 ```html
-<shadow-plyr
-  desktop-video="video.mp4"
-  mobile-video="video-mobile.mp4"
-  desktop-poster="poster.jpg"
-  mobile-poster="poster-mobile.jpg"
-  video-type="video/mp4"
-  preload="metadata"
-  autoplay="true"
-  muted="true"
-  loop="true"
-  playsinline="true">
+<shadow-plyr show-quality="true">
+
+  <source src="video-1080.mp4"
+          type="video/mp4"
+          data-quality="1080">
+
+  <source src="video-720.mp4"
+          type="video/mp4"
+          data-quality="720">
+
+  <source src="video-480.mp4"
+          type="video/mp4"
+          data-quality="480">
+
 </shadow-plyr>
 ```
 
 ---
 
-## 🎛 Controls Configuration
+# 📺 Subtitles
+
+```html
+<shadow-plyr show-subtitles="true">
+
+  <track
+    src="subtitles-en.vtt"
+    kind="subtitles"
+    srclang="en"
+    label="English">
+
+</shadow-plyr>
+```
+
+---
+
+# 🎛 Controls
 
 ```html
 <shadow-plyr
@@ -115,13 +173,16 @@ import 'shadow-plyr';
   show-volume="true"
   show-fullscreen="true"
   show-speed="true"
-  speed-options="0.5,0.75,1,1.25,1.5,2">
+  show-quality="true"
+  show-subtitles="true"
+  show-mini-player="true"
+  show-theater-mode="true">
 </shadow-plyr>
 ```
 
 ---
 
-## 👆 Double & Triple Tap
+# 👆 Gestures
 
 ```html
 <shadow-plyr
@@ -133,117 +194,84 @@ import 'shadow-plyr';
 </shadow-plyr>
 ```
 
-Disable triple tap:
-
-```html
-<shadow-plyr triple-tap-seek="false"></shadow-plyr>
-```
-
 ---
 
-## 🔘 Overlay Seek Buttons
-
-```html
-<shadow-plyr
-  show-seek-buttons="true"
-  seek-button-seconds="15">
-</shadow-plyr>
-```
-
----
-
-## ⚡ Performance Mode
-
-```html
-<shadow-plyr performance-mode="true"></shadow-plyr>
-```
-
-Optimized for pages with many videos.
-
----
-
-## 🧠 Smart Visibility
+# 🧠 Performance Features
 
 ```html
 <shadow-plyr
   lazy="true"
   pause-on-out-of-view="true"
   pause-on-tab-hide="true"
-  lazy-threshold="0.5"
-  pause-threshold="0.3">
+  single-active="true">
 </shadow-plyr>
 ```
 
----
-
-## 🔁 Virtual Playback Mode
-
-```html
-<shadow-plyr virtual-playback="true"></shadow-plyr>
-```
-
-Only one video plays at a time.
+These options improve performance on **video-heavy pages**.
 
 ---
 
 # 🎨 Theming
 
-## Dark Theme
-
 ```html
 <shadow-plyr
   theme="dark"
   accent-color="#ff3b30"
-  controls-background="rgba(0,0,0,0.9)"
-  center-play-background="rgba(0,0,0,0.8)"
-  center-play-size="100">
+  controls-background="rgba(0,0,0,0.9)">
 </shadow-plyr>
-```
-
-## Light Theme
-
-```html
-<shadow-plyr theme="light"></shadow-plyr>
 ```
 
 ---
 
-## 🎨 CSS Custom Properties
-
-You can override styles externally:
+# 🎨 CSS Variables
 
 ```css
 shadow-plyr {
+
   --accent-color: #00ffcc;
+
   --controls-bg: rgba(0,0,0,0.95);
-  --center-play-size: 90px;
+
+  --tooltip-bg: #333;
+
+  --tooltip-color: #fff;
+
 }
 ```
 
 ---
 
-# 🧩 Custom SVG Icons
+# 🎨 Styling with `::part`
+
+```css
+shadow-plyr::part(play-pause) {
+
+  background: red;
+
+  border-radius: 50%;
+
+}
+```
+
+---
+
+# 🧩 Custom Icons
 
 ```html
 <shadow-plyr
-  play-icon="<svg>...</svg>"
-  pause-icon="<svg>...</svg>"
-  volume-icon="<svg>...</svg>"
-  muted-icon="<svg>...</svg>"
-  fullscreen-icon="<svg>...</svg>"
-  exit-fullscreen-icon="<svg>...</svg>"
-  speed-icon="<svg>...</svg>">
+  play-icon='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'
+  pause-icon='<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6z"/></svg>'>
 </shadow-plyr>
 ```
 
-Icons are sanitized automatically.
+SVG icons are automatically **sanitized with DOMPurify**.
 
 ---
 
 # 🧑‍💻 JavaScript API
 
 ```ts
-const player = document.querySelector('shadow-plyr');
+const player = document.querySelector("shadow-plyr");
 
 player.play();
 player.pause();
@@ -252,147 +280,95 @@ player.unmute();
 player.seek(120);
 ```
 
+### Properties
+
+```ts
+player.currentTime
+player.duration
+player.volume
+player.muted
+player.playing
+```
+
 ---
 
 # 📡 Events
 
 ```ts
-player.addEventListener('video-playing', (e) => {
-  console.log('Playing', e.detail);
+player.addEventListener("video-playing", e => {
+  console.log(e.detail.currentTime);
 });
 ```
 
-### Available Events
-
 | Event | Description |
-|--------|-------------|
+|------|------|
 | video-ready | Metadata loaded |
 | video-playing | Playback started |
 | video-paused | Playback paused |
 | video-ended | Playback ended |
 | video-seeking | Seeking started |
 | video-seeked | Seeking finished |
-| video-volume-change | Volume changed |
-| video-error | Load error |
-| video-fullscreen-enter | Enter fullscreen |
-| video-fullscreen-exit | Exit fullscreen |
-
----
-
-# 🧪 Real World Presets
-
----
-
-## 🎬 Netflix Style
-
-```html
-<shadow-plyr
-  show-controls="true"
-  show-center-play="true"
-  double-tap-seek="true"
-  triple-tap-seek="true"
-  enable-tap-ripple="true"
-  theme="dark"
-  accent-color="#e50914">
-</shadow-plyr>
-```
-
----
-
-## 📱 Minimal Mobile Player
-
-```html
-<shadow-plyr
-  show-controls="false"
-  show-center-play="true"
-  double-tap-seek="true"
-  triple-tap-seek="false">
-</shadow-plyr>
-```
-
----
-
-## 🎨 Brand Custom Player
-
-```html
-<shadow-plyr
-  theme="light"
-  accent-color="#6c5ce7"
-  controls-background="rgba(255,255,255,0.95)"
-  center-play-background="rgba(255,255,255,0.8)">
-</shadow-plyr>
-```
+| video-volume-change | Volume change |
+| video-error | Playback error |
 
 ---
 
 # 🌍 Browser Support
 
 | Browser | Supported |
-|----------|-----------|
+|------|------|
 | Chrome | ✅ |
 | Edge | ✅ |
 | Safari | ✅ |
+| Firefox | ✅ |
 | iOS Safari | ✅ |
 | Android Chrome | ✅ |
-| Firefox | ✅ |
 
 ---
 
 # 🏗 Built With
 
 - Web Components
-- Shadow DOM
 - TypeScript
+- Shadow DOM
 - Constructable Stylesheets
 - DOMPurify
-
----
-
-## 🌳 Branch Strategy (Git Flow)
-
-This project follows a structured Git workflow:
-
-### Branches
-
-- `master` → Stable production releases
-- `develop` → Integration branch (active development)
-- `feature/*` → New features
-- `fix/*` → Bug fixes
-- `release/*` → Release preparation
-- `hotfix/*` → Emergency production fixes
-
-### Contribution Flow
-
-1. Fork the repository
-2. Create a feature branch:
-   ```bash
-   git checkout -b feature/your-feature-name
+- hls.js (optional)
 
 ---
 
 # 🤝 Contributing
 
-1. Fork repository
-2. Create feature branch
-3. Commit changes
-4. Open PR
+1. Fork the repository
+
+2. Create a feature branch
+
+```bash
+git checkout -b feature/my-feature
+```
+
+3. Commit your changes
+
+4. Open a Pull Request
 
 ---
 
 # 📄 License
 
-MIT
+MIT © Element Mint
 
 ---
 
 # ⭐ Why Shadow Plyr?
 
-Native `<video controls>` is limited.
+The native `<video>` element provides only basic controls.
 
-Shadow Plyr provides:
+Shadow Plyr delivers:
 
-- Full customization
-- Modern mobile gestures
-- Performance optimization
-- Clean architecture
-- Production-ready UX
+- Modern gesture controls
+- Adaptive streaming
+- Full UI customization
+- Performance optimizations
+- Clean Web Component architecture
+
+All inside a **lightweight, zero-dependency video player**.
