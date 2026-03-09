@@ -78,7 +78,7 @@ import "@elementmints/shadow-plyr";
 ## Or use CDN
 
 ```html
-<script type="module" src="https://unpkg.com/@elementmints/shadow-plyr@2.2.0/dist/shadow-plyr.js"></script>
+<script type="module" src="https://unpkg.com/@elementmints/shadow-plyr@1.4.0/dist/index.js"></script>
 ```
 
 ---
