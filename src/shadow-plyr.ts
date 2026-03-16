@@ -660,7 +660,7 @@ export class ShadowPlyr extends HTMLElement {
       "canplay",
       () => {
         if (wasPlaying) {
-          video.play().catch(() => {});
+          video.play().catch(() => { });
         }
       },
       { once: true }
@@ -806,16 +806,16 @@ export class ShadowPlyr extends HTMLElement {
     const subtitleBtn = wrapper.querySelector(
       ".video-subtitle-btn"
     ) as HTMLButtonElement | null;
-    
+
     if (config.showSubtitles) {
       if (this.#subtitlesTracks.length > 0) {
         this.#populateSubtitleMenu(wrapper);
-    
+
         if (subtitleBtn) {
           subtitleBtn.disabled = false;
           subtitleBtn.classList.remove("disabled");
           subtitleBtn.setAttribute("aria-disabled", "false");
-    
+
           const tooltip = subtitleBtn.querySelector(".subtitle-tooltip");
           if (tooltip) tooltip.textContent = "Subtitles";
         }
@@ -825,7 +825,7 @@ export class ShadowPlyr extends HTMLElement {
           subtitleBtn.disabled = true;
           subtitleBtn.classList.add("disabled");
           subtitleBtn.setAttribute("aria-disabled", "true");
-    
+
           const tooltip = subtitleBtn.querySelector(".subtitle-tooltip");
           if (tooltip) tooltip.textContent = "No subtitles available";
         }
@@ -936,9 +936,8 @@ export class ShadowPlyr extends HTMLElement {
 
     // Auto option (for both HLS and manual)
     const auto = document.createElement("button");
-    auto.className = `video-quality-option ${
-      !this.#currentQualityLabel ? "active" : ""
-    }`;
+    auto.className = `video-quality-option ${!this.#currentQualityLabel ? "active" : ""
+      }`;
     auto.setAttribute("data-quality", "auto");
     auto.textContent = "Auto";
     auto.setAttribute("part", "quality-option");
@@ -953,9 +952,8 @@ export class ShadowPlyr extends HTMLElement {
           : `Level ${index + 1}`;
 
         const opt = document.createElement("button");
-        opt.className = `video-quality-option ${
-          this.#currentQualityIndex === index ? "active" : ""
-        }`;
+        opt.className = `video-quality-option ${this.#currentQualityIndex === index ? "active" : ""
+          }`;
         opt.setAttribute("data-quality", index.toString());
         opt.textContent = levelLabel;
         opt.setAttribute("part", "quality-option");
@@ -968,9 +966,8 @@ export class ShadowPlyr extends HTMLElement {
     // Manual quality labels
     labels.forEach((label) => {
       const opt = document.createElement("button");
-      opt.className = `video-quality-option ${
-        this.#currentQualityLabel === label ? "active" : ""
-      }`;
+      opt.className = `video-quality-option ${this.#currentQualityLabel === label ? "active" : ""
+        }`;
       opt.setAttribute("data-quality", label);
       opt.textContent = `${label}p`;
       opt.setAttribute("part", "quality-option");
@@ -1004,9 +1001,8 @@ export class ShadowPlyr extends HTMLElement {
     menu.innerHTML = "";
     // Off option
     const off = document.createElement("button");
-    off.className = `video-subtitle-option ${
-      !this.#activeSubtitle ? "active" : ""
-    }`;
+    off.className = `video-subtitle-option ${!this.#activeSubtitle ? "active" : ""
+      }`;
     off.setAttribute("data-subtitle", "");
     off.textContent = "Off";
     off.setAttribute("part", "subtitle-option");
@@ -1015,9 +1011,8 @@ export class ShadowPlyr extends HTMLElement {
     // Track options
     this.#subtitlesTracks.forEach((track) => {
       const opt = document.createElement("button");
-      opt.className = `video-subtitle-option ${
-        this.#activeSubtitle === track.label ? "active" : ""
-      }`;
+      opt.className = `video-subtitle-option ${this.#activeSubtitle === track.label ? "active" : ""
+        }`;
       opt.setAttribute("data-subtitle", track.label);
       opt.textContent = track.label || "Subtitles";
       opt.setAttribute("part", "subtitle-option");
@@ -1341,8 +1336,11 @@ export class ShadowPlyr extends HTMLElement {
       lazy: this.getAttribute("lazy") === "true",
       pauseOnOutOfView: this.getAttribute("pause-on-out-of-view") === "true",
       pauseOnTabHide: this.getAttribute("pause-on-tab-hide") !== "false",
-      autoplay: this.getAttribute("autoplay") === "true",
-      loop: this.getAttribute("loop") === "true",
+      autoplay:
+        this.hasAttribute("autoplay") &&
+        this.getAttribute("autoplay") !== "false",
+      loop:
+        this.hasAttribute("loop") && this.getAttribute("loop") !== "false",
       muted: this.getAttribute("muted") === "true",
       playsinline: this.getAttribute("playsinline") === "true",
       preload:
@@ -1628,9 +1626,8 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   #getIcons(): IconSet {
-    const cacheKey = `${this.getAttribute("play-icon") || ""}-${
-      this.getAttribute("pause-icon") || ""
-    }`;
+    const cacheKey = `${this.getAttribute("play-icon") || ""}-${this.getAttribute("pause-icon") || ""
+      }`;
     if (IconCache.has(cacheKey)) return IconCache.get(cacheKey)!;
 
     // Use DOMPurify's SVG profile – safe, and preserves all SVG content.
@@ -1661,7 +1658,7 @@ export class ShadowPlyr extends HTMLElement {
       ),
       exitFullscreen: DOMPurify.sanitize(
         this.getAttribute("exit-fullscreen-icon") ||
-          DEFAULT_ICONS.exitFullscreen,
+        DEFAULT_ICONS.exitFullscreen,
         purifyOptions
       ),
       speed: DOMPurify.sanitize(
@@ -2358,11 +2355,24 @@ export class ShadowPlyr extends HTMLElement {
     if (!this.#isInitialized) return;
     const config = this.#getConfig();
     switch (name) {
+      case "autoplay":
+        if (this.#videoElement) {
+          this.#videoElement.autoplay = config.autoplay;
+          if (config.autoplay) {
+            this.#videoElement.setAttribute("autoplay", "");
+          } else {
+            this.#videoElement.removeAttribute("autoplay");
+          }
+        }
+        break;
       case "muted":
         if (this.#videoElement) this.#videoElement.muted = config.muted;
         break;
       case "loop":
-        if (this.#videoElement) this.#videoElement.loop = config.loop;
+        if (this.#videoElement) {
+          this.#videoElement.loop = config.loop;
+          this.#updateLoopIcon(config.loop);
+        }
         break;
       case "accent-color":
       case "theme":
@@ -2380,22 +2390,22 @@ export class ShadowPlyr extends HTMLElement {
     const theme =
       config.theme === "light"
         ? {
-            accent:
-              config.accentColor !== "#ffffff" ? config.accentColor : "#000000",
-            controlsBg:
-              config.controlsBackground !== "rgba(0,0,0,0.8)"
-                ? config.controlsBackground
-                : "rgba(255,255,255,0.9)",
-            centerPlayBg:
-              config.centerPlayBackground !== "rgba(0,0,0,0.7)"
-                ? config.centerPlayBackground
-                : "rgba(255,255,255,0.8)",
-          }
+          accent:
+            config.accentColor !== "#ffffff" ? config.accentColor : "#000000",
+          controlsBg:
+            config.controlsBackground !== "rgba(0,0,0,0.8)"
+              ? config.controlsBackground
+              : "rgba(255,255,255,0.9)",
+          centerPlayBg:
+            config.centerPlayBackground !== "rgba(0,0,0,0.7)"
+              ? config.centerPlayBackground
+              : "rgba(255,255,255,0.8)",
+        }
         : {
-            accent: config.accentColor,
-            controlsBg: config.controlsBackground,
-            centerPlayBg: config.centerPlayBackground,
-          };
+          accent: config.accentColor,
+          controlsBg: config.controlsBackground,
+          centerPlayBg: config.centerPlayBackground,
+        };
     this.style.setProperty("--accent-color", theme.accent);
     this.style.setProperty("--controls-bg", theme.controlsBg);
     this.style.setProperty("--center-play-bg", theme.centerPlayBg);
@@ -2492,11 +2502,13 @@ export class ShadowPlyr extends HTMLElement {
     this.#videoElement = video;
     video.muted = config.muted;
     video.defaultMuted = config.muted;
+    video.autoplay = config.autoplay;
 
     const attrs: Record<string, string> = {
       preload: config.preload,
       ...(!config.showPip && { disablepictureinpicture: "" }),
       "webkit-playsinline": "",
+      ...(config.autoplay && { autoplay: "" }),
       ...(config.loop && { loop: "" }),
       ...(config.muted && { muted: "" }),
       ...(config.playsinline && { playsinline: "" }),
@@ -2630,10 +2642,34 @@ export class ShadowPlyr extends HTMLElement {
       picture.addEventListener("click", this.#posterClick);
     }
 
-    if (config.autoplay && config.muted) this.playVideo();
+    if (config.autoplay) this.playVideo();
   }
 
   // ---------- PUBLIC API ----------
+  public get autoplay(): boolean {
+    return this.#getConfig().autoplay;
+  }
+
+  public set autoplay(value: boolean) {
+    if (value) {
+      this.setAttribute("autoplay", "");
+    } else {
+      this.removeAttribute("autoplay");
+    }
+  }
+
+  public get loop(): boolean {
+    return this.#getConfig().loop;
+  }
+
+  public set loop(value: boolean) {
+    if (value) {
+      this.setAttribute("loop", "");
+    } else {
+      this.removeAttribute("loop");
+    }
+  }
+
   public play(): void {
     this.playVideo();
   }
