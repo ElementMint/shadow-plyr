@@ -2358,6 +2358,16 @@ export class ShadowPlyr extends HTMLElement {
     if (!this.#isInitialized) return;
     const config = this.#getConfig();
     switch (name) {
+      case "autoplay":
+        if (this.#videoElement) {
+          this.#videoElement.autoplay = config.autoplay;
+          if (config.autoplay) {
+            this.#videoElement.setAttribute("autoplay", "");
+          } else {
+            this.#videoElement.removeAttribute("autoplay");
+          }
+        }
+        break;
       case "muted":
         if (this.#videoElement) this.#videoElement.muted = config.muted;
         break;
@@ -2492,12 +2502,14 @@ export class ShadowPlyr extends HTMLElement {
     this.#videoElement = video;
     video.muted = config.muted;
     video.defaultMuted = config.muted;
+    video.autoplay = config.autoplay;
 
     const attrs: Record<string, string> = {
       preload: config.preload,
       ...(!config.showPip && { disablepictureinpicture: "" }),
       "webkit-playsinline": "",
       ...(config.loop && { loop: "" }),
+      ...(config.autoplay && { autoplay: "" }),
       ...(config.muted && { muted: "" }),
       ...(config.playsinline && { playsinline: "" }),
     };
@@ -2630,7 +2642,7 @@ export class ShadowPlyr extends HTMLElement {
       picture.addEventListener("click", this.#posterClick);
     }
 
-    if (config.autoplay && config.muted) this.playVideo();
+    if (config.autoplay) this.playVideo();
   }
 
   // ---------- PUBLIC API ----------
@@ -2648,6 +2660,26 @@ export class ShadowPlyr extends HTMLElement {
   }
   public seek(seconds: number): void {
     if (this.#videoElement) this.#videoElement.currentTime = seconds;
+  }
+  public get autoplay(): boolean {
+    return this.#getConfig().autoplay;
+  }
+  public set autoplay(value: boolean) {
+    if (value) {
+      this.setAttribute("autoplay", "");
+    } else {
+      this.removeAttribute("autoplay");
+    }
+  }
+  public get loop(): boolean {
+    return this.#getConfig().loop;
+  }
+  public set loop(value: boolean) {
+    if (value) {
+      this.setAttribute("loop", "");
+    } else {
+      this.removeAttribute("loop");
+    }
   }
 
   public playVideo(): void {
