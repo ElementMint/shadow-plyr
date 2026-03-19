@@ -278,6 +278,7 @@ player.pause();
 player.mute();
 player.unmute();
 player.seek(120);
+player.setLoop(true);
 ```
 
 ### Properties
