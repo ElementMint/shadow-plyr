@@ -2,7 +2,7 @@
  * Shadow Plyr
  * A production-grade Web Component video player
  *
- * @version 2.0.0
+ * @version 1.5.1
  * @license MIT
  * @author Element Mint
  * @copyright (c) 2026 Element Mint
@@ -806,16 +806,16 @@ export class ShadowPlyr extends HTMLElement {
     const subtitleBtn = wrapper.querySelector(
       ".video-subtitle-btn"
     ) as HTMLButtonElement | null;
-    
+
     if (config.showSubtitles) {
       if (this.#subtitlesTracks.length > 0) {
         this.#populateSubtitleMenu(wrapper);
-    
+
         if (subtitleBtn) {
           subtitleBtn.disabled = false;
           subtitleBtn.classList.remove("disabled");
           subtitleBtn.setAttribute("aria-disabled", "false");
-    
+
           const tooltip = subtitleBtn.querySelector(".subtitle-tooltip");
           if (tooltip) tooltip.textContent = "Subtitles";
         }
@@ -825,7 +825,7 @@ export class ShadowPlyr extends HTMLElement {
           subtitleBtn.disabled = true;
           subtitleBtn.classList.add("disabled");
           subtitleBtn.setAttribute("aria-disabled", "true");
-    
+
           const tooltip = subtitleBtn.querySelector(".subtitle-tooltip");
           if (tooltip) tooltip.textContent = "No subtitles available";
         }
@@ -875,17 +875,25 @@ export class ShadowPlyr extends HTMLElement {
     if (!this.#videoElement) return;
 
     const src = this.#videoElement.currentSrc || this.#videoElement.src;
-    if (!src.includes(".m3u8")) return;
+    const isHls = /\.m3u8($|\?)/i.test(src);
+    if (!isHls) return;
+
+    let Hls;
 
     try {
-      // Import the entire hls.js module (includes default export and named exports like Events)
-      const hlsModule = await import("hls.js");
-      this.#setupHls(hlsModule, src);
-    } catch (err) {
-      console.error(
-        "HLS.js could not be loaded. Make sure it is included in your bundle.",
-        err
+      const mod = await import("hls.js");
+      Hls = mod.default;
+      this.#setupHls(mod, src);
+    } catch {
+      console.warn(
+        "ShadowPlyr: HLS stream detected but hls.js is not installed. Install it with `npm install hls.js` to enable HLS playback."
       );
+      return;
+    }
+
+    if (!Hls.isSupported()) {
+      console.warn("ShadowPlyr: HLS not supported in this browser.");
+      return;
     }
   }
 
@@ -949,7 +957,7 @@ export class ShadowPlyr extends HTMLElement {
     if (this.#qualityLevels.length > 0) {
       this.#qualityLevels.forEach((level, index) => {
         const levelLabel = level.height
-          ? `${level.height}p`
+          ? `${level.height}`
           : `Level ${index + 1}`;
 
         const opt = document.createElement("button");
@@ -1303,12 +1311,17 @@ export class ShadowPlyr extends HTMLElement {
 
   #isValidMediaUrl(url: string | null | undefined): boolean {
     if (!url || typeof url !== "string") return false;
+
+    const isDev = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
     try {
       const parsed = new URL(url, window.location.origin);
-      // In banking contexts, enforce HTTPS only.
-      return parsed.protocol === "https:";
-      // If you must allow HTTP for development, use:
-      // return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+
+      if (parsed.protocol === "https:") return true;
+
+      if (isDev && parsed.protocol === "http:") return true;
+
+      return false;
     } catch {
       return false;
     }
@@ -2490,6 +2503,9 @@ export class ShadowPlyr extends HTMLElement {
     this.classList.add("video-loading");
     const video = document.createElement("video");
     this.#videoElement = video;
+    this.#exposeVideoAPI();
+    this.#exposeVideoMethods();
+    this.#forwardNativeEvents();
     video.muted = config.muted;
     video.defaultMuted = config.muted;
 
@@ -2633,6 +2649,76 @@ export class ShadowPlyr extends HTMLElement {
     if (config.autoplay && config.muted) this.playVideo();
   }
 
+  #exposeVideoAPI() {
+    const video = this.#videoElement;
+    if (!video) return;
+
+    const props: (keyof HTMLVideoElement)[] = [
+      "muted",
+      "loop",
+      "autoplay",
+      "controls",
+      "currentTime",
+      "volume",
+      "playbackRate",
+      "paused",
+      "duration",
+      "ended",
+      "readyState",
+      "networkState",
+      "videoWidth",
+      "videoHeight",
+      "src",
+    ];
+
+    props.forEach((prop) => {
+      Object.defineProperty(this, prop, {
+        get: () => this.#videoElement?.[prop],
+        set: (value) => {
+          if (this.#videoElement) {
+            (this.#videoElement as any)[prop] = value;
+          }
+        },
+        configurable: true,
+      });
+    });
+  }
+
+  #exposeVideoMethods() {
+    const methods: (keyof HTMLVideoElement)[] = [
+      "play",
+      "pause",
+      "load",
+      "requestPictureInPicture",
+    ];
+
+    methods.forEach((method) => {
+      (this as any)[method] = (...args: any[]) => {
+        return (this.#videoElement as any)?.[method]?.(...args);
+      };
+    });
+  }
+
+  #forwardNativeEvents() {
+    const events = [
+      "play",
+      "pause",
+      "ended",
+      "timeupdate",
+      "volumechange",
+      "seeking",
+      "seeked",
+      "loadedmetadata",
+      "error",
+    ];
+
+    events.forEach((event) => {
+      this.#videoElement?.addEventListener(event, (e) => {
+        this.dispatchEvent(new Event(event));
+      });
+    });
+  }
+
   // ---------- PUBLIC API ----------
   public play(): void {
     this.playVideo();
@@ -2648,6 +2734,16 @@ export class ShadowPlyr extends HTMLElement {
   }
   public seek(seconds: number): void {
     if (this.#videoElement) this.#videoElement.currentTime = seconds;
+  }
+
+  public setLoop(isLoop: boolean): void {
+    if (!this.#videoElement) return;
+
+    this.#videoElement.loop = isLoop;
+
+    this.#updateLoopIcon(isLoop);
+
+    this.#emit("video-loop-change", { loop: isLoop });
   }
 
   public playVideo(): void {
@@ -3207,3 +3303,11 @@ export class ShadowPlyr extends HTMLElement {
 if (!customElements.get("shadow-plyr")) {
   customElements.define("shadow-plyr", ShadowPlyr);
 }
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "shadow-plyr": ShadowPlyr;
+  }
+}
+
+export {};
