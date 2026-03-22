@@ -10,9 +10,13 @@ export interface VideoPlayerConfig {
   muted: boolean;
   playsinline: boolean;
   preload: "none" | "metadata" | "auto";
+  /** @deprecated Use <picture> child element instead */
   desktopPoster: string;
+  /** @deprecated Use <picture> child element instead */
   mobilePoster: string;
+  /** @deprecated Use <source> child elements instead */
   desktopVideo: string;
+  /** @deprecated Use <source> child elements instead */
   mobileVideo: string;
   videoType: string;
   showControls: boolean;
@@ -53,19 +57,73 @@ export interface VideoPlayerConfig {
   tripleTapSeek: boolean;
   tripleTapSeconds: number;
   enableTapRipple: boolean;
-  singleActive?: boolean; // Play only one video at a time
-  showLoop?: boolean; // Loop toggle button
-  showPip?: boolean; // Picture-in-Picture button
-  showSubtitles?: boolean; // Subtitle menu
-  showQuality?: boolean; // Quality selector (HLS)
-  skipIntro?: number; // Seconds to skip at start (0 = disabled)
-  theaterMode?: boolean; // Theater mode toggle
-  resume?: boolean; // Resume from last position
-  screenshot?: boolean; // Screenshot button
-  airplay?: boolean; // AirPlay button (Safari)
-  miniPlayer?: boolean; // Mini-player mode toggle
-  responsiveControls?: boolean; // Kabob menu for small containers
+  singleActive?: boolean;
+  showLoop?: boolean;
+  showPip?: boolean;
+  showSubtitles?: boolean;
+  showQuality?: boolean;
+  skipIntro?: number;
+  theaterMode?: boolean;
+  resume?: boolean;
+  screenshot?: boolean;
+  airplay?: boolean;
+  miniPlayer?: boolean;
+  responsiveControls?: boolean;
   bufferProgress?: boolean;
+
+  // ── New features ──────────────────────────────────────────────────────────
+
+  /**
+   * Show a unified ⚙ settings button that groups Quality, Speed and
+   * Subtitles into a single menu with sub-page navigation.
+   * When `true`, the individual quality / speed / subtitle buttons are
+   * placed inside the settings menu instead of the main controls bar.
+   */
+  showSettings?: boolean;
+  /** Tooltip label for the settings button. Default: "Settings" */
+  tooltipSettings?: string;
+
+  /**
+   * Custom message shown in the error overlay.
+   * Default: "An error occurred while loading the video."
+   */
+  errorMessage?: string;
+  /**
+   * Custom SVG string used as the error icon.
+   * Falls back to a built-in warning triangle when omitted.
+   */
+  errorIcon?: string;
+  /**
+   * When `true` (default) a "Try again" retry button appears in the
+   * error overlay and re-triggers video load on click.
+   */
+  showRetry?: boolean;
+
+  /**
+   * URL of an image or GIF to use as a custom loading indicator.
+   * Replaces the default CSS-spinner when set.
+   */
+  loaderSrc?: string;
+  /**
+   * Inline HTML string for a fully custom loader (e.g. an SVG animation).
+   * Sanitised with DOMPurify before insertion.
+   * `loader-src` takes precedence when both are set.
+   */
+  loaderHtml?: string;
+
+  /**
+   * Enable seekbar thumbnail preview on hover and while dragging.
+   * Requires either `thumbnails-vtt` (sprite/VTT approach) or simply
+   * works from the main video element when omitted.
+   */
+  showThumbnails?: boolean;
+  /**
+   * URL of a WebVTT file whose cues map time ranges to thumbnail images
+   * (optionally with `#xywh=x,y,w,h` sprite fragments).
+   * When omitted, frames are captured live from a hidden clone of the
+   * video element.
+   */
+  thumbnailsVtt?: string;
 }
 
 /**
@@ -116,6 +174,21 @@ export interface IconSet {
   screenshot: string;
   airplay: string;
   miniplayer: string;
+  /** Gear / settings icon (built-in, not user-overridable via attribute) */
+  settings: string;
+}
+
+/**
+ * Parsed WebVTT thumbnail cue.
+ */
+export interface ThumbnailVttCue {
+  start: number;
+  end: number;
+  url: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 /**
