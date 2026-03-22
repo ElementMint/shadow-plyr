@@ -2,16 +2,13 @@
  * Shadow Plyr
  * A production-grade Web Component video player
  *
- * @version 1.5.1
+ * @version 2.0.0
  * @license MIT
  * @author Element Mint
  * @copyright (c) 2026 Element Mint
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files.
  */
 
-import { VideoPlayerConfig, IconSet } from "./types";
+import { VideoPlayerConfig, IconSet, ThumbnailVttCue } from "./types";
 import { DEFAULT_ICONS, IconCache } from "./icons";
 import { throttle } from "./utils";
 import DOMPurify from "dompurify";
@@ -22,9 +19,8 @@ sheet.replaceSync(`
   :host { display: block; position: relative; width: 100%; max-width: 100%; height:100%; }
   * { box-sizing: border-box; }
   .video-container {
-    position: relative; width: 100%; aspect-ratio:var(--aspect-ratio,16:9); background: #000;
-    overflow: hidden;
-    height:100%;
+    position: relative; width: 100%; aspect-ratio:var(--aspect-ratio,16/9); background: #000;
+    overflow: hidden; height:100%;
   }
   .shadow-plyr-wrapper {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -33,28 +29,73 @@ sheet.replaceSync(`
   video {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     object-fit: contain; display: block; pointer-events: auto;
-    opacity: 0; transition: opacity .3s ease; will-change: opacity;
-    will-change: opacity, transform;
-  transform: translateZ(0);
+    opacity: 0; transition: opacity .3s ease; will-change: opacity, transform;
+    transform: translateZ(0);
   }
   .video-loaded.is-playing video,
-  .video-loaded:not(.poster-visible) video { opacity: 1 }
-  video::-webkit-media-controls { display: none }
+  .video-loaded:not(.poster-visible) video { opacity: 1; }
+  video::-webkit-media-controls { display: none; }
   picture {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block;
     z-index: 5; opacity: 0; transition: opacity .3s ease; pointer-events: none;
     cursor: pointer;
   }
-  picture img { width: 100%; height: 100%; object-fit: contain display: block; }
+  picture img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .poster-visible picture { opacity: 1; pointer-events: auto; }
+
+  /* ── Default CSS spinner loader ── */
   .video-loading::after {
     content: ''; position: absolute; top: 50%; left: 50%; width: 40px; height: 40px;
     margin: -20px 0 0 -20px; border: 3px solid rgba(255,255,255,.3);
     border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite;
     z-index: 10;
   }
+  /* Hide default spinner when a custom loader is active */
+  .has-custom-loader.video-loading::after { display: none; }
+
   @keyframes spin { to { transform: rotate(360deg); } }
-  /* ----- CSS CUSTOM PROPERTIES ----- */
+
+  /* ── Custom loader overlay ── */
+  .video-custom-loader {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%); z-index: 11;
+    pointer-events: none; display: none;
+    align-items: center; justify-content: center;
+    max-width: 80px; max-height: 80px;
+  }
+  .video-loading .video-custom-loader { display: flex; }
+  .video-custom-loader img,
+  .video-custom-loader svg { max-width: 80px; max-height: 80px; display: block; }
+
+  /* ── Error overlay ── */
+  .video-error-overlay {
+    position: absolute; inset: 0; z-index: 50;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: rgba(0,0,0,.88); padding: 20px;
+    text-align: center; pointer-events: none; opacity: 0;
+    transition: opacity .3s ease;
+  }
+  .has-error .video-error-overlay { opacity: 1; pointer-events: auto; }
+  .error-icon { margin-bottom: 12px; }
+  .error-icon svg { width: 44px; height: 44px; fill: #ff5252; color: #ff5252; }
+  .error-title {
+    color: #fff; font-size: .95rem; font-weight: 700;
+    margin: 0 0 6px; font-family: inherit;
+  }
+  .error-message {
+    color: rgba(255,255,255,.7); font-size: .83rem;
+    line-height: 1.6; margin: 0 0 16px; font-family: inherit;
+  }
+  .error-retry-btn {
+    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3);
+    color: #fff; padding: 8px 20px; border-radius: 4px; cursor: pointer;
+    font-size: .82rem; font-weight: 600; transition: background .2s;
+    font-family: inherit;
+  }
+  .error-retry-btn:hover { background: rgba(255,255,255,.24); }
+
+  /* ── CSS CUSTOM PROPERTIES ── */
   .video-center-play {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
     width: var(--center-play-size, 80px); height: var(--center-play-size, 80px);
@@ -66,13 +107,13 @@ sheet.replaceSync(`
   .video-center-play svg {
     width: calc(var(--center-play-size, 80px) * 0.5);
     height: calc(var(--center-play-size, 80px) * 0.5);
-    fill: var(--accent-color, #fff);
-    color:var(--accent-color, #fff);
+    fill: var(--accent-color, #fff); color:var(--accent-color, #fff);
   }
   .video-loaded .video-center-play { opacity: .8; pointer-events: auto; }
   .video-loaded.is-playing .video-center-play { opacity: 0; pointer-events: none; }
   .video-loaded.is-playing:hover .video-center-play { opacity: .8; pointer-events: auto; }
   .video-center-play:hover { transform: translate(-50%,-50%) scale(1.1); }
+
   .video-controls-bar {
     position: absolute; bottom: 0; left: 0; right: 0;
     padding: 40px 15px 15px; display: flex; flex-direction: column; gap: 10px;
@@ -87,59 +128,55 @@ sheet.replaceSync(`
     opacity: 1; transform: translateY(0); pointer-events: auto;
   }
   .video-loaded.is-playing .video-controls-bar { opacity: 0; transform: translateY(100%); pointer-events: none; }
- .video-seekbar {
-  position: relative;
-  width: 100%;
-  height: 14px;
-}
 
-.video-seekbar-track {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 8px;
-  transform: translateY(-50%);
-  background: rgba(255,255,255,.3);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.video-seekbar-buffer {
-  position: absolute;
-  inset: 0;
-  background: rgba(255,255,255,.2);
-  transform-origin: left center;
-  transform: scaleX(0);
-}
-
-.video-seekbar-progress{
-height:8px;
-}
-
-.video-seekbar-fill {
-  height: 100%;
-  width: 100%;
-  background: var(--accent-color,#ff8c42);
-  transform-origin: left center;
-  transform: scaleX(0);
-}
-
-.video-seekbar-handle {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--accent-color,#ff8c42);
-  transform: translate(-50%, -50%);
-}
+  /* ── Seekbar ── */
+  .video-seekbar { position: relative; width: 100%; height: 14px; cursor: pointer; }
+  .video-seekbar-track {
+    position: absolute; top: 50%; left: 0; width: 100%; height: 8px;
+    transform: translateY(-50%); background: rgba(255,255,255,.3);
+    border-radius: 6px; overflow: hidden;
+  }
+  .video-seekbar-buffer {
+    position: absolute; inset: 0; background: rgba(255,255,255,.2);
+    transform-origin: left center; transform: scaleX(0);
+  }
+  .video-seekbar-progress { height: 8px; }
+  .video-seekbar-fill {
+    height: 100%; width: 100%; background: var(--accent-color,#ff8c42);
+    transform-origin: left center; transform: scaleX(0);
+  }
+  .video-seekbar-handle {
+    position: absolute; top: 50%; left: 0; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--accent-color,#ff8c42);
+    transform: translate(-50%, -50%);
+  }
   .video-seekbar:hover .video-seekbar-handle { opacity: 1; }
+
+  /* ── Thumbnail preview ── */
+  .seek-thumbnail-preview {
+    position: absolute; bottom: calc(100% + 14px);
+    transform: translateX(-50%);
+    pointer-events: none; opacity: 0; z-index: 40;
+    transition: opacity .12s ease;
+  }
+  .video-loaded .video-seekbar:hover .seek-thumbnail-preview { opacity: 1; }
+  .seek-thumbnail-canvas, .seek-thumbnail-img-el {
+    display: block; width: 160px; height: 90px;
+    border-radius: 4px; border: 2px solid rgba(255,255,255,.5);
+    background: #000; object-fit: cover;
+  }
+  .seek-thumbnail-time {
+    text-align: center; font-size: 11px; color: #fff;
+    margin-top: 4px; font-family: monospace;
+    text-shadow: 0 1px 4px rgba(0,0,0,.9);
+  }
+
+  /* ── Controls ── */
   .video-controls-row { display: flex; align-items: center; gap: 15px; }
   .video-control-btn {
     background: none; border: none; cursor: pointer; padding: 5px;
     display: flex; align-items: center; justify-content: center; transition: transform .2s;
+    position: relative;
   }
   .video-control-btn:hover { transform: scale(1.1); background: rgba(255,255,255,.1); }
   .video-control-btn svg { width: 24px; height: 24px; fill: var(--accent-color, #fff); color:var(--accent-color,#fff); }
@@ -159,22 +196,91 @@ height:8px;
     font-size: 13px; font-family: monospace; user-select: none;
     color: var(--accent-color, #fff);
   }
-  .video-speed-control, .video-quality-control, .video-subtitle-control, .video-more-control { position: relative; }
-  .video-speed-btn, .video-quality-btn, .video-subtitle-btn, .video-more-btn { min-width: 45px; font-size: 13px; font-weight: 600; color:var(--accent-color,#fff) }
+
+  /* ── Individual popup menus (quality / speed / subtitle) ── */
+  .video-speed-control, .video-quality-control, .video-subtitle-control, .video-more-control {
+    position: relative;
+  }
+  .video-speed-btn, .video-quality-btn, .video-subtitle-btn, .video-more-btn {
+    min-width: 45px; font-size: 13px; font-weight: 600; color:var(--accent-color,#fff);
+  }
   .video-speed-menu, .video-quality-menu, .video-subtitle-menu, .video-more-menu {
     position: absolute; bottom: 100%; right: 0; border-radius: 4px; padding: 5px 0;
     margin-bottom: 10px; min-width: 80px; opacity: 0; visibility: hidden;
     transform: translateY(10px); transition: all .2s ease; z-index: 100;
     background: var(--controls-bg, rgba(0,0,0,.8));
   }
-  .video-speed-menu.active, .video-quality-menu.active, .video-subtitle-menu.active, .video-more-menu.active { opacity: 1; visibility: visible; transform: translateY(0); }
+  .video-speed-menu.active, .video-quality-menu.active,
+  .video-subtitle-menu.active, .video-more-menu.active {
+    opacity: 1; visibility: visible; transform: translateY(0);
+  }
+  /* Inside the settings panel sub-pages, menus are always visible — the settings-page handles show/hide */
+  .settings-page .video-quality-menu,
+  .settings-page .video-speed-menu,
+  .settings-page .video-subtitle-menu {
+    position: static; opacity: 1; visibility: visible; transform: none;
+    transition: none; background: transparent; padding: 0; margin: 0;
+    min-width: 0;
+  }
   .video-speed-option, .video-quality-option, .video-subtitle-option, .video-more-option {
     display: block; width: 100%; padding: 8px 15px; background: none; border: none;
     font-size: 13px; text-align: left; cursor: pointer; transition: background .2s;
     color: var(--accent-color, #fff);
   }
-  .video-speed-option:hover, .video-quality-option:hover, .video-subtitle-option:hover, .video-more-option:hover { background: rgba(255,255,255,.1); }
-  .video-speed-option.active, .video-quality-option.active, .video-subtitle-option.active, .video-more-option.active { background: rgba(255,255,255,.2); font-weight: 600; }
+  .video-speed-option:hover, .video-quality-option:hover,
+  .video-subtitle-option:hover, .video-more-option:hover { background: rgba(255,255,255,.1); }
+  .video-speed-option.active, .video-quality-option.active,
+  .video-subtitle-option.active, .video-more-option.active {
+    background: rgba(255,255,255,.2); font-weight: 600;
+  }
+
+  /* ── Unified settings menu ── */
+  .video-settings-control { position: relative; }
+  .video-settings-menu {
+    position: absolute; bottom: 100%; right: 0;
+    min-width: 220px; border-radius: 6px; margin-bottom: 10px;
+    opacity: 0; visibility: hidden; transform: translateY(10px);
+    transition: all .2s ease; z-index: 100; overflow: hidden;
+    background: var(--controls-bg, rgba(0,0,0,.85));
+    box-shadow: 0 8px 28px rgba(0,0,0,.45);
+  }
+  .video-settings-menu.active { opacity: 1; visibility: visible; transform: translateY(0); }
+  .settings-page { display: none; }
+  .settings-page.active { display: block; animation: sfade .15s ease; }
+  @keyframes sfade {
+    from { opacity: 0; transform: translateX(6px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .settings-main-item {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 11px 15px; background: none; border: none;
+    color: var(--accent-color, #fff); font-size: 13px; cursor: pointer;
+    transition: background .15s; text-align: left;
+  }
+  .settings-main-item:hover { background: rgba(255,255,255,.1); }
+  .settings-main-label { flex: 1; }
+  .settings-main-value { opacity: .55; font-size: 12px; white-space: nowrap; }
+  .settings-main-arrow { opacity: .35; font-size: 15px; line-height: 1; }
+  .settings-sub-header {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 10px 14px;
+    background: rgba(255,255,255,.06); border: none;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    color: var(--accent-color, #fff); font-size: 13px;
+    cursor: pointer; font-weight: 700; text-align: left;
+    transition: background .15s;
+  }
+  .settings-sub-header:hover { background: rgba(255,255,255,.1); }
+  .settings-sub-back { font-size: 18px; opacity: .65; line-height: 1; }
+  .settings-option {
+    display: block; width: 100%; padding: 9px 15px;
+    background: none; border: none; font-size: 13px; text-align: left;
+    cursor: pointer; transition: background .15s; color: var(--accent-color, #fff);
+  }
+  .settings-option:hover { background: rgba(255,255,255,.1); }
+  .settings-option.active { background: rgba(255,255,255,.15); font-weight: 600; }
+
+  /* ── Focus / accessibility ── */
   .video-control-btn:focus-visible,
   .video-seekbar:focus-visible,
   .video-volume-slider:focus-visible { outline: 2px solid var(--accent-color, #fff); outline-offset: 2px; }
@@ -182,35 +288,25 @@ height:8px;
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border-width: 0;
   }
-  /* ----- Tooltip styles ----- */
+
+  /* ── Tooltips ── */
   .tooltip {
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-bottom: 8px;
+    position: absolute; bottom: 100%; left: 50%;
+    transform: translateX(-50%); margin-bottom: 8px;
     padding: 4px 8px;
     background: var(--tooltip-bg,rgba(0,0,0,0.8));
     color: var(--tooltip-color,#fff);
     font-size: var(--tooltip-font-size,12px);
-    white-space: nowrap;
-    border-radius: 4px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 30;
+    white-space: nowrap; border-radius: 4px;
+    pointer-events: none; opacity: 0; transition: opacity 0.2s; z-index: 30;
   }
   .video-control-btn:hover .tooltip,
-  .video-center-play:hover .tooltip {
-    opacity: 1;
-  }
+  .video-center-play:hover .tooltip { opacity: 1; }
 
   .video-control-btn.disabled,
-.video-control-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  pointer-events: auto;
-}
+  .video-control-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: auto; }
+
+  /* ── Responsive ── */
   @media (max-width: 768px) {
     .video-center-play { width: 60px; height: 60px; }
     .video-center-play svg { width: 30px; height: 30px; }
@@ -219,105 +315,74 @@ height:8px;
     .video-volume-slider { display: none; }
     .video-time-display { font-size: 11px; }
   }
-  .responsive-hidden { display: none }
+  .responsive-hidden { display: none; }
   .responsive-more-menu .video-control-btn { display: flex; width: 100%; padding: 10px; }
 
+  /* ── Tap ripple ── */
   .tap-ripple {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    background: rgba(255,255,255,0.4);
-    border-radius: 50%;
+    position: absolute; width: 20px; height: 20px;
+    background: rgba(255,255,255,0.4); border-radius: 50%;
     transform: translate(-50%, -50%);
     animation: ripple-expand 0.6s ease-out forwards;
-    pointer-events: none;
-    z-index: 50;
+    pointer-events: none; z-index: 50;
   }
   @keyframes ripple-expand {
     from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-    to { opacity: 0; transform: translate(-50%, -50%) scale(8); }
+    to   { opacity: 0; transform: translate(-50%, -50%) scale(8); }
   }
+
+  /* ── Seek buttons ── */
   .video-seek-buttons {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    position: absolute; inset: 0;
+    display: flex; justify-content: space-between; align-items: center;
     pointer-events: none;
   }
   .video-seek-buttons button {
-    pointer-events: auto;
-    width: 30%;
-    height: 60%;
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 20px;
-    font-weight: bold;
-    opacity: 0.6;
+    pointer-events: auto; width: 30%; height: 60%;
+    background: transparent; border: none; color: #fff;
+    font-size: 20px; font-weight: bold; opacity: 0.6;
   }
+
+  /* ── Seek overlay (double/triple tap indicator) ── */
   .seek-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%,-50%);
-    font-size: 32px;
-    color: white;
-    font-weight: bold;
-    pointer-events: none;
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%); font-size: 32px;
+    color: white; font-weight: bold; pointer-events: none;
     animation: fadeOut 0.6s forwards;
   }
-  @keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-  }
-  /* Theater mode – applied to container */
-  .video-container.theater-mode {
-    max-width: none;
-    aspect-ratio: auto;
-  }
-  /* Mini player */
+  @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+  /* ── Theater mode ── */
+  .video-container.theater-mode { max-width: none; aspect-ratio: auto; }
+
+  /* ── Mini player ── */
   .mini-player {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 320px;
-    height: 180px;
-    z-index: 9999;
-    box-shadow: 0 0 20px rgba(0,0,0,.5);
-    top:auto;
-    left:auto;
-    border-radius:8px;
-    overflow:hidden;
+    position: fixed; bottom: 20px; right: 20px;
+    width: 320px; height: 180px; z-index: 9999;
+    box-shadow: 0 0 20px rgba(0,0,0,.5); top:auto; left:auto;
+    border-radius:8px; overflow:hidden;
+    cursor: move; user-select: none;
+    transition: box-shadow .15s ease;
+  }
+  .mini-player.is-dragging {
+    box-shadow: 0 8px 40px rgba(0,0,0,.7);
+    transition: none;
   }
   .mini-player .video-volume-slider,
-.mini-player .video-time-display,
-.mini-player .fullscreen-btn,
-.mini-player .video-more-control
-{
-  display: none !important;
-}
-  .mini-player .miniplayer-btn {
-  display:block !important;
-  }
-  .mini-player .video-controls-bar{
-    gap:0;
-    padding:16px 6px 2px;
-  }
-    .mini-player video,
-    .mini-player img{
-    border-radius:8px;
-    }
+  .mini-player .video-time-display,
+  .mini-player .fullscreen-btn,
+  .mini-player .video-more-control { display: none !important; }
+  .mini-player .miniplayer-btn { display:block !important; }
+  .mini-player .video-controls-bar { gap:0; padding:16px 6px 2px; cursor: default; }
+  .mini-player video, .mini-player img { border-radius:8px; }
 `);
 
-// ---------- GLOBAL VIDEO ENGINE ----------
+// ---------- SHARED GLOBAL VIDEO ENGINE ----------
 const GlobalVideoEngine = (() => {
   const instances = new Set<ShadowPlyr>();
   let activeInstance: ShadowPlyr | null = null;
   return {
-    register(instance: ShadowPlyr) {
-      instances.add(instance);
-    },
+    register(instance: ShadowPlyr) { instances.add(instance); },
     unregister(instance: ShadowPlyr) {
       instances.delete(instance);
       if (activeInstance === instance) activeInstance = null;
@@ -332,15 +397,18 @@ const GlobalVideoEngine = (() => {
 
 // ---------- MAIN COMPONENT ----------
 export class ShadowPlyr extends HTMLElement {
-  // Private fields
+  // ── Shadow root ────────────────────────────────────────────────────────────
   #shadowRoot: ShadowRoot;
+
+  // ── Config cache ───────────────────────────────────────────────────────────
   #configCache: VideoPlayerConfig | null = null;
   #configCacheTime = 0;
-  readonly #CONFIG_CACHE_DURATION = 10000;
+  readonly #CONFIG_CACHE_DURATION = 10_000;
 
-  // State
+  // ── State ──────────────────────────────────────────────────────────────────
   #observer: IntersectionObserver | null = null;
   #isInitialized = false;
+  #loadGeneration = 0; // incremented on every #loadVideo call; stale callbacks check this
   #videoElement: HTMLVideoElement | null = null;
   #isPlaying = false;
   #isDraggingSeekbar = false;
@@ -353,12 +421,16 @@ export class ShadowPlyr extends HTMLElement {
   #wasPlayingBeforeHidden = false;
   #isPageVisible = true;
   #rafId: number | null = null;
+  #hasError = false;
+
+  // ── DOM refs – controls ────────────────────────────────────────────────────
   #$wrapper: HTMLElement | null = null;
   #$container: HTMLElement | null = null;
   #$seekbar: HTMLElement | null = null;
   #$seekbarProgress: HTMLElement | null = null;
   #$seekbarBuffer: HTMLElement | null = null;
   #$seekbarHandle!: HTMLElement;
+  #$seekbarFill!: HTMLElement;
   #$timeDisplay: HTMLElement | null = null;
   #$volumeProgress: HTMLElement | null = null;
   #$speedMenu: HTMLElement | null = null;
@@ -369,18 +441,29 @@ export class ShadowPlyr extends HTMLElement {
   #$subtitleText: HTMLElement | null = null;
   #$moreMenu: HTMLElement | null = null;
   #$moreBtn: HTMLElement | null = null;
-  #$seekbarFill!: HTMLElement;
+
+  // ── DOM refs – settings menu ───────────────────────────────────────────────
+  #$settingsMenu: HTMLElement | null = null;
+  #$settingsQualityValue: HTMLElement | null = null;
+  #$settingsSpeedValue: HTMLElement | null = null;
+  #$settingsSubtitleValue: HTMLElement | null = null;
+  #settingsCurrentPage = 'main';
+
+  // ── DOM refs – thumbnail preview ───────────────────────────────────────────
+  #$thumbnailPreview: HTMLElement | null = null;
+  #$thumbnailCanvas: HTMLCanvasElement | null = null;
+  #$thumbnailLabel: HTMLElement | null = null;
+  #thumbnailVideo: HTMLVideoElement | null = null;
+  #thumbnailVttCues: ThumbnailVttCue[] = [];
+  #thumbnailRAF: number | null = null;
+
+  // ── HLS / quality state ────────────────────────────────────────────────────
   #tapCount = 0;
   #tapTimeout: number | null = null;
   #resizeObserver: ResizeObserver | null = null;
   #hls: any = null;
   #qualityLevels: any[] = [];
-  #manualQualities: Array<{
-    src: string;
-    type: string;
-    label: string;
-    media: string | null;
-  }> = [];
+  #manualQualities: Array<{src: string; type: string; label: string; media: string | null}> = [];
   #currentQualityLabel: string | null = null;
   #currentQualityIndex: number | null = null;
   #subtitlesTracks: TextTrack[] = [];
@@ -388,13 +471,24 @@ export class ShadowPlyr extends HTMLElement {
   #resumeKey: string | null = null;
   #theaterMode = false;
   #miniPlayerActive = false;
+  // Mini-player drag state
+  #miniDragActive = false;
+  #miniDragOffsetX = 0;
+  #miniDragOffsetY = 0;
+  #boundMiniPointerMove: ((e: PointerEvent) => void) | null = null;
+  #boundMiniPointerUp: ((e: PointerEvent) => void) | null = null;
 
-  // Event handlers as arrow properties
+  // ── Bound helpers ──────────────────────────────────────────────────────────
+  #throttledSeekbarUpdate: () => void;
+  #throttledProgressUpdate: () => void;
+  #boundFullscreenChange: () => void;
+
+  // ==========================================================================
+  // KEYBOARD
+  // ==========================================================================
   #handleKeyboard = (e: KeyboardEvent): void => {
     if (!this.#videoElement) return;
     const key = e.key.toLowerCase();
-    const config = this.#getConfig();
-    let handled = false;
     const actions: Record<string, () => void> = {
       " ": () => this.#togglePlayPause(),
       k: () => this.#togglePlayPause(),
@@ -404,13 +498,8 @@ export class ShadowPlyr extends HTMLElement {
       arrowdown: () => this.#adjustVolume(-0.1),
       m: () => this.#toggleMute(),
       f: () => this.#toggleFullscreen(),
-      home: () => {
-        if (this.#videoElement) this.#videoElement.currentTime = 0;
-      },
-      end: () => {
-        if (this.#videoElement)
-          this.#videoElement.currentTime = this.#videoElement.duration;
-      },
+      home: () => { if (this.#videoElement) this.#videoElement.currentTime = 0; },
+      end: () => { if (this.#videoElement) this.#videoElement.currentTime = this.#videoElement.duration; },
       l: () => this.#toggleLoop(),
       p: () => this.#togglePip(),
       t: () => this.#toggleTheaterMode(),
@@ -419,52 +508,40 @@ export class ShadowPlyr extends HTMLElement {
     if (actions[key]) {
       e.preventDefault();
       actions[key]();
-      handled = true;
+      if (this.#$wrapper) this.#$wrapper.classList.add("show-controls");
     } else if (key >= "0" && key <= "9" && this.#videoElement.duration) {
       e.preventDefault();
-      this.#videoElement.currentTime =
-        this.#videoElement.duration * (parseInt(key) / 10);
-      handled = true;
+      this.#videoElement.currentTime = this.#videoElement.duration * (parseInt(key) / 10);
     }
-    if (handled && this.#$wrapper)
-      this.#$wrapper.classList.add("show-controls");
   };
 
+  // ==========================================================================
+  // TOGGLE HELPERS
+  // ==========================================================================
   #togglePlayPause = (e?: Event): void => {
     if (e) e.stopPropagation();
     if (!this.#videoElement) return;
-    if (this.#isPlaying) this.pauseVideo();
-    else this.playVideo();
+    if (this.#isPlaying) this.pauseVideo(); else this.playVideo();
   };
 
   #toggleMute = (e?: Event): void => {
     if (e) e.stopPropagation();
-    if (this.#videoElement)
-      this.#videoElement.muted = !this.#videoElement.muted;
+    if (this.#videoElement) this.#videoElement.muted = !this.#videoElement.muted;
   };
 
   #toggleFullscreen = (e?: Event): void => {
     if (e) e.stopPropagation();
     const elem = this.#$container;
     const video = this.#videoElement;
-
-    if (
-      !document.fullscreenElement &&
-      !(document as any).webkitFullscreenElement
-    ) {
-      // Safari prefers fullscreen on video element
+    if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
       if (video && "webkitEnterFullscreen" in video) {
-        (video as any).webkitEnterFullscreen();
-        return;
+        (video as any).webkitEnterFullscreen(); return;
       }
-
       if (elem?.requestFullscreen) elem.requestFullscreen();
-      else if (elem && "webkitRequestFullscreen" in elem)
-        (elem as any).webkitRequestFullscreen();
+      else if (elem && "webkitRequestFullscreen" in elem) (elem as any).webkitRequestFullscreen();
     } else {
       if (document.exitFullscreen) document.exitFullscreen();
-      else if ((document as any).webkitExitFullscreen)
-        (document as any).webkitExitFullscreen();
+      else if ((document as any).webkitExitFullscreen) (document as any).webkitExitFullscreen();
     }
   };
 
@@ -485,9 +562,7 @@ export class ShadowPlyr extends HTMLElement {
       } else if (this.#videoElement.requestPictureInPicture) {
         await this.#videoElement.requestPictureInPicture();
       }
-    } catch (err) {
-      console.warn("PiP failed", err);
-    }
+    } catch (err) { console.warn("PiP failed", err); }
   };
 
   #toggleTheaterMode = (): void => {
@@ -499,17 +574,119 @@ export class ShadowPlyr extends HTMLElement {
 
   #toggleMiniPlayer = (): void => {
     if (!this.#videoElement) return;
-    if (!this.#miniPlayerActive) {
-      this.#miniPlayerActive = true;
-      this.#$wrapper?.classList.add("mini-player");
-      this.classList.add("mini-player");
+    this.#miniPlayerActive = !this.#miniPlayerActive;
+    this.#$wrapper?.classList.toggle("mini-player", this.#miniPlayerActive);
+    this.classList.toggle("mini-player", this.#miniPlayerActive);
+
+    if (this.#miniPlayerActive) {
+      this.#attachMiniPlayerDrag();
     } else {
-      this.#miniPlayerActive = false;
-      this.#$wrapper?.classList.remove("mini-player");
-      this.classList.remove("mini-player");
+      this.#detachMiniPlayerDrag();
+      // Reset inline position so it returns to the CSS default (bottom-right)
+      if (this.#$wrapper) {
+        this.#$wrapper.style.removeProperty("left");
+        this.#$wrapper.style.removeProperty("top");
+        this.#$wrapper.style.removeProperty("right");
+        this.#$wrapper.style.removeProperty("bottom");
+      }
     }
+
     this.#emit("mini-player-change", { active: this.#miniPlayerActive });
   };
+
+  #attachMiniPlayerDrag(): void {
+    const el = this.#$wrapper;
+    if (!el) return;
+
+    const onPointerDown = (e: PointerEvent): void => {
+      // Only drag from the player itself — not from control buttons
+      const target = e.target as HTMLElement;
+      if (target.closest(".video-controls-bar") || target.closest(".video-center-play")) return;
+
+      e.preventDefault();
+      this.#miniDragActive = true;
+      el.classList.add("is-dragging");
+      el.setPointerCapture(e.pointerId);
+
+      const rect = el.getBoundingClientRect();
+      this.#miniDragOffsetX = e.clientX - rect.left;
+      this.#miniDragOffsetY = e.clientY - rect.top;
+
+      // Switch from CSS bottom/right to top/left for free positioning
+      el.style.right  = "auto";
+      el.style.bottom = "auto";
+      el.style.left   = rect.left + "px";
+      el.style.top    = rect.top  + "px";
+    };
+
+    const onPointerMove = (e: PointerEvent): void => {
+      if (!this.#miniDragActive) return;
+      e.preventDefault();
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const w  = el.offsetWidth;
+      const h  = el.offsetHeight;
+      const margin = 8; // min gap from viewport edge
+
+      let x = e.clientX - this.#miniDragOffsetX;
+      let y = e.clientY - this.#miniDragOffsetY;
+
+      // Clamp inside viewport with a small margin
+      x = Math.max(margin, Math.min(vw - w - margin, x));
+      y = Math.max(margin, Math.min(vh - h - margin, y));
+
+      el.style.left = x + "px";
+      el.style.top  = y + "px";
+    };
+
+    const onPointerUp = (e: PointerEvent): void => {
+      if (!this.#miniDragActive) return;
+      this.#miniDragActive = false;
+      el.classList.remove("is-dragging");
+      el.releasePointerCapture(e.pointerId);
+
+      // Snap to nearest horizontal edge (left / right half)
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const w  = el.offsetWidth;
+      const h  = el.offsetHeight;
+      const margin = 16;
+      const cx = parseFloat(el.style.left) + w / 2;
+
+      let snapX: number;
+      if (cx < vw / 2) {
+        snapX = margin;                   // snap left
+      } else {
+        snapX = vw - w - margin;          // snap right
+      }
+      let snapY = parseFloat(el.style.top);
+      snapY = Math.max(margin, Math.min(vh - h - margin, snapY));
+
+      el.style.transition = "left .2s ease, top .2s ease";
+      el.style.left = snapX + "px";
+      el.style.top  = snapY + "px";
+      setTimeout(() => { el.style.removeProperty("transition"); }, 220);
+    };
+
+    el.addEventListener("pointerdown", onPointerDown);
+    this.#boundMiniPointerMove = onPointerMove as (e: PointerEvent) => void;
+    this.#boundMiniPointerUp   = onPointerUp   as (e: PointerEvent) => void;
+    el.addEventListener("pointermove", this.#boundMiniPointerMove);
+    el.addEventListener("pointerup",   this.#boundMiniPointerUp);
+    el.addEventListener("pointercancel", this.#boundMiniPointerUp);
+    // Store pointerdown so we can remove it on detach
+    (el as any).__miniPointerDown = onPointerDown;
+  }
+
+  #detachMiniPlayerDrag(): void {
+    const el = this.#$wrapper;
+    if (!el) return;
+    if ((el as any).__miniPointerDown)  { el.removeEventListener("pointerdown", (el as any).__miniPointerDown); delete (el as any).__miniPointerDown; }
+    if (this.#boundMiniPointerMove)     { el.removeEventListener("pointermove", this.#boundMiniPointerMove); this.#boundMiniPointerMove = null; }
+    if (this.#boundMiniPointerUp)       { el.removeEventListener("pointerup",   this.#boundMiniPointerUp); el.removeEventListener("pointercancel", this.#boundMiniPointerUp); this.#boundMiniPointerUp = null; }
+    this.#miniDragActive = false;
+  }
 
   #showKeyboardHelp = (): void => {
     const help = document.createElement("div");
@@ -519,229 +696,182 @@ export class ShadowPlyr extends HTMLElement {
         <h3>Keyboard Shortcuts</h3>
         <ul>
           <li>Space / K: Play/Pause</li>
-          <li>←/→: Seek backward/forward ${this.#getConfig().seekStep}s</li>
-          <li>↑/↓: Volume up/down</li>
-          <li>M: Mute</li>
-          <li>F: Fullscreen</li>
-          <li>L: Toggle Loop</li>
-          <li>P: Picture-in-Picture</li>
+          <li>←/→: Seek ${this.#getConfig().seekStep}s</li>
+          <li>↑/↓: Volume</li>
+          <li>M: Mute</li><li>F: Fullscreen</li>
+          <li>L: Loop</li><li>P: PiP</li>
           <li>T: Theater mode</li>
           <li>Home/End: Start/End</li>
-          <li>0-9: Seek 0% to 90%</li>
+          <li>0-9: Jump to %</li>
         </ul>
         <button class="close-help">Close</button>
-      </div>
-    `;
+      </div>`;
     help.addEventListener("click", () => help.remove());
-    help
-      .querySelector(".close-help")
-      ?.addEventListener("click", () => help.remove());
+    help.querySelector(".close-help")?.addEventListener("click", () => help.remove());
     this.#$wrapper?.appendChild(help);
   };
 
   #takeScreenshot = (): void => {
     if (!this.#videoElement) return;
-
     try {
       const canvas = document.createElement("canvas");
       canvas.width = this.#videoElement.videoWidth;
       canvas.height = this.#videoElement.videoHeight;
-
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-
       ctx.drawImage(this.#videoElement, 0, 0, canvas.width, canvas.height);
-
       canvas.toBlob((blob) => {
-        if (!blob) {
-          console.warn("Screenshot blocked due to CORS.");
-          return;
-        }
+        if (!blob) { console.warn("Screenshot blocked due to CORS."); return; }
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url;
-        a.download = `screenshot-${Date.now()}.png`;
-        a.click();
+        a.href = url; a.download = `screenshot-${Date.now()}.png`; a.click();
         URL.revokeObjectURL(url);
       });
-    } catch (err) {
-      console.warn("Screenshot failed:", err);
-    }
+    } catch (err) { console.warn("Screenshot failed:", err); }
   };
 
+  // ==========================================================================
+  // SEEK / VOLUME / SPEED
+  // ==========================================================================
   #seekTo = (percent: number): void => {
-    if (this.#videoElement?.duration) {
-      this.#videoElement.currentTime = this.#videoElement.duration * percent;
-    }
+    if (this.#videoElement?.duration)
+      this.#videoElement.currentTime = this.#videoElement.duration * Math.max(0, Math.min(1, percent));
   };
 
   #setVolume = (percent: number): void => {
-    if (this.#videoElement) {
-      const vol = Math.max(0, Math.min(1, percent));
-      this.#videoElement.volume = vol;
-      this.#videoElement.muted = vol === 0;
-    }
+    if (!this.#videoElement) return;
+    const vol = Math.max(0, Math.min(1, percent));
+    this.#videoElement.volume = vol;
+    this.#videoElement.muted = vol === 0;
   };
 
   #setSpeed = (speed: number, wrapper?: HTMLElement): void => {
-    if (this.#videoElement) {
-      this.#videoElement.playbackRate = speed;
-      this.#currentSpeed = speed;
-      wrapper?.querySelectorAll(".video-speed-option").forEach((opt) => {
-        opt.classList.toggle(
-          "active",
-          parseFloat(opt.getAttribute("data-speed")!) === speed
-        );
-      });
-      if (this.#$speedText) this.#$speedText.textContent = speed + "x";
-    }
+    if (!this.#videoElement) return;
+    this.#videoElement.playbackRate = speed;
+    this.#currentSpeed = speed;
+    const target = wrapper ?? this.#$wrapper;
+    target?.querySelectorAll(".video-speed-option, .settings-option[data-speed]").forEach((opt) => {
+      opt.classList.toggle("active", parseFloat(opt.getAttribute("data-speed")!) === speed);
+    });
+    if (this.#$speedText) this.#$speedText.textContent = speed + "x";
+    if (this.#$settingsSpeedValue) this.#$settingsSpeedValue.textContent = speed + "x";
   };
 
-  // Quality handling
+  // ==========================================================================
+  // QUALITY
+  // ==========================================================================
   #setAutoQuality = (): void => {
     const video = this.#videoElement;
     if (!video) return;
     const currentTime = video.currentTime;
     const wasPlaying = this.#isPlaying;
-    video.removeAttribute("src");
-    video.load();
-    video.addEventListener(
-      "loadeddata",
-      () => {
-        video.currentTime = currentTime;
-        if (wasPlaying) video.play();
-      },
-      { once: true }
-    );
+    video.removeAttribute("src"); video.load();
+    video.addEventListener("loadeddata", () => {
+      video.currentTime = currentTime;
+      if (wasPlaying) video.play();
+    }, { once: true });
     this.#currentQualityLabel = null;
     this.#updateQualityText();
-    this.#populateQualityMenu(); // refresh active state
+    this.#populateQualityMenu();
   };
 
   #setManualQuality = (label: string): void => {
     const video = this.#videoElement;
-    if (!video) return;
-
-    if (this.#currentQualityLabel === label) {
-      return; // already active → do nothing
-    }
-
+    if (!video || this.#currentQualityLabel === label) return;
     const source = this.#manualQualities.find((q) => q.label === label);
     if (!source) return;
-
     const currentTime = video.currentTime;
     const wasPlaying = !video.paused;
-
-    // Prevent flash reset
-    video.pause();
-
-    video.src = source.src;
-
-    // Safari rendering fix
-    video.style.display = "none";
-    video.load();
-
-    requestAnimationFrame(() => {
-      video.style.display = "";
-    });
-
-    video.addEventListener(
-      "loadedmetadata",
-      () => {
-        // ensure metadata ready
-        if (currentTime > 0 && currentTime < video.duration) {
-          video.currentTime = currentTime;
-        }
-      },
-      { once: true }
-    );
-
-    video.addEventListener(
-      "canplay",
-      () => {
-        if (wasPlaying) {
-          video.play().catch(() => {});
-        }
-      },
-      { once: true }
-    );
-
+    video.pause(); video.src = source.src;
+    video.style.display = "none"; video.load();
+    requestAnimationFrame(() => { video.style.display = ""; });
+    video.addEventListener("loadedmetadata", () => {
+      if (currentTime > 0 && currentTime < video.duration) video.currentTime = currentTime;
+    }, { once: true });
+    video.addEventListener("canplay", () => { if (wasPlaying) video.play().catch(() => {}); }, { once: true });
     this.#currentQualityLabel = label;
     this.#updateQualityText();
     this.#populateQualityMenu();
   };
 
+  #setHlsQuality = (index: number): void => {
+    if (!this.#hls || this.#hls.levels.length === 0 || this.#currentQualityIndex === index) return;
+    this.#hls.currentLevel = index;
+    this.#currentQualityIndex = index;
+    const level = this.#hls.levels[index];
+    this.#currentQualityLabel = level?.height
+      ? `${level.height}p`
+      : level?.name || `${Math.round(level?.bitrate / 1000)}kbps`;
+    this.#updateQualityText();
+    this.#populateQualityMenu();
+  };
+
+  // ==========================================================================
+  // SUBTITLE
+  // ==========================================================================
   #setSubtitle = (trackId: string | null): void => {
     if (!this.#videoElement) return;
-    this.#subtitlesTracks.forEach((track) => {
-      track.mode = "disabled";
-    });
+    this.#subtitlesTracks.forEach((t) => (t.mode = "disabled"));
     if (trackId) {
-      const track = this.#subtitlesTracks.find(
-        (t) => t.id === trackId || t.label === trackId
-      );
+      const track = this.#subtitlesTracks.find((t) => t.id === trackId || t.label === trackId);
       if (track) track.mode = "showing";
     }
     this.#activeSubtitle = trackId;
     this.#updateSubtitleText();
   };
 
+  // ==========================================================================
+  // VISIBILITY / TAB
+  // ==========================================================================
   #visibilityChange = (): void => {
     if (!this.#videoLoaded || !this.#videoElement) return;
     if (document.hidden) {
-      if (this.#isPlaying) {
-        this.#wasPlayingBeforeHidden = true;
-        this.pauseVideo();
-      }
+      if (this.#isPlaying) { this.#wasPlayingBeforeHidden = true; this.pauseVideo(); }
     } else {
       if (this.#wasPlayingBeforeHidden && !this.#isPlaying) {
-        this.playVideo();
-        this.#wasPlayingBeforeHidden = false;
+        this.playVideo(); this.#wasPlayingBeforeHidden = false;
       }
     }
   };
-
-  #pageHide = (): void => {
-    if (this.#isPlaying) {
-      this.#wasPlayingBeforeHidden = true;
-      this.pauseVideo();
-    }
-  };
-
+  #pageHide = (): void => { if (this.#isPlaying) { this.#wasPlayingBeforeHidden = true; this.pauseVideo(); } };
   #pageShow = (): void => {
     if (this.#wasPlayingBeforeHidden && !this.#isPlaying) {
-      this.playVideo();
-      this.#wasPlayingBeforeHidden = false;
+      this.playVideo(); this.#wasPlayingBeforeHidden = false;
     }
   };
 
+  // ==========================================================================
+  // POSTER CLICK
+  // ==========================================================================
   #posterClick = (): void => {
-    const config = this.#getConfig();
-    if (config.posterClickPlay && this.#videoElement && !this.#hasPlayedOnce) {
+    if (this.#getConfig().posterClickPlay && this.#videoElement && !this.#hasPlayedOnce)
       this.playVideo();
-    }
   };
 
+  // ==========================================================================
+  // SEEKBAR EVENT HANDLERS
+  // ==========================================================================
   #onSeekbarMouseDown = (e: MouseEvent): void => {
     e.preventDefault();
     this.#isDraggingSeekbar = true;
     const seekbar = e.currentTarget as HTMLElement;
     const rect = seekbar.getBoundingClientRect();
     this.#seekTo((e.clientX - rect.left) / rect.width);
-
-    const onMouseMove = (e: MouseEvent) => {
+    const onMove = (e: MouseEvent) => {
       if (!this.#isDraggingSeekbar) return;
       e.preventDefault();
-      const rect = seekbar.getBoundingClientRect();
-      this.#seekTo((e.clientX - rect.left) / rect.width);
+      const r = seekbar.getBoundingClientRect();
+      const pct = (e.clientX - r.left) / r.width;
+      this.#seekTo(pct);
+      this.#updateThumbnailAt(pct, seekbar);
     };
-    const onMouseUp = () => {
+    const onUp = () => {
       this.#isDraggingSeekbar = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
     };
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   };
 
   #onSeekbarTouchStart = (e: TouchEvent): void => {
@@ -750,46 +880,55 @@ export class ShadowPlyr extends HTMLElement {
     const seekbar = e.currentTarget as HTMLElement;
     const move = (touch: Touch) => {
       const rect = seekbar.getBoundingClientRect();
-      const percent = (touch.clientX - rect.left) / rect.width;
-      this.#seekTo(percent);
+      const pct = (touch.clientX - rect.left) / rect.width;
+      this.#seekTo(pct);
+      this.#updateThumbnailAt(pct, seekbar);
     };
     move(e.touches[0]);
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!this.#isDraggingSeekbar) return;
-      move(e.touches[0]);
-    };
-    const onTouchEnd = () => {
+    const onMove = (e: TouchEvent) => { if (this.#isDraggingSeekbar) move(e.touches[0]); };
+    const onEnd = () => {
       this.#isDraggingSeekbar = false;
-      document.removeEventListener("touchmove", onTouchMove);
-      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
     };
-    document.addEventListener("touchmove", onTouchMove, { passive: true });
-    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchmove", onMove, { passive: true });
+    document.addEventListener("touchend", onEnd);
   };
 
+  #onSeekbarMouseMove = (e: MouseEvent): void => {
+    const seekbar = e.currentTarget as HTMLElement;
+    const rect = seekbar.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    this.#updateThumbnailAt(pct, seekbar);
+  };
+
+  // ==========================================================================
+  // VOLUME HANDLER
+  // ==========================================================================
   #onVolumeMouseDown = (e: MouseEvent): void => {
     e.preventDefault();
     this.#isDraggingVolume = true;
-    const volumeSlider = e.currentTarget as HTMLElement;
-    const rect = volumeSlider.getBoundingClientRect();
+    const slider = e.currentTarget as HTMLElement;
+    const rect = slider.getBoundingClientRect();
     this.#setVolume((e.clientX - rect.left) / rect.width);
-
-    const onMouseMove = (e: MouseEvent) => {
+    const onMove = (e: MouseEvent) => {
       if (!this.#isDraggingVolume) return;
       e.preventDefault();
-      const rect = volumeSlider.getBoundingClientRect();
-      this.#setVolume((e.clientX - rect.left) / rect.width);
+      const r = slider.getBoundingClientRect();
+      this.#setVolume((e.clientX - r.left) / r.width);
     };
-    const onMouseUp = () => {
+    const onUp = () => {
       this.#isDraggingVolume = false;
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
     };
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
   };
 
+  // ==========================================================================
+  // VIDEO EVENT HANDLERS
+  // ==========================================================================
   #onLoadedData = (wrapper: HTMLElement, config: VideoPlayerConfig): void => {
     if (!this.#videoElement) return;
     wrapper.classList.remove("video-loading");
@@ -798,57 +937,53 @@ export class ShadowPlyr extends HTMLElement {
     this.classList.add("video-loaded");
     this.#isInitialized = true;
     this.#videoLoaded = true;
+    this.#hasError = false;
 
-    // Collect subtitle tracks
+    // Subtitle tracks
     this.#subtitlesTracks = Array.from(this.#videoElement.textTracks).filter(
       (t) => t.kind === "subtitles" || t.kind === "captions"
     );
-    const subtitleBtn = wrapper.querySelector(
-      ".video-subtitle-btn"
-    ) as HTMLButtonElement | null;
-
+    const subtitleBtn = wrapper.querySelector(".video-subtitle-btn") as HTMLButtonElement | null;
     if (config.showSubtitles) {
       if (this.#subtitlesTracks.length > 0) {
         this.#populateSubtitleMenu(wrapper);
-
         if (subtitleBtn) {
           subtitleBtn.disabled = false;
           subtitleBtn.classList.remove("disabled");
           subtitleBtn.setAttribute("aria-disabled", "false");
-
-          const tooltip = subtitleBtn.querySelector(".subtitle-tooltip");
-          if (tooltip) tooltip.textContent = "Subtitles";
+          const tt = subtitleBtn.querySelector(".subtitle-tooltip");
+          if (tt) tt.textContent = "Subtitles";
         }
       } else {
-        // Disable button when no subtitle tracks
         if (subtitleBtn) {
           subtitleBtn.disabled = true;
           subtitleBtn.classList.add("disabled");
           subtitleBtn.setAttribute("aria-disabled", "true");
-
-          const tooltip = subtitleBtn.querySelector(".subtitle-tooltip");
-          if (tooltip) tooltip.textContent = "No subtitles available";
+          const tt = subtitleBtn.querySelector(".subtitle-tooltip");
+          if (tt) tt.textContent = "No subtitles available";
         }
       }
     }
 
-    // Setup quality menu
+    // Quality
     if (config.showQuality && this.#videoElement.src.includes(".m3u8")) {
       this.#initHls();
-    } else if (config.showQuality && this.#manualQualities.length > 0) {
-      this.#populateQualityMenu();
     } else if (config.showQuality) {
-      this.#populateQualityMenu(); // shows "No qualities"
+      this.#populateQualityMenu();
     }
 
-    // Playback memory resume
+    // Settings menu – populate sub-menus if using unified settings
+    if (config.showSettings) {
+      if (config.showQuality) this.#populateQualityMenu();
+      if (config.showSubtitles) this.#populateSubtitleMenu(wrapper);
+    }
+
+    // Resume playback position
     if (config.resume && this.#resumeKey) {
-      const savedTime = localStorage.getItem(this.#resumeKey);
-      if (savedTime) {
-        const time = parseFloat(savedTime);
-        if (time > 5 && time < this.#videoElement.duration - 5) {
-          this.#videoElement.currentTime = time;
-        }
+      const saved = localStorage.getItem(this.#resumeKey);
+      if (saved) {
+        const t = parseFloat(saved);
+        if (t > 5 && t < this.#videoElement.duration - 5) this.#videoElement.currentTime = t;
       }
     }
 
@@ -861,198 +996,11 @@ export class ShadowPlyr extends HTMLElement {
     }
     this.#updateFullscreenIcon(false, wrapper);
     this.#emit("video-ready", { duration: this.#videoElement.duration });
+    if (config.responsiveControls) this.#setupResponsive(wrapper);
 
-    if (config.responsiveControls) {
-      this.#setupResponsive(wrapper);
-    }
+    // Initialise thumbnail preview if requested
+    if (config.showThumbnails) this.#initThumbnailVideo();
   };
-
-  /**
-   * Initializes HLS.js for m3u8 streams.
-   * Assumes hls.js is available as a local dependency (bundled with the app).
-   */
-  async #initHls(): Promise<void> {
-    if (!this.#videoElement) return;
-
-    const src = this.#videoElement.currentSrc || this.#videoElement.src;
-    const isHls = /\.m3u8($|\?)/i.test(src);
-    if (!isHls) return;
-
-    let Hls;
-
-    try {
-      const mod = await import("hls.js");
-      Hls = mod.default;
-      this.#setupHls(mod, src);
-    } catch {
-      console.warn(
-        "ShadowPlyr: HLS stream detected but hls.js is not installed. Install it with `npm install hls.js` to enable HLS playback."
-      );
-      return;
-    }
-
-    if (!Hls.isSupported()) {
-      console.warn("ShadowPlyr: HLS not supported in this browser.");
-      return;
-    }
-  }
-
-  /**
-   * Sets up the HLS.js instance after the module has been loaded.
-   * @param hlsModule - The entire hls.js module object (containing the constructor and Events)
-   * @param src - The URL of the HLS stream (must be a valid HTTPS URL)
-   */
-  #setupHls(hlsModule: any, src: string): void {
-    // Extract the constructor (default export)
-    const Hls = hlsModule.default;
-
-    // Create HLS instance with recommended settings
-    this.#hls = new Hls({
-      enableWorker: true,
-      lowLatencyMode: true,
-    });
-
-    // Load the source and attach to video element
-    this.#hls.loadSource(src);
-    this.#hls.attachMedia(this.#videoElement);
-
-    // Listen for manifest parsed to populate quality menu
-    this.#hls.on(hlsModule.Events.MANIFEST_PARSED, () => {
-      this.#qualityLevels = this.#hls.levels;
-      this.#populateQualityMenu();
-    });
-  }
-
-  #populateQualityMenu(): void {
-    if (!this.#$qualityMenu) return;
-    this.#$qualityMenu.innerHTML = "";
-
-    // Collect unique quality labels from manual sources
-    const labels = [
-      ...new Set(this.#manualQualities.map((q) => q.label)),
-    ].sort();
-
-    if (labels.length === 0 && this.#qualityLevels.length === 0) {
-      const opt = document.createElement("button");
-      opt.className = "video-quality-option";
-      opt.disabled = true;
-      opt.textContent = "No qualities available";
-      opt.setAttribute("part", "quality-option");
-      this.#$qualityMenu?.appendChild(opt);
-      return;
-    }
-
-    // Auto option (for both HLS and manual)
-    const auto = document.createElement("button");
-    auto.className = `video-quality-option ${
-      !this.#currentQualityLabel ? "active" : ""
-    }`;
-    auto.setAttribute("data-quality", "auto");
-    auto.textContent = "Auto";
-    auto.setAttribute("part", "quality-option");
-    auto.addEventListener("click", () => this.#setAutoQuality());
-    this.#$qualityMenu?.appendChild(auto);
-
-    // If HLS levels exist, add them
-    if (this.#qualityLevels.length > 0) {
-      this.#qualityLevels.forEach((level, index) => {
-        const levelLabel = level.height
-          ? `${level.height}`
-          : `Level ${index + 1}`;
-
-        const opt = document.createElement("button");
-        opt.className = `video-quality-option ${
-          this.#currentQualityIndex === index ? "active" : ""
-        }`;
-        opt.setAttribute("data-quality", index.toString());
-        opt.textContent = levelLabel;
-        opt.setAttribute("part", "quality-option");
-        opt.addEventListener("click", () => this.#setHlsQuality(index));
-
-        this.#$qualityMenu?.appendChild(opt);
-      });
-    }
-
-    // Manual quality labels
-    labels.forEach((label) => {
-      const opt = document.createElement("button");
-      opt.className = `video-quality-option ${
-        this.#currentQualityLabel === label ? "active" : ""
-      }`;
-      opt.setAttribute("data-quality", label);
-      opt.textContent = `${label}p`;
-      opt.setAttribute("part", "quality-option");
-      opt.addEventListener("click", () => this.#setManualQuality(label));
-      this.#$qualityMenu?.appendChild(opt);
-    });
-  }
-
-  #setHlsQuality = (index: number): void => {
-    if (!this.#hls || this.#hls.levels.length === 0) return;
-
-    // Prevent redundant switching
-    if (this.#currentQualityIndex === index) return;
-
-    this.#hls.currentLevel = index;
-    this.#currentQualityIndex = index;
-
-    const level = this.#hls.levels[index];
-
-    this.#currentQualityLabel = level?.height
-      ? `${level.height}p`
-      : level?.name || `${Math.round(level?.bitrate / 1000)}kbps`;
-
-    this.#updateQualityText();
-    this.#populateQualityMenu();
-  };
-
-  #populateSubtitleMenu(wrapper: HTMLElement): void {
-    const menu = wrapper.querySelector(".video-subtitle-menu");
-    if (!menu) return;
-    menu.innerHTML = "";
-    // Off option
-    const off = document.createElement("button");
-    off.className = `video-subtitle-option ${
-      !this.#activeSubtitle ? "active" : ""
-    }`;
-    off.setAttribute("data-subtitle", "");
-    off.textContent = "Off";
-    off.setAttribute("part", "subtitle-option");
-    off.addEventListener("click", () => this.#setSubtitle(null));
-    menu?.appendChild(off);
-    // Track options
-    this.#subtitlesTracks.forEach((track) => {
-      const opt = document.createElement("button");
-      opt.className = `video-subtitle-option ${
-        this.#activeSubtitle === track.label ? "active" : ""
-      }`;
-      opt.setAttribute("data-subtitle", track.label);
-      opt.textContent = track.label || "Subtitles";
-      opt.setAttribute("part", "subtitle-option");
-      opt.addEventListener("click", () => this.#setSubtitle(track.label));
-      menu?.appendChild(opt);
-    });
-  }
-
-  #startVideoFrameLoop(): void {
-    const video = this.#videoElement;
-    if (!video) return;
-
-    const loop = () => {
-      if (!this.#videoElement) return;
-
-      this.#updateSeekbar();
-      this.#updateTimeDisplay();
-
-      if ("requestVideoFrameCallback" in video) {
-        (video as any).requestVideoFrameCallback(loop);
-      } else {
-        this.#rafId = requestAnimationFrame(loop);
-      }
-    };
-
-    loop();
-  }
 
   #onPlaying = (wrapper: HTMLElement): void => {
     this.#emit("video-playing", {
@@ -1071,29 +1019,15 @@ export class ShadowPlyr extends HTMLElement {
   };
 
   #onPause = (wrapper: HTMLElement): void => {
-    if (this.#rafId) {
-      cancelAnimationFrame(this.#rafId);
-      this.#rafId = null;
-    }
-    this.#emit("video-paused", {
-      currentTime: this.#videoElement!.currentTime,
-    });
+    if (this.#rafId) { cancelAnimationFrame(this.#rafId); this.#rafId = null; }
+    this.#emit("video-paused", { currentTime: this.#videoElement!.currentTime });
     wrapper.classList.remove("is-playing");
     this.classList.remove("is-playing");
     this.#isPlaying = false;
     this.#updatePlayPauseIcon(false, wrapper);
     const config = this.#getConfig();
-    if (
-      config.resume &&
-      this.#resumeKey &&
-      this.#videoElement &&
-      window.isSecureContext
-    ) {
-      localStorage.setItem(
-        this.#resumeKey,
-        this.#videoElement.currentTime.toString()
-      );
-    }
+    if (config.resume && this.#resumeKey && this.#videoElement && window.isSecureContext)
+      localStorage.setItem(this.#resumeKey, this.#videoElement.currentTime.toString());
   };
 
   #onEnded = (wrapper: HTMLElement, config: VideoPlayerConfig): void => {
@@ -1119,87 +1053,79 @@ export class ShadowPlyr extends HTMLElement {
     this.#emit("video-volume-change", { volume: v.volume, muted: v.muted });
   };
 
+  /** Show a user-visible error overlay instead of leaving a stuck loader */
   #onError = (wrapper: HTMLElement): void => {
-    console.error("Video load error");
-    wrapper.classList.remove("video-loading", "video-loaded");
-    this.classList.remove("video-loading", "video-loaded");
+    if (this.#hasError) return; // prevent duplicate calls
+    const code = this.#videoElement?.error?.code;
+    console.error("ShadowPlyr: Video load error (code " + code + ")");
+    // Remove loading state from both wrapper and host so the spinner disappears
+    wrapper.classList.remove("video-loading", "video-loaded", "has-custom-loader");
+    this.classList.remove("video-loading", "video-loaded", "has-custom-loader");
+    // Hide the custom loader element if present
+    const customLoader = wrapper.querySelector(".video-custom-loader") as HTMLElement | null;
+    if (customLoader) customLoader.style.display = "none";
+    // Show error overlay
+    wrapper.classList.add("has-error");
+    this.classList.add("has-error");
     this.#videoLoaded = false;
-    this.#emit("video-error", { code: this.#videoElement?.error?.code });
+    this.#hasError = true;
+    this.#emit("video-error", { code });
   };
 
   #onFullscreenChange = (): void => {
-    const fsElement =
-      document.fullscreenElement || (document as any).webkitFullscreenElement;
-
-    const isFull =
-      fsElement === this.#$container ||
-      fsElement === this ||
-      (fsElement && this.contains(fsElement));
-
+    const fs = document.fullscreenElement || (document as any).webkitFullscreenElement;
+    const isFull = fs === this.#$container || fs === this || (fs && this.contains(fs));
     this.#updateFullscreenIcon(isFull);
     this.#emit(isFull ? "video-fullscreen-enter" : "video-fullscreen-exit");
   };
 
   #onProgress = (): void => {
     if (!this.#videoElement || !this.#$seekbarBuffer) return;
-    const buffered = this.#videoElement.buffered;
-    if (buffered.length === 0) return;
-    const end = buffered.end(buffered.length - 1);
-    const percent = end / this.#videoElement.duration;
-    this.#$seekbarBuffer.style.transform = `scaleX(${percent})`;
+    const buf = this.#videoElement.buffered;
+    if (buf.length === 0) return;
+    const end = buf.end(buf.length - 1);
+    this.#$seekbarBuffer.style.transform = `scaleX(${end / this.#videoElement.duration})`;
   };
 
-  #onPipEnter = (): void => {
-    this.#updatePipIcon(true);
-  };
-  #onPipLeave = (): void => {
-    this.#updatePipIcon(false);
-  };
+  #onPipEnter = (): void => { this.#updatePipIcon(true); };
+  #onPipLeave = (): void => { this.#updatePipIcon(false); };
 
+  // ==========================================================================
+  // TOUCH TAP DETECTION
+  // ==========================================================================
   #handleTouchTap = (e: TouchEvent): void => {
     const config = this.#getConfig();
     if (!this.#videoElement) return;
     const rect = this.#$wrapper!.getBoundingClientRect();
     const touchX = e.changedTouches[0].clientX;
     const isLeft = touchX < rect.left + rect.width / 2;
-
-    if (config.enableTapRipple) {
-      this.#createRipple(
-        e.changedTouches[0].clientX,
-        e.changedTouches[0].clientY
-      );
-    }
-
+    if (config.enableTapRipple)
+      this.#createRipple(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
     this.#tapCount++;
     if (this.#tapTimeout) clearTimeout(this.#tapTimeout);
     this.#tapTimeout = window.setTimeout(() => {
-      const doubleSeconds = config.doubleTapSeekSeconds;
-      const tripleSeconds = config.tripleTapSeconds;
-      if (this.#tapCount === 2 && config.doubleTapSeek) {
-        this.#seekBy(isLeft ? -doubleSeconds : doubleSeconds);
-      }
-      if (this.#tapCount >= 3 && config.tripleTapSeek) {
-        this.#seekBy(isLeft ? -tripleSeconds : tripleSeconds);
-      }
+      if (this.#tapCount === 2 && config.doubleTapSeek)
+        this.#seekBy(isLeft ? -config.doubleTapSeekSeconds : config.doubleTapSeekSeconds);
+      if (this.#tapCount >= 3 && config.tripleTapSeek)
+        this.#seekBy(isLeft ? -config.tripleTapSeconds : config.tripleTapSeconds);
       this.#tapCount = 0;
     }, 300);
   };
 
   #showSeekOverlay(seconds: number): void {
-    const overlay = document.createElement("div");
-    overlay.className = "seek-overlay";
-    overlay.textContent = (seconds > 0 ? "+" : "") + seconds + "s";
-    this.#$wrapper?.appendChild(overlay);
-    setTimeout(() => overlay.remove(), 600);
+    const el = document.createElement("div");
+    el.className = "seek-overlay";
+    el.textContent = (seconds > 0 ? "+" : "") + seconds + "s";
+    this.#$wrapper?.appendChild(el);
+    setTimeout(() => el.remove(), 600);
   }
 
   #seekBy(seconds: number): void {
     if (!this.#videoElement) return;
-    const newTime = Math.min(
+    this.#videoElement.currentTime = Math.min(
       Math.max(0, this.#videoElement.currentTime + seconds),
       this.#videoElement.duration
     );
-    this.#videoElement.currentTime = newTime;
     this.#showSeekOverlay(seconds);
   }
 
@@ -1209,230 +1135,165 @@ export class ShadowPlyr extends HTMLElement {
     const ripple = document.createElement("div");
     ripple.className = "tap-ripple";
     ripple.style.left = x - rect.left + "px";
-    ripple.style.top = y - rect.top + "px";
+    ripple.style.top  = y - rect.top  + "px";
     this.#$wrapper.appendChild(ripple);
     setTimeout(() => ripple.remove(), 600);
   }
 
-  #throttledSeekbarUpdate: () => void;
-  #throttledProgressUpdate: () => void;
-  #boundFullscreenChange: () => void;
-
+  // ==========================================================================
+  // CONSTRUCTOR
+  // ==========================================================================
   constructor() {
     super();
     this.#shadowRoot = this.attachShadow({ mode: "open" });
     this.#shadowRoot.adoptedStyleSheets = [sheet];
-
-    this.#throttledSeekbarUpdate = throttle(
-      this.#updateSeekbar.bind(this),
-      200
-    );
+    this.#throttledSeekbarUpdate = throttle(this.#updateSeekbar.bind(this), 200);
     this.#throttledProgressUpdate = throttle(this.#onProgress.bind(this), 1000);
     this.#boundFullscreenChange = this.#onFullscreenChange.bind(this);
   }
 
+  // ==========================================================================
+  // OBSERVED ATTRIBUTES
+  // ==========================================================================
   static get observedAttributes(): string[] {
     return [
-      "lazy",
-      "pause-on-out-of-view",
-      "autoplay",
-      "loop",
-      "muted",
-      "playsinline",
-      "desktop-poster",
-      "mobile-poster",
-      "desktop-video",
-      "mobile-video",
-      "show-controls",
-      "controls-type",
-      "show-center-play",
-      "show-play-pause",
-      "show-seekbar",
-      "show-volume",
-      "show-fullscreen",
-      "show-speed",
-      "theme",
-      "accent-color",
-      "controls-background",
-      "center-play-background",
-      "center-play-size",
-      "play-icon",
-      "loop-once-icon",
-      "loop-icon",
-      "pause-icon",
-      "volume-icon",
-      "muted-icon",
-      "fullscreen-icon",
-      "exit-fullscreen-icon",
-      "speed-icon",
-      "video-type",
-      "preload",
-      "speed-options",
-      "controls-hide-delay",
-      "seek-step",
-      "lazy-threshold",
-      "pause-threshold",
-      "pause-on-tab-hide",
-      "show-poster-on-ended",
-      "reset-on-ended",
-      "poster-click-play",
-      "performance-mode",
-      "show-tooltips",
-      "tooltip-play",
-      "tooltip-pause",
-      "tooltip-mute",
-      "tooltip-unmute",
-      "tooltip-fullscreen",
-      "tooltip-exit-fullscreen",
-      "tooltip-speed",
-      "tooltip-center-play",
-      "double-tap-seek",
-      "double-tap-seek-seconds",
-      "show-seek-buttons",
-      "seek-button-seconds",
-      "triple-tap-seek",
-      "triple-tap-seconds",
-      "enable-tap-ripple",
-      "single-active",
-      "show-loop",
-      "show-pip",
-      "show-subtitles",
-      "show-quality",
-      "skip-intro",
-      "theater-mode",
-      "resume",
-      "screenshot",
-      "airplay",
-      "mini-player",
-      "responsive-controls",
+      "lazy","pause-on-out-of-view","autoplay","loop","muted","playsinline",
+      // deprecated (still observed for backward compat)
+      "desktop-poster","mobile-poster","desktop-video","mobile-video",
+      "show-controls","controls-type","show-center-play","show-play-pause",
+      "show-seekbar","show-volume","show-fullscreen","show-speed","theme",
+      "accent-color","controls-background","center-play-background","center-play-size",
+      "play-icon","loop-once-icon","loop-icon","pause-icon","volume-icon","muted-icon",
+      "fullscreen-icon","exit-fullscreen-icon","speed-icon","video-type","preload",
+      "speed-options","controls-hide-delay","seek-step","lazy-threshold","pause-threshold",
+      "pause-on-tab-hide","show-poster-on-ended","reset-on-ended","poster-click-play",
+      "performance-mode","show-tooltips","tooltip-play","tooltip-pause","tooltip-mute",
+      "tooltip-unmute","tooltip-fullscreen","tooltip-exit-fullscreen","tooltip-speed",
+      "tooltip-center-play","double-tap-seek","double-tap-seek-seconds","show-seek-buttons",
+      "seek-button-seconds","triple-tap-seek","triple-tap-seconds","enable-tap-ripple",
+      "single-active","show-loop","show-pip","show-subtitles","show-quality","skip-intro",
+      "theater-mode","resume","screenshot","airplay","mini-player","responsive-controls",
       "buffer-progress",
+      // New attributes
+      "show-settings","tooltip-settings",
+      "error-message","error-icon","show-retry",
+      "loader-src","loader-html",
+      "show-thumbnails","thumbnails-vtt",
     ];
   }
 
+  // ==========================================================================
+  // URL VALIDATION
+  // ==========================================================================
   #isValidMediaUrl(url: string | null | undefined): boolean {
     if (!url || typeof url !== "string") return false;
-
     const isDev = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-
     try {
       const parsed = new URL(url, window.location.origin);
-
       if (parsed.protocol === "https:") return true;
-
       if (isDev && parsed.protocol === "http:") return true;
-
       return false;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
-  /**
-   * Validates all sources inside a <picture> element.
-   * Returns true only if every img.src and source.srcset is a valid HTTPS URL.
-   */
   #isValidPicture(picture: HTMLPictureElement): boolean {
     const img = picture.querySelector("img");
     if (img && !this.#isValidMediaUrl(img.src)) return false;
-    const sources = picture.querySelectorAll("source");
-    // Convert NodeList to array to ensure iterability in all TS environments
-    for (const source of Array.from(sources)) {
-      if (source.srcset && !this.#isValidMediaUrl(source.srcset)) return false;
-    }
+    for (const src of Array.from(picture.querySelectorAll("source")))
+      if (src.srcset && !this.#isValidMediaUrl(src.srcset)) return false;
     return true;
   }
 
+  // ==========================================================================
+  // CONFIG
+  // ==========================================================================
   #getConfig(): VideoPlayerConfig {
     const now = Date.now();
-    if (
-      this.#configCache &&
-      now - this.#configCacheTime < this.#CONFIG_CACHE_DURATION
-    ) {
+    if (this.#configCache && now - this.#configCacheTime < this.#CONFIG_CACHE_DURATION)
       return this.#configCache;
-    }
+
+    // Deprecation warnings (only log once per render)
+    if (this.hasAttribute("desktop-poster") || this.hasAttribute("mobile-poster"))
+      console.warn("[ShadowPlyr] DEPRECATED: 'desktop-poster'/'mobile-poster' are deprecated. Use a <picture> child element instead.");
+    if (this.hasAttribute("desktop-video") || this.hasAttribute("mobile-video"))
+      console.warn("[ShadowPlyr] DEPRECATED: 'desktop-video'/'mobile-video' are deprecated. Use <source> child elements instead.");
+
+    const ga = (n: string) => this.getAttribute(n);
     const config: VideoPlayerConfig = {
-      lazy: this.getAttribute("lazy") === "true",
-      pauseOnOutOfView: this.getAttribute("pause-on-out-of-view") === "true",
-      pauseOnTabHide: this.getAttribute("pause-on-tab-hide") !== "false",
-      autoplay: this.getAttribute("autoplay") === "true",
-      loop: this.getAttribute("loop") === "true",
-      muted: this.getAttribute("muted") === "true",
-      playsinline: this.getAttribute("playsinline") === "true",
-      preload:
-        (this.getAttribute("preload") as VideoPlayerConfig["preload"]) ||
-        "metadata",
-      desktopPoster: this.getAttribute("desktop-poster") || "",
-      mobilePoster: this.getAttribute("mobile-poster") || "",
-      desktopVideo: this.getAttribute("desktop-video") || "",
-      mobileVideo: this.getAttribute("mobile-video") || "",
-      videoType: this.getAttribute("video-type") || "video/mp4",
-      showControls: this.getAttribute("show-controls") === "true",
-      controlsType:
-        (this.getAttribute(
-          "controls-type"
-        ) as VideoPlayerConfig["controlsType"]) || "full",
-      showPlayPause: this.getAttribute("show-play-pause") !== "false",
-      showSeekbar: this.getAttribute("show-seekbar") === "true",
-      showVolume: this.getAttribute("show-volume") === "true",
-      showFullscreen: this.getAttribute("show-fullscreen") === "true",
-      showCenterPlay: this.getAttribute("show-center-play") === "true",
-      showSpeed: this.getAttribute("show-speed") === "true",
+      lazy: ga("lazy") === "true",
+      pauseOnOutOfView: ga("pause-on-out-of-view") === "true",
+      pauseOnTabHide: ga("pause-on-tab-hide") !== "false",
+      autoplay: ga("autoplay") === "true",
+      loop: ga("loop") === "true",
+      muted: ga("muted") === "true",
+      playsinline: ga("playsinline") === "true",
+      preload: (ga("preload") as VideoPlayerConfig["preload"]) || "metadata",
+      desktopPoster: ga("desktop-poster") || "",
+      mobilePoster: ga("mobile-poster") || "",
+      desktopVideo: ga("desktop-video") || "",
+      mobileVideo: ga("mobile-video") || "",
+      videoType: ga("video-type") || "video/mp4",
+      showControls: ga("show-controls") === "true",
+      controlsType: (ga("controls-type") as VideoPlayerConfig["controlsType"]) || "full",
+      showPlayPause: ga("show-play-pause") !== "false",
+      showSeekbar: ga("show-seekbar") === "true",
+      showVolume: ga("show-volume") === "true",
+      showFullscreen: ga("show-fullscreen") === "true",
+      showCenterPlay: ga("show-center-play") === "true",
+      showSpeed: ga("show-speed") === "true",
       speedOptions: this.#parseSpeedOptions(),
-      controlsHideDelay: parseInt(
-        this.getAttribute("controls-hide-delay") || "3000"
-      ),
-      seekStep: parseInt(this.getAttribute("seek-step") || "5"),
-      lazyThreshold: parseFloat(this.getAttribute("lazy-threshold") || "0.5"),
-      pauseThreshold: parseFloat(this.getAttribute("pause-threshold") || "0.3"),
-      theme:
-        (this.getAttribute("theme") as VideoPlayerConfig["theme"]) || "dark",
-      accentColor: this.getAttribute("accent-color") || "#ffffff",
-      controlsBackground:
-        this.getAttribute("controls-background") || "rgba(0, 0, 0, 0.8)",
-      centerPlayBackground:
-        this.getAttribute("center-play-background") || "rgba(0, 0, 0, 0.7)",
-      centerPlaySize: parseInt(this.getAttribute("center-play-size") || "80"),
-      showPosterOnEnded: this.getAttribute("show-poster-on-ended") === "true",
-      resetOnEnded: this.getAttribute("reset-on-ended") === "true",
-      posterClickPlay: this.getAttribute("poster-click-play") !== "false",
-      performanceMode: this.getAttribute("performance-mode") === "true",
-      showTooltips: this.getAttribute("show-tooltips") === "true",
-      tooltipPlay: this.getAttribute("tooltip-play") || "Play",
-      tooltipPause: this.getAttribute("tooltip-pause") || "Pause",
-      tooltipMute: this.getAttribute("tooltip-mute") || "Mute",
-      tooltipUnmute: this.getAttribute("tooltip-unmute") || "Unmute",
-      tooltipFullscreen:
-        this.getAttribute("tooltip-fullscreen") || "Fullscreen",
-      tooltipExitFullscreen:
-        this.getAttribute("tooltip-exit-fullscreen") || "Exit fullscreen",
-      tooltipSpeed: this.getAttribute("tooltip-speed") || "Playback speed",
-      tooltipCenterPlay: this.getAttribute("tooltip-center-play") || "Play",
-      doubleTapSeek: this.getAttribute("double-tap-seek") !== "false",
-      doubleTapSeekSeconds: parseInt(
-        this.getAttribute("double-tap-seek-seconds") || "10"
-      ),
-      showSeekButtons: this.getAttribute("show-seek-buttons") === "true",
-      seekButtonSeconds: parseInt(
-        this.getAttribute("seek-button-seconds") || "10"
-      ),
-      tripleTapSeek: this.getAttribute("triple-tap-seek") !== "false",
-      tripleTapSeconds: parseInt(
-        this.getAttribute("triple-tap-seconds") || "30"
-      ),
-      enableTapRipple: this.getAttribute("enable-tap-ripple") !== "false",
-      singleActive: this.getAttribute("single-active") === "true",
-      showLoop: this.getAttribute("show-loop") === "true",
-      showPip: this.getAttribute("show-pip") === "true",
-      showSubtitles: this.getAttribute("show-subtitles") === "true",
-      showQuality: this.getAttribute("show-quality") === "true",
-      skipIntro: parseInt(this.getAttribute("skip-intro") || "0"),
-      theaterMode: this.getAttribute("theater-mode") === "true",
-      resume: this.getAttribute("resume") === "true",
-      screenshot: this.getAttribute("screenshot") === "true",
-      airplay: this.getAttribute("airplay") === "true",
-      miniPlayer: this.getAttribute("mini-player") === "true",
-      responsiveControls: this.getAttribute("responsive-controls") === "true",
-      bufferProgress: this.getAttribute("buffer-progress") !== "false",
+      controlsHideDelay: parseInt(ga("controls-hide-delay") || "3000"),
+      seekStep: parseInt(ga("seek-step") || "5"),
+      lazyThreshold: parseFloat(ga("lazy-threshold") || "0.5"),
+      pauseThreshold: parseFloat(ga("pause-threshold") || "0.3"),
+      theme: (ga("theme") as VideoPlayerConfig["theme"]) || "dark",
+      accentColor: ga("accent-color") || "#ffffff",
+      controlsBackground: ga("controls-background") || "rgba(0, 0, 0, 0.8)",
+      centerPlayBackground: ga("center-play-background") || "rgba(0, 0, 0, 0.7)",
+      centerPlaySize: parseInt(ga("center-play-size") || "80"),
+      showPosterOnEnded: ga("show-poster-on-ended") === "true",
+      resetOnEnded: ga("reset-on-ended") === "true",
+      posterClickPlay: ga("poster-click-play") !== "false",
+      performanceMode: ga("performance-mode") === "true",
+      showTooltips: ga("show-tooltips") === "true",
+      tooltipPlay: ga("tooltip-play") || "Play",
+      tooltipPause: ga("tooltip-pause") || "Pause",
+      tooltipMute: ga("tooltip-mute") || "Mute",
+      tooltipUnmute: ga("tooltip-unmute") || "Unmute",
+      tooltipFullscreen: ga("tooltip-fullscreen") || "Fullscreen",
+      tooltipExitFullscreen: ga("tooltip-exit-fullscreen") || "Exit fullscreen",
+      tooltipSpeed: ga("tooltip-speed") || "Playback speed",
+      tooltipCenterPlay: ga("tooltip-center-play") || "Play",
+      doubleTapSeek: ga("double-tap-seek") !== "false",
+      doubleTapSeekSeconds: parseInt(ga("double-tap-seek-seconds") || "10"),
+      showSeekButtons: ga("show-seek-buttons") === "true",
+      seekButtonSeconds: parseInt(ga("seek-button-seconds") || "10"),
+      tripleTapSeek: ga("triple-tap-seek") !== "false",
+      tripleTapSeconds: parseInt(ga("triple-tap-seconds") || "30"),
+      enableTapRipple: ga("enable-tap-ripple") !== "false",
+      singleActive: ga("single-active") === "true",
+      showLoop: ga("show-loop") === "true",
+      showPip: ga("show-pip") === "true",
+      showSubtitles: ga("show-subtitles") === "true",
+      showQuality: ga("show-quality") === "true",
+      skipIntro: parseInt(ga("skip-intro") || "0"),
+      theaterMode: ga("theater-mode") === "true",
+      resume: ga("resume") === "true",
+      screenshot: ga("screenshot") === "true",
+      airplay: ga("airplay") === "true",
+      miniPlayer: ga("mini-player") === "true",
+      responsiveControls: ga("responsive-controls") === "true",
+      bufferProgress: ga("buffer-progress") !== "false",
+      // New
+      showSettings: ga("show-settings") === "true",
+      tooltipSettings: ga("tooltip-settings") || "Settings",
+      errorMessage: ga("error-message") || "An error occurred while loading the video.",
+      errorIcon: ga("error-icon") || "",
+      showRetry: ga("show-retry") !== "false",
+      loaderSrc: ga("loader-src") || "",
+      loaderHtml: ga("loader-html") || "",
+      showThumbnails: ga("show-thumbnails") === "true",
+      thumbnailsVtt: ga("thumbnails-vtt") || "",
     };
     this.#configCache = config;
     this.#configCacheTime = now;
@@ -1443,33 +1304,26 @@ export class ShadowPlyr extends HTMLElement {
     const attr = this.getAttribute("speed-options");
     if (!attr) return [0.5, 0.75, 1, 1.25, 1.5, 2];
     try {
-      return attr
-        .split(",")
-        .map((s) => parseFloat(s.trim()))
-        .filter((n) => !isNaN(n));
-    } catch {
-      return [0.5, 0.75, 1, 1.25, 1.5, 2];
-    }
+      return attr.split(",").map((s) => parseFloat(s.trim())).filter((n) => !isNaN(n));
+    } catch { return [0.5, 0.75, 1, 1.25, 1.5, 2]; }
   }
 
+  // ==========================================================================
+  // RENDER
+  // ==========================================================================
   #render(): void {
     const config = this.#getConfig();
 
-    // Check if a <picture> exists in light DOM and is valid
-    const lightPicture = this.querySelector(
-      "picture"
-    ) as HTMLPictureElement | null;
+    // Poster source detection
+    const lightPicture = this.querySelector("picture") as HTMLPictureElement | null;
     const useLightPicture = lightPicture && this.#isValidPicture(lightPicture);
-    this.#hasPoster = !!(
-      useLightPicture ||
-      config.desktopPoster ||
-      config.mobilePoster
-    );
+    this.#hasPoster = !!(useLightPicture || config.desktopPoster || config.mobilePoster);
     this.#posterVisible = this.#hasPoster && !this.#hasPlayedOnce;
     this.#resumeKey = config.resume
       ? `shadowplyr-${config.desktopVideo || config.mobileVideo}`
       : null;
 
+    // Wrapper
     const wrapper = document.createElement("div");
     wrapper.className = "shadow-plyr-wrapper";
     wrapper.setAttribute("tabindex", "0");
@@ -1477,49 +1331,49 @@ export class ShadowPlyr extends HTMLElement {
     wrapper.setAttribute("aria-label", "Video player");
     wrapper.setAttribute("part", "shadow-plyr-wrapper");
 
-    // Handle poster: use light‑DOM picture if available and valid, otherwise create from attributes
+    // Poster
     if (useLightPicture) {
-      // Sanitize: remove any on* attributes from the picture and its children
-      const allElements = [
-        lightPicture,
-        ...Array.from(lightPicture.querySelectorAll("*")),
-      ];
-      allElements.forEach((el) => {
+      // Clone so the original stays in light DOM and survives retry/reinitialize
+      const clonedPicture = lightPicture.cloneNode(true) as HTMLPictureElement;
+      const all = [clonedPicture, ...Array.from(clonedPicture.querySelectorAll("*"))];
+      all.forEach((el) => {
         for (let i = el.attributes.length - 1; i >= 0; i--) {
-          const attr = el.attributes[i];
-          if (attr.name.startsWith("on")) {
-            el.removeAttribute(attr.name);
-          }
+          if (el.attributes[i].name.startsWith("on")) el.removeAttribute(el.attributes[i].name);
         }
       });
-      lightPicture.setAttribute("part", "poster");
-      wrapper.appendChild(lightPicture);
-    } else if (
-      this.#isValidMediaUrl(config.desktopPoster) ||
-      this.#isValidMediaUrl(config.mobilePoster)
-    ) {
+      clonedPicture.setAttribute("part", "poster");
+      wrapper.appendChild(clonedPicture);
+    } else if (this.#isValidMediaUrl(config.desktopPoster) || this.#isValidMediaUrl(config.mobilePoster)) {
       const picture = document.createElement("picture");
       picture.setAttribute("part", "poster");
       if (config.mobilePoster && this.#isValidMediaUrl(config.mobilePoster)) {
-        const source = document.createElement("source");
-        source.media = "(max-width: 768px)";
-        source.srcset = config.mobilePoster;
-        picture.appendChild(source);
+        const src = document.createElement("source");
+        src.media = "(max-width: 768px)"; src.srcset = config.mobilePoster;
+        picture.appendChild(src);
       }
       if (this.#isValidMediaUrl(config.desktopPoster)) {
         const img = document.createElement("img");
-        img.src = config.desktopPoster;
-        img.alt = "Video thumbnail";
-        img.loading = "lazy";
+        img.src = config.desktopPoster; img.alt = "Video thumbnail"; img.loading = "lazy";
         picture.appendChild(img);
       }
       wrapper.appendChild(picture);
     }
 
+    // Placeholder (replaced by video in #loadVideo)
     const placeholder = document.createElement("div");
     placeholder.className = "video-placeholder";
     wrapper.appendChild(placeholder);
 
+    // Custom loader (if configured)
+    if (config.loaderSrc || config.loaderHtml) {
+      wrapper.classList.add("has-custom-loader");
+      wrapper.appendChild(this.#createCustomLoader(config));
+    }
+
+    // Error overlay (always present, toggled via class)
+    wrapper.appendChild(this.#createErrorOverlay(config));
+
+    // Center play button
     if (config.showCenterPlay) {
       const icons = this.#getIcons();
       const centerPlay = document.createElement("div");
@@ -1528,44 +1382,31 @@ export class ShadowPlyr extends HTMLElement {
       centerPlay.tabIndex = 0;
       centerPlay.setAttribute("aria-label", "Play video");
       centerPlay.setAttribute("part", "center-play");
-
       const playSpan = document.createElement("span");
-      playSpan.className = "play-icon";
-      playSpan.setAttribute("aria-hidden", "true");
+      playSpan.className = "play-icon"; playSpan.setAttribute("aria-hidden", "true");
       playSpan.appendChild(this.#createSVGFromString(icons.play));
-
       const pauseSpan = document.createElement("span");
-      pauseSpan.className = "pause-icon";
-      pauseSpan.style.display = "none";
+      pauseSpan.className = "pause-icon"; pauseSpan.style.display = "none";
       pauseSpan.setAttribute("aria-hidden", "true");
       pauseSpan.appendChild(this.#createSVGFromString(icons.pause));
-
       centerPlay.appendChild(playSpan);
       centerPlay.appendChild(pauseSpan);
-
       if (config.showTooltips) {
-        const tooltip = document.createElement("span");
-        tooltip.className = "tooltip center-play-tooltip";
-        tooltip.textContent = config.tooltipCenterPlay;
-        centerPlay.appendChild(tooltip);
+        const tt = document.createElement("span");
+        tt.className = "tooltip center-play-tooltip"; tt.textContent = config.tooltipCenterPlay;
+        centerPlay.appendChild(tt);
       }
-
-      const srOnly = document.createElement("span");
-      srOnly.className = "sr-only";
-      srOnly.textContent = "Play";
-      centerPlay.appendChild(srOnly);
-
+      const sr = document.createElement("span"); sr.className = "sr-only"; sr.textContent = "Play";
+      centerPlay.appendChild(sr);
       wrapper.appendChild(centerPlay);
     }
 
-    if (config.showControls && config.controlsType !== "none") {
+    if (config.showControls && config.controlsType !== "none")
       wrapper.appendChild(this.#createControlsHTML(config));
-    }
-
-    if (config.showSeekButtons) {
+    if (config.showSeekButtons)
       wrapper.appendChild(this.#createSeekButtons(config));
-    }
 
+    // Container
     const container = document.createElement("div");
     container.className = "video-container";
     container.setAttribute("part", "video-container");
@@ -1574,6 +1415,7 @@ export class ShadowPlyr extends HTMLElement {
     this.#shadowRoot.innerHTML = "";
     this.#shadowRoot.appendChild(container);
 
+    // Cache DOM refs
     this.#$wrapper = wrapper;
     this.#$container = container;
     this.#$seekbar = wrapper.querySelector(".video-seekbar");
@@ -1589,6 +1431,83 @@ export class ShadowPlyr extends HTMLElement {
     this.#$subtitleText = wrapper.querySelector(".subtitle-text");
     this.#$moreMenu = wrapper.querySelector(".video-more-menu");
     this.#$moreBtn = wrapper.querySelector(".video-more-btn");
+    this.#$settingsMenu = wrapper.querySelector(".video-settings-menu");
+    this.#$settingsQualityValue = wrapper.querySelector(".settings-quality-value");
+    this.#$settingsSpeedValue = wrapper.querySelector(".settings-speed-value");
+    this.#$settingsSubtitleValue = wrapper.querySelector(".settings-subtitle-value");
+    this.#$thumbnailPreview = wrapper.querySelector(".seek-thumbnail-preview");
+    this.#$thumbnailCanvas = wrapper.querySelector(".seek-thumbnail-canvas");
+    this.#$thumbnailLabel = wrapper.querySelector(".seek-thumbnail-time");
+  }
+
+  // ==========================================================================
+  // DOM BUILDER HELPERS
+  // ==========================================================================
+
+  /** Build and return the error overlay div. */
+  #createErrorOverlay(config: VideoPlayerConfig): HTMLElement {
+    const overlay = document.createElement("div");
+    overlay.className = "video-error-overlay";
+    overlay.setAttribute("part", "error-overlay");
+
+    // Icon
+    const iconWrap = document.createElement("div");
+    iconWrap.className = "error-icon";
+    const defaultErrorIcon = `<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`;
+    const rawIcon = config.errorIcon
+      ? DOMPurify.sanitize(config.errorIcon, { USE_PROFILES: { svg: true } })
+      : defaultErrorIcon;
+    iconWrap.appendChild(this.#createSVGFromString(rawIcon));
+    overlay.appendChild(iconWrap);
+
+    const title = document.createElement("p");
+    title.className = "error-title"; title.textContent = "Playback Error";
+    overlay.appendChild(title);
+
+    const msg = document.createElement("p");
+    msg.className = "error-message"; msg.textContent = config.errorMessage ?? "";
+    overlay.appendChild(msg);
+
+    if (config.showRetry !== false) {
+      const btn = document.createElement("button");
+      btn.className = "error-retry-btn"; btn.textContent = "Try again";
+      btn.addEventListener("click", () => this.#retryLoad());
+      overlay.appendChild(btn);
+    }
+    return overlay;
+  }
+
+  /** Re-initialise the video element for a retry after error. */
+  #retryLoad(): void {
+    if (!this.#$wrapper) return;
+    // Clear error state on both host and wrapper
+    this.#$wrapper.classList.remove("has-error");
+    this.classList.remove("has-error");
+    this.#hasError = false;
+    // Reinitialize — this will re-add video-loading while the new load starts
+    this.#reinitialize();
+  }
+
+  /** Build the custom loader element. */
+  #createCustomLoader(config: VideoPlayerConfig): HTMLElement {
+    const wrap = document.createElement("div");
+    wrap.className = "video-custom-loader";
+    wrap.setAttribute("part", "custom-loader");
+
+    if (config.loaderSrc) {
+      // URL-based: img for raster/gif, inline for data URIs
+      const img = document.createElement("img");
+      img.src = config.loaderSrc;
+      img.alt = "Loading";
+      img.setAttribute("aria-hidden", "true");
+      wrap.appendChild(img);
+    } else if (config.loaderHtml) {
+      const clean = DOMPurify.sanitize(config.loaderHtml, { USE_PROFILES: { svg: true, html: true } });
+      const tmp = document.createElement("div");
+      tmp.innerHTML = clean;
+      while (tmp.firstChild) wrap.appendChild(tmp.firstChild);
+    }
+    return wrap;
   }
 
   #createSVGFromString(svgString: string): SVGElement {
@@ -1596,10 +1515,7 @@ export class ShadowPlyr extends HTMLElement {
     div.innerHTML = svgString.trim();
     const svg = div.firstElementChild as SVGElement;
     if (!svg || svg.tagName.toLowerCase() !== "svg") {
-      const fallback = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg"
-      );
+      const fallback = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       fallback.setAttribute("viewBox", "0 0 24 24");
       return fallback;
     }
@@ -1610,132 +1526,69 @@ export class ShadowPlyr extends HTMLElement {
     const container = document.createElement("div");
     container.className = "video-seek-buttons";
     container.setAttribute("part", "seek-buttons");
-
     const left = document.createElement("button");
-    left.className = "seek-left";
-    left.textContent = `-${config.seekButtonSeconds}s`;
+    left.className = "seek-left"; left.textContent = `-${config.seekButtonSeconds}s`;
     left.setAttribute("part", "seek-left");
     const right = document.createElement("button");
-    right.className = "seek-right";
-    right.textContent = `+${config.seekButtonSeconds}s`;
+    right.className = "seek-right"; right.textContent = `+${config.seekButtonSeconds}s`;
     right.setAttribute("part", "seek-right");
-
     left.addEventListener("click", () => {
       if (!this.#videoElement) return;
-      this.#videoElement.currentTime = Math.max(
-        0,
-        this.#videoElement.currentTime - config.seekButtonSeconds
-      );
+      this.#videoElement.currentTime = Math.max(0, this.#videoElement.currentTime - config.seekButtonSeconds);
     });
     right.addEventListener("click", () => {
       if (!this.#videoElement) return;
-      this.#videoElement.currentTime = Math.min(
-        this.#videoElement.duration,
-        this.#videoElement.currentTime + config.seekButtonSeconds
-      );
+      this.#videoElement.currentTime = Math.min(this.#videoElement.duration, this.#videoElement.currentTime + config.seekButtonSeconds);
     });
-
     container.appendChild(left);
     container.appendChild(right);
     return container;
   }
 
+  // ==========================================================================
+  // ICONS
+  // ==========================================================================
   #getIcons(): IconSet {
-    const cacheKey = `${this.getAttribute("play-icon") || ""}-${
-      this.getAttribute("pause-icon") || ""
-    }`;
+    const cacheKey = `${this.getAttribute("play-icon") || ""}-${this.getAttribute("pause-icon") || ""}`;
     if (IconCache.has(cacheKey)) return IconCache.get(cacheKey)!;
-
-    // Use DOMPurify's SVG profile – safe, and preserves all SVG content.
-    const purifyOptions = {
-      USE_PROFILES: { svg: true },
-    };
-
+    const p = { USE_PROFILES: { svg: true } };
     const icons: IconSet = {
-      play: DOMPurify.sanitize(
-        this.getAttribute("play-icon") || DEFAULT_ICONS.play,
-        purifyOptions
-      ),
-      pause: DOMPurify.sanitize(
-        this.getAttribute("pause-icon") || DEFAULT_ICONS.pause,
-        purifyOptions
-      ),
-      volume: DOMPurify.sanitize(
-        this.getAttribute("volume-icon") || DEFAULT_ICONS.volume,
-        purifyOptions
-      ),
-      muted: DOMPurify.sanitize(
-        this.getAttribute("muted-icon") || DEFAULT_ICONS.muted,
-        purifyOptions
-      ),
-      fullscreen: DOMPurify.sanitize(
-        this.getAttribute("fullscreen-icon") || DEFAULT_ICONS.fullscreen,
-        purifyOptions
-      ),
-      exitFullscreen: DOMPurify.sanitize(
-        this.getAttribute("exit-fullscreen-icon") ||
-          DEFAULT_ICONS.exitFullscreen,
-        purifyOptions
-      ),
-      speed: DOMPurify.sanitize(
-        this.getAttribute("speed-icon") || DEFAULT_ICONS.speed,
-        purifyOptions
-      ),
-      loopOnce: DOMPurify.sanitize(
-        this.getAttribute("loop-once-icon") || DEFAULT_ICONS.loopOnce,
-        purifyOptions
-      ),
-      loop: DOMPurify.sanitize(
-        this.getAttribute("loop-icon") || DEFAULT_ICONS.loop,
-        purifyOptions
-      ),
-      pip: DOMPurify.sanitize(
-        this.getAttribute("pip-icon") || DEFAULT_ICONS.pip,
-        purifyOptions
-      ),
-      subtitle: DOMPurify.sanitize(
-        this.getAttribute("subtitle-icon") || DEFAULT_ICONS.subtitle,
-        purifyOptions
-      ),
-      quality: DOMPurify.sanitize(
-        this.getAttribute("quality-icon") || DEFAULT_ICONS.quality,
-        purifyOptions
-      ),
-      more: DOMPurify.sanitize(
-        this.getAttribute("more-icon") || DEFAULT_ICONS.more,
-        purifyOptions
-      ),
-      theater: DOMPurify.sanitize(
-        this.getAttribute("theater-icon") || DEFAULT_ICONS.theater,
-        purifyOptions
-      ),
-      screenshot: DOMPurify.sanitize(
-        this.getAttribute("screenshot-icon") || DEFAULT_ICONS.screenshot,
-        purifyOptions
-      ),
-      airplay: DOMPurify.sanitize(
-        this.getAttribute("airplay-icon") || DEFAULT_ICONS.airplay,
-        purifyOptions
-      ),
-      miniplayer: DOMPurify.sanitize(
-        this.getAttribute("miniplayer-icon") || DEFAULT_ICONS.miniplayer,
-        purifyOptions
-      ),
+      play: DOMPurify.sanitize(this.getAttribute("play-icon") || DEFAULT_ICONS.play, p),
+      pause: DOMPurify.sanitize(this.getAttribute("pause-icon") || DEFAULT_ICONS.pause, p),
+      volume: DOMPurify.sanitize(this.getAttribute("volume-icon") || DEFAULT_ICONS.volume, p),
+      muted: DOMPurify.sanitize(this.getAttribute("muted-icon") || DEFAULT_ICONS.muted, p),
+      fullscreen: DOMPurify.sanitize(this.getAttribute("fullscreen-icon") || DEFAULT_ICONS.fullscreen, p),
+      exitFullscreen: DOMPurify.sanitize(this.getAttribute("exit-fullscreen-icon") || DEFAULT_ICONS.exitFullscreen, p),
+      speed: DOMPurify.sanitize(this.getAttribute("speed-icon") || DEFAULT_ICONS.speed, p),
+      loopOnce: DOMPurify.sanitize(this.getAttribute("loop-once-icon") || DEFAULT_ICONS.loopOnce, p),
+      loop: DOMPurify.sanitize(this.getAttribute("loop-icon") || DEFAULT_ICONS.loop, p),
+      pip: DOMPurify.sanitize(this.getAttribute("pip-icon") || DEFAULT_ICONS.pip, p),
+      subtitle: DOMPurify.sanitize(this.getAttribute("subtitle-icon") || DEFAULT_ICONS.subtitle, p),
+      quality: DOMPurify.sanitize(this.getAttribute("quality-icon") || DEFAULT_ICONS.quality, p),
+      more: DOMPurify.sanitize(this.getAttribute("more-icon") || DEFAULT_ICONS.more, p),
+      theater: DOMPurify.sanitize(this.getAttribute("theater-icon") || DEFAULT_ICONS.theater, p),
+      screenshot: DOMPurify.sanitize(this.getAttribute("screenshot-icon") || DEFAULT_ICONS.screenshot, p),
+      airplay: DOMPurify.sanitize(this.getAttribute("airplay-icon") || DEFAULT_ICONS.airplay, p),
+      miniplayer: DOMPurify.sanitize(this.getAttribute("miniplayer-icon") || DEFAULT_ICONS.miniplayer, p),
+      settings: DEFAULT_ICONS.settings, // not user-overridable
     };
-
     IconCache.set(cacheKey, icons);
     return icons;
   }
 
+  // ==========================================================================
+  // CONTROLS HTML
+  // ==========================================================================
   #createControlsHTML(config: VideoPlayerConfig): DocumentFragment {
     const icons = this.#getIcons();
     const frag = document.createDocumentFragment();
-    const controlsBar = document.createElement("div");
-    controlsBar.className = "video-controls-bar";
-    controlsBar.setAttribute("role", "region");
-    controlsBar.setAttribute("aria-label", "Video controls");
-    controlsBar.setAttribute("part", "controls");
+    const bar = document.createElement("div");
+    bar.className = "video-controls-bar";
+    bar.setAttribute("role", "region");
+    bar.setAttribute("aria-label", "Video controls");
+    bar.setAttribute("part", "controls");
 
+    // Seekbar
     if (config.showSeekbar) {
       const seekbar = document.createElement("div");
       seekbar.className = "video-seekbar";
@@ -1746,681 +1599,400 @@ export class ShadowPlyr extends HTMLElement {
       seekbar.setAttribute("aria-valuemax", "100");
       seekbar.setAttribute("aria-valuenow", "0");
       seekbar.setAttribute("part", "seekbar");
-
       this.#$seekbar = seekbar;
-
-      /* TRACK (clipping layer) */
 
       const track = document.createElement("div");
       track.className = "video-seekbar-track";
       track.setAttribute("part", "video-seekbar-track");
 
-      /* BUFFER */
-
       if (config.bufferProgress) {
-        const buffer = document.createElement("div");
-        buffer.className = "video-seekbar-buffer";
-        buffer.setAttribute("part", "seekbar-buffer");
-
-        this.#$seekbarBuffer = buffer;
-        track.appendChild(buffer);
+        const buf = document.createElement("div");
+        buf.className = "video-seekbar-buffer"; buf.setAttribute("part", "seekbar-buffer");
+        this.#$seekbarBuffer = buf;
+        track.appendChild(buf);
       }
 
-      /* PROGRESS */
-
       const progress = document.createElement("div");
-      progress.className = "video-seekbar-progress";
-      progress.setAttribute("part", "video-seekbar-progress");
-
+      progress.className = "video-seekbar-progress"; progress.setAttribute("part", "video-seekbar-progress");
       const fill = document.createElement("div");
-      fill.className = "video-seekbar-fill";
-      fill.setAttribute("part", "seekbar-progress");
-
+      fill.className = "video-seekbar-fill"; fill.setAttribute("part", "seekbar-progress");
       this.#$seekbarFill = fill;
-
       progress.appendChild(fill);
       track.appendChild(progress);
 
-      /* HANDLE (outside track so it can overflow) */
-
       const handle = document.createElement("div");
-      handle.className = "video-seekbar-handle";
-      handle.setAttribute("part", "seekbar-handle");
-
+      handle.className = "video-seekbar-handle"; handle.setAttribute("part", "seekbar-handle");
       this.#$seekbarHandle = handle;
-
-      /* assemble */
 
       seekbar.appendChild(track);
       seekbar.appendChild(handle);
 
-      controlsBar.appendChild(seekbar);
+      // Thumbnail preview container (appended inside seekbar)
+      if (config.showThumbnails) {
+        const preview = document.createElement("div");
+        preview.className = "seek-thumbnail-preview";
+        const canvas = document.createElement("canvas");
+        canvas.className = "seek-thumbnail-canvas"; canvas.width = 160; canvas.height = 90;
+        const label = document.createElement("div");
+        label.className = "seek-thumbnail-time";
+        preview.appendChild(canvas);
+        preview.appendChild(label);
+        seekbar.appendChild(preview);
+      }
+
+      bar.appendChild(seekbar);
     }
 
+    // Controls row
     const row = document.createElement("div");
-    row.className = "video-controls-row";
-    row.setAttribute("part", "controls-row");
-    controlsBar.appendChild(row);
+    row.className = "video-controls-row"; row.setAttribute("part", "controls-row");
+    bar.appendChild(row);
 
-    if (config.showPlayPause) {
-      row.appendChild(this.#createPlayPauseButton(icons, config));
-    }
-    if (config.showVolume) {
-      row.appendChild(this.#createVolumeControl(icons, config));
-    }
+    if (config.showPlayPause) row.appendChild(this.#createPlayPauseButton(icons, config));
+    if (config.showVolume) row.appendChild(this.#createVolumeControl(icons, config));
 
     const timeDisplay = document.createElement("div");
-    timeDisplay.className = "video-time-display";
-    timeDisplay.textContent = "0:00 / 0:00";
+    timeDisplay.className = "video-time-display"; timeDisplay.textContent = "0:00 / 0:00";
     timeDisplay.setAttribute("part", "time-display");
     row.appendChild(timeDisplay);
 
     const spacer = document.createElement("div");
-    spacer.className = "video-controls-spacer";
-    spacer.setAttribute("part", "controls-spacer");
+    spacer.className = "video-controls-spacer"; spacer.setAttribute("part", "controls-spacer");
     row.appendChild(spacer);
 
-    if (config.showLoop) {
-      row.appendChild(this.#createLoopButton(icons, config));
-    }
-    if (config.showPip && document.pictureInPictureEnabled) {
-      row.appendChild(this.#createPipButton(icons, config));
-    }
-    if (config.showSubtitles) {
-      row.appendChild(this.#createSubtitleButton(icons, config));
-    }
-    if (config.showQuality) {
-      row.appendChild(this.#createQualityButton(icons, config));
-    }
-    if (config.showSpeed) {
-      row.appendChild(this.#createSpeedButton(icons, config));
-    }
-    if (config.theaterMode) {
-      row.appendChild(this.#createTheaterButton(icons, config));
-    }
-    if (config.screenshot) {
-      row.appendChild(this.#createScreenshotButton(icons, config));
-    }
-    if (
-      config.airplay &&
-      (window as any).WebKitPlaybackTargetAvailabilityEvent
-    ) {
-      row.appendChild(this.#createAirPlayButton(icons, config));
-    }
-    if (config.miniPlayer) {
-      row.appendChild(this.#createMiniPlayerButton(icons, config));
-    }
-    if (config.showFullscreen) {
-      row.appendChild(this.#createFullscreenButton(icons, config));
-    }
-    if (config.responsiveControls) {
-      row.appendChild(this.#createMoreButton(icons, config));
+    if (config.showLoop) row.appendChild(this.#createLoopButton(icons, config));
+    if (config.showPip && document.pictureInPictureEnabled) row.appendChild(this.#createPipButton(icons, config));
+
+    // Unified settings button vs. individual buttons
+    const hasSettingsItems = config.showQuality || config.showSpeed || config.showSubtitles;
+    if (config.showSettings && hasSettingsItems) {
+      row.appendChild(this.#createSettingsButton(icons, config));
+    } else {
+      if (config.showSubtitles) row.appendChild(this.#createSubtitleButton(icons, config));
+      if (config.showQuality) row.appendChild(this.#createQualityButton(icons, config));
+      if (config.showSpeed) row.appendChild(this.#createSpeedButton(icons, config));
     }
 
-    frag.appendChild(controlsBar);
+    if (config.theaterMode) row.appendChild(this.#createTheaterButton(icons, config));
+    if (config.screenshot) row.appendChild(this.#createScreenshotButton(icons, config));
+    if (config.airplay && (window as any).WebKitPlaybackTargetAvailabilityEvent)
+      row.appendChild(this.#createAirPlayButton(icons, config));
+    if (config.miniPlayer) row.appendChild(this.#createMiniPlayerButton(icons, config));
+    if (config.showFullscreen) row.appendChild(this.#createFullscreenButton(icons, config));
+    // Only render the kabab (more) button when the unified settings menu is NOT active.
+    // When show-settings="true", quality/speed/subtitles are consolidated in the settings panel.
+    if (config.responsiveControls && !config.showSettings)
+      row.appendChild(this.#createMoreButton(icons, config));
+
+    frag.appendChild(bar);
     return frag;
   }
 
-  // Button creation helpers
-  #createPlayPauseButton(
-    icons: IconSet,
-    config: VideoPlayerConfig
-  ): HTMLElement {
+  // ── individual button factories ───────────────────────────────────────────
+  #createPlayPauseButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
     const btn = document.createElement("button");
     btn.className = "video-control-btn play-pause";
-    btn.setAttribute("aria-label", "Play");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "play-pause");
-
-    const playSpan = document.createElement("span");
-    playSpan.className = "play-icon";
-    playSpan.setAttribute("aria-hidden", "true");
-    playSpan.appendChild(this.#createSVGFromString(icons.play));
-
-    const pauseSpan = document.createElement("span");
-    pauseSpan.className = "pause-icon";
-    pauseSpan.style.display = "none";
-    pauseSpan.setAttribute("aria-hidden", "true");
-    pauseSpan.appendChild(this.#createSVGFromString(icons.pause));
-
-    btn.appendChild(playSpan);
-    btn.appendChild(pauseSpan);
-
+    btn.setAttribute("aria-label", "Play"); btn.tabIndex = 0; btn.setAttribute("part", "play-pause");
+    const ps = document.createElement("span"); ps.className = "play-icon"; ps.setAttribute("aria-hidden", "true");
+    ps.appendChild(this.#createSVGFromString(icons.play));
+    const pa = document.createElement("span"); pa.className = "pause-icon"; pa.style.display = "none";
+    pa.setAttribute("aria-hidden", "true"); pa.appendChild(this.#createSVGFromString(icons.pause));
+    btn.appendChild(ps); btn.appendChild(pa);
     if (config.showTooltips) {
-      const playTooltip = document.createElement("span");
-      playTooltip.className = "tooltip play-tooltip";
-      playTooltip.textContent = config.tooltipPlay;
-      playTooltip.setAttribute("part", "play-tooltip");
-
-      const pauseTooltip = document.createElement("span");
-      pauseTooltip.className = "tooltip pause-tooltip";
-      playTooltip.setAttribute("part", "pause-tooltip");
-      pauseTooltip.style.display = "none";
-      pauseTooltip.textContent = config.tooltipPause;
-
-      btn.appendChild(playTooltip);
-      btn.appendChild(pauseTooltip);
+      const tt1 = document.createElement("span"); tt1.className = "tooltip play-tooltip"; tt1.textContent = config.tooltipPlay; tt1.setAttribute("part", "play-tooltip");
+      const tt2 = document.createElement("span"); tt2.className = "tooltip pause-tooltip"; tt2.style.display = "none"; tt2.textContent = config.tooltipPause; tt2.setAttribute("part", "pause-tooltip");
+      btn.appendChild(tt1); btn.appendChild(tt2);
     }
     return btn;
   }
 
   #createVolumeControl(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
-    const volumeControl = document.createElement("div");
-    volumeControl.className = "video-volume-control";
-    volumeControl.setAttribute("part", "volume-control");
-
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn volume-btn";
-    btn.setAttribute("aria-label", "Mute");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "volume-btn");
-
-    const volumeSpan = document.createElement("span");
-    volumeSpan.className = "volume-icon";
-    volumeSpan.setAttribute("aria-hidden", "true");
-    volumeSpan.appendChild(this.#createSVGFromString(icons.volume));
-
-    const mutedSpan = document.createElement("span");
-    mutedSpan.className = "muted-icon";
-    mutedSpan.style.display = "none";
-    mutedSpan.setAttribute("aria-hidden", "true");
-    mutedSpan.appendChild(this.#createSVGFromString(icons.muted));
-
-    btn.appendChild(volumeSpan);
-    btn.appendChild(mutedSpan);
-
+    const wrap = document.createElement("div"); wrap.className = "video-volume-control"; wrap.setAttribute("part", "volume-control");
+    const btn = document.createElement("button"); btn.className = "video-control-btn volume-btn"; btn.setAttribute("aria-label", "Mute"); btn.tabIndex = 0; btn.setAttribute("part", "volume-btn");
+    const vs = document.createElement("span"); vs.className = "volume-icon"; vs.setAttribute("aria-hidden", "true"); vs.appendChild(this.#createSVGFromString(icons.volume));
+    const ms = document.createElement("span"); ms.className = "muted-icon"; ms.style.display = "none"; ms.setAttribute("aria-hidden", "true"); ms.appendChild(this.#createSVGFromString(icons.muted));
+    btn.appendChild(vs); btn.appendChild(ms);
     if (config.showTooltips) {
-      const volTooltip = document.createElement("span");
-      volTooltip.className = "tooltip volume-tooltip";
-      volTooltip.textContent = config.tooltipMute;
-      volTooltip.setAttribute("part", "volume-tooltip");
-
-      const mutedTooltip = document.createElement("span");
-      mutedTooltip.className = "tooltip muted-tooltip";
-      mutedTooltip.style.display = "none";
-      mutedTooltip.textContent = config.tooltipUnmute;
-      volTooltip.setAttribute("part", "mute-tooltip");
-
-      btn.appendChild(volTooltip);
-      btn.appendChild(mutedTooltip);
+      const vt = document.createElement("span"); vt.className = "tooltip volume-tooltip"; vt.textContent = config.tooltipMute; vt.setAttribute("part", "volume-tooltip");
+      const mt = document.createElement("span"); mt.className = "tooltip muted-tooltip"; mt.style.display = "none"; mt.textContent = config.tooltipUnmute; mt.setAttribute("part", "mute-tooltip");
+      btn.appendChild(vt); btn.appendChild(mt);
     }
-
-    volumeControl.appendChild(btn);
-
-    const slider = document.createElement("div");
-    slider.className = "video-volume-slider";
-    slider.setAttribute("role", "slider");
-    slider.tabIndex = 0;
-    slider.setAttribute("aria-label", "Volume");
-    slider.setAttribute("aria-valuemin", "0");
-    slider.setAttribute("aria-valuemax", "100");
-    slider.setAttribute("aria-valuenow", "100");
-    slider.setAttribute("part", "volume-slider");
-
-    const progress = document.createElement("div");
-    progress.className = "video-volume-progress";
-    progress.setAttribute("part", "volume-progress");
-    slider.appendChild(progress);
-
-    volumeControl.appendChild(slider);
-    return volumeControl;
+    wrap.appendChild(btn);
+    const slider = document.createElement("div"); slider.className = "video-volume-slider"; slider.setAttribute("role", "slider"); slider.tabIndex = 0; slider.setAttribute("aria-label", "Volume"); slider.setAttribute("aria-valuemin", "0"); slider.setAttribute("aria-valuemax", "100"); slider.setAttribute("aria-valuenow", "100"); slider.setAttribute("part", "volume-slider");
+    const prog = document.createElement("div"); prog.className = "video-volume-progress"; prog.setAttribute("part", "volume-progress");
+    slider.appendChild(prog); wrap.appendChild(slider);
+    return wrap;
   }
 
   #createLoopButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn loop-btn";
-    btn.setAttribute("aria-label", "Enable loop");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "loop-btn");
-
-    const loopSpan = document.createElement("span");
-    loopSpan.className = "loop-icon";
-    loopSpan.setAttribute("aria-hidden", "true");
-    loopSpan.appendChild(this.#createSVGFromString(icons.loopOnce));
-    btn.appendChild(loopSpan);
-
+    const btn = document.createElement("button"); btn.className = "video-control-btn loop-btn"; btn.setAttribute("aria-label", "Enable loop"); btn.tabIndex = 0; btn.setAttribute("part", "loop-btn");
+    const ls = document.createElement("span"); ls.className = "loop-icon"; ls.setAttribute("aria-hidden", "true"); ls.appendChild(this.#createSVGFromString(icons.loopOnce));
+    btn.appendChild(ls);
     if (config.showTooltips) {
-      // Tooltip when loop is ON
-      const onTooltip = document.createElement("span");
-      onTooltip.className = "tooltip loop-on-tooltip";
-      onTooltip.textContent = "Disable loop";
-      onTooltip.style.display = "none"; // initially hidden
-      btn.appendChild(onTooltip);
-
-      // Tooltip when loop is OFF
-      const offTooltip = document.createElement("span");
-      offTooltip.className = "tooltip loop-off-tooltip";
-      offTooltip.textContent = "Enable loop";
-      btn.appendChild(offTooltip);
+      const t1 = document.createElement("span"); t1.className = "tooltip loop-on-tooltip"; t1.textContent = "Disable loop"; t1.style.display = "none"; btn.appendChild(t1);
+      const t2 = document.createElement("span"); t2.className = "tooltip loop-off-tooltip"; t2.textContent = "Enable loop"; btn.appendChild(t2);
     }
     return btn;
   }
 
   #createPipButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn pip-btn";
-    btn.setAttribute("aria-label", "Picture in Picture");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "pip-btn");
-
-    const pipSpan = document.createElement("span");
-    pipSpan.className = "pip-icon";
-    pipSpan.setAttribute("aria-hidden", "true");
-    pipSpan.appendChild(this.#createSVGFromString(icons.pip));
-    btn.appendChild(pipSpan);
-
-    if (config.showTooltips) {
-      const tooltip = document.createElement("span");
-      tooltip.className = "tooltip pip-tooltip";
-      tooltip.textContent = "Picture in Picture";
-      tooltip.setAttribute("part", "pip-tooltip");
-      btn.appendChild(tooltip);
-    }
+    const btn = document.createElement("button"); btn.className = "video-control-btn pip-btn"; btn.setAttribute("aria-label", "Picture in Picture"); btn.tabIndex = 0; btn.setAttribute("part", "pip-btn");
+    const s = document.createElement("span"); s.className = "pip-icon"; s.setAttribute("aria-hidden", "true"); s.appendChild(this.#createSVGFromString(icons.pip)); btn.appendChild(s);
+    if (config.showTooltips) { const t = document.createElement("span"); t.className = "tooltip pip-tooltip"; t.textContent = "Picture in Picture"; t.setAttribute("part", "pip-tooltip"); btn.appendChild(t); }
     return btn;
   }
 
-  #createSubtitleButton(
-    icons: IconSet,
-    config: VideoPlayerConfig
-  ): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "video-subtitle-control";
-    container.setAttribute("part", "subtitle-control");
-
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn video-subtitle-btn";
-    btn.setAttribute("aria-label", "Subtitles");
-    btn.setAttribute("aria-haspopup", "true");
-    btn.setAttribute("aria-expanded", "false");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "subtitle-btn");
-
-    const iconSpan = document.createElement("span");
-    iconSpan.setAttribute("aria-hidden", "true");
-    iconSpan.appendChild(this.#createSVGFromString(icons.subtitle));
-    btn.appendChild(iconSpan);
-
-    const textSpan = document.createElement("span");
-    textSpan.className = "subtitle-text";
-    textSpan.textContent = "CC";
-    textSpan.setAttribute("part", "subtitle-text");
-    btn.appendChild(textSpan);
-
-    if (config.showTooltips) {
-      const tooltip = document.createElement("span");
-      tooltip.className = "tooltip subtitle-tooltip";
-      tooltip.textContent = "Subtitles";
-      tooltip.setAttribute("part", "subtitle-tooltip");
-      btn.appendChild(tooltip);
-    }
-
-    container.appendChild(btn);
-
-    const menu = document.createElement("div");
-    menu.className = "video-subtitle-menu";
-    menu.setAttribute("role", "menu");
-    menu.setAttribute("part", "subtitle-menu");
-    container.appendChild(menu);
-
-    return container;
+  #createSubtitleButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
+    const wrap = document.createElement("div"); wrap.className = "video-subtitle-control"; wrap.setAttribute("part", "subtitle-control");
+    const btn = document.createElement("button"); btn.className = "video-control-btn video-subtitle-btn"; btn.setAttribute("aria-label", "Subtitles"); btn.setAttribute("aria-haspopup", "true"); btn.setAttribute("aria-expanded", "false"); btn.tabIndex = 0; btn.setAttribute("part", "subtitle-btn");
+    const is = document.createElement("span"); is.setAttribute("aria-hidden", "true"); is.appendChild(this.#createSVGFromString(icons.subtitle)); btn.appendChild(is);
+    const ts = document.createElement("span"); ts.className = "subtitle-text"; ts.textContent = "CC"; ts.setAttribute("part", "subtitle-text"); btn.appendChild(ts);
+    if (config.showTooltips) { const t = document.createElement("span"); t.className = "tooltip subtitle-tooltip"; t.textContent = "Subtitles"; t.setAttribute("part", "subtitle-tooltip"); btn.appendChild(t); }
+    wrap.appendChild(btn);
+    const menu = document.createElement("div"); menu.className = "video-subtitle-menu"; menu.setAttribute("role", "menu"); menu.setAttribute("part", "subtitle-menu"); wrap.appendChild(menu);
+    return wrap;
   }
 
   #createQualityButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "video-quality-control";
-    container.setAttribute("part", "quality-control");
-
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn video-quality-btn";
-    btn.setAttribute("aria-label", "Quality");
-    btn.setAttribute("aria-haspopup", "true");
-    btn.setAttribute("aria-expanded", "false");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "quality-btn");
-
-    const iconSpan = document.createElement("span");
-    iconSpan.setAttribute("aria-hidden", "true");
-    iconSpan.appendChild(this.#createSVGFromString(icons.quality));
-    btn.appendChild(iconSpan);
-
-    const textSpan = document.createElement("span");
-    textSpan.className = "quality-text";
-    textSpan.textContent = "Auto";
-    textSpan.setAttribute("part", "quality-text");
-    btn.appendChild(textSpan);
-
-    if (config.showTooltips) {
-      const tooltip = document.createElement("span");
-      tooltip.className = "tooltip quality-tooltip";
-      tooltip.textContent = "Quality";
-      tooltip.setAttribute("part", "quality-tooltip");
-      btn.appendChild(tooltip);
-    }
-
-    container.appendChild(btn);
-
-    const menu = document.createElement("div");
-    menu.className = "video-quality-menu";
-    menu.setAttribute("role", "menu");
-    menu.setAttribute("part", "quality-menu");
-    container.appendChild(menu);
-
-    return container;
+    const wrap = document.createElement("div"); wrap.className = "video-quality-control"; wrap.setAttribute("part", "quality-control");
+    const btn = document.createElement("button"); btn.className = "video-control-btn video-quality-btn"; btn.setAttribute("aria-label", "Quality"); btn.setAttribute("aria-haspopup", "true"); btn.setAttribute("aria-expanded", "false"); btn.tabIndex = 0; btn.setAttribute("part", "quality-btn");
+    const is = document.createElement("span"); is.setAttribute("aria-hidden", "true"); is.appendChild(this.#createSVGFromString(icons.quality)); btn.appendChild(is);
+    const ts = document.createElement("span"); ts.className = "quality-text"; ts.textContent = "Auto"; ts.setAttribute("part", "quality-text"); btn.appendChild(ts);
+    if (config.showTooltips) { const t = document.createElement("span"); t.className = "tooltip quality-tooltip"; t.textContent = "Quality"; t.setAttribute("part", "quality-tooltip"); btn.appendChild(t); }
+    wrap.appendChild(btn);
+    const menu = document.createElement("div"); menu.className = "video-quality-menu"; menu.setAttribute("role", "menu"); menu.setAttribute("part", "quality-menu"); wrap.appendChild(menu);
+    return wrap;
   }
 
   #createSpeedButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "video-speed-control";
-    container.setAttribute("part", "speed-control");
+    const wrap = document.createElement("div"); wrap.className = "video-speed-control"; wrap.setAttribute("part", "speed-control");
+    const btn = document.createElement("button"); btn.className = "video-control-btn video-speed-btn"; btn.setAttribute("aria-label", "Playback speed"); btn.setAttribute("aria-haspopup", "true"); btn.setAttribute("aria-expanded", "false"); btn.tabIndex = 0; btn.setAttribute("part", "speed-btn");
+    const is = document.createElement("span"); is.setAttribute("aria-hidden", "true"); is.appendChild(this.#createSVGFromString(icons.speed)); btn.appendChild(is);
+    const ts = document.createElement("span"); ts.className = "speed-text"; ts.textContent = "1x"; ts.setAttribute("part", "speed-text"); btn.appendChild(ts);
+    if (config.showTooltips) { const t = document.createElement("span"); t.className = "tooltip speed-tooltip"; t.textContent = config.tooltipSpeed; t.setAttribute("part", "speed-tooltip"); btn.appendChild(t); }
+    wrap.appendChild(btn);
+    const menu = document.createElement("div"); menu.className = "video-speed-menu"; menu.setAttribute("role", "menu"); menu.setAttribute("part", "speed-menu");
+    config.speedOptions.forEach((speed) => {
+      const opt = document.createElement("button"); opt.className = `video-speed-option ${speed === 1 ? "active" : ""}`; opt.setAttribute("role", "menuitem"); opt.tabIndex = -1; opt.setAttribute("data-speed", speed.toString()); opt.textContent = speed + "x"; opt.setAttribute("part", "speed-option"); menu.appendChild(opt);
+    });
+    wrap.appendChild(menu);
+    return wrap;
+  }
+
+  /** Unified ⚙ settings button with Quality / Speed / Subtitle submenus */
+  #createSettingsButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
+    const wrap = document.createElement("div");
+    wrap.className = "video-settings-control";
+    wrap.setAttribute("part", "settings-control");
 
     const btn = document.createElement("button");
-    btn.className = "video-control-btn video-speed-btn";
-    btn.setAttribute("aria-label", "Playback speed");
+    btn.className = "video-control-btn video-settings-btn";
+    btn.setAttribute("aria-label", config.tooltipSettings ?? "Settings");
     btn.setAttribute("aria-haspopup", "true");
     btn.setAttribute("aria-expanded", "false");
     btn.tabIndex = 0;
-    btn.setAttribute("part", "speed-btn");
+    btn.setAttribute("part", "settings-btn");
 
-    const iconSpan = document.createElement("span");
-    iconSpan.setAttribute("aria-hidden", "true");
-    iconSpan.appendChild(this.#createSVGFromString(icons.speed));
-    btn.appendChild(iconSpan);
-
-    const textSpan = document.createElement("span");
-    textSpan.className = "speed-text";
-    textSpan.textContent = "1x";
-    textSpan.setAttribute("part", "speed-text");
-    btn.appendChild(textSpan);
+    const is = document.createElement("span");
+    is.setAttribute("aria-hidden", "true");
+    is.appendChild(this.#createSVGFromString(icons.settings));
+    btn.appendChild(is);
 
     if (config.showTooltips) {
-      const tooltip = document.createElement("span");
-      tooltip.className = "tooltip speed-tooltip";
-      tooltip.textContent = config.tooltipSpeed;
-      tooltip.setAttribute("part", "speed-tooltip");
-      btn.appendChild(tooltip);
+      const tt = document.createElement("span");
+      tt.className = "tooltip settings-tooltip";
+      tt.textContent = config.tooltipSettings ?? "Settings";
+      tt.setAttribute("part", "settings-tooltip");
+      btn.appendChild(tt);
+    }
+    wrap.appendChild(btn);
+
+    // ── Menu ──────────────────────────────────────────────────────────────
+    const menu = document.createElement("div");
+    menu.className = "video-settings-menu";
+    menu.setAttribute("role", "menu");
+    menu.setAttribute("part", "settings-menu");
+
+    // Main page
+    const mainPage = document.createElement("div");
+    mainPage.className = "settings-page active";
+    mainPage.setAttribute("data-page", "main");
+
+    if (config.showQuality) {
+      const item = document.createElement("button");
+      item.className = "settings-main-item"; item.setAttribute("data-submenu", "quality");
+      item.innerHTML = `<span class="settings-main-label">Quality</span><span class="settings-main-value settings-quality-value">Auto</span><span class="settings-main-arrow">›</span>`;
+      mainPage.appendChild(item);
+    }
+    if (config.showSpeed) {
+      const item = document.createElement("button");
+      item.className = "settings-main-item"; item.setAttribute("data-submenu", "speed");
+      item.innerHTML = `<span class="settings-main-label">Speed</span><span class="settings-main-value settings-speed-value">${this.#currentSpeed}x</span><span class="settings-main-arrow">›</span>`;
+      mainPage.appendChild(item);
+    }
+    if (config.showSubtitles) {
+      const item = document.createElement("button");
+      item.className = "settings-main-item"; item.setAttribute("data-submenu", "subtitle");
+      item.innerHTML = `<span class="settings-main-label">Subtitles</span><span class="settings-main-value settings-subtitle-value">Off</span><span class="settings-main-arrow">›</span>`;
+      mainPage.appendChild(item);
+    }
+    menu.appendChild(mainPage);
+
+    // Quality sub-page
+    if (config.showQuality) {
+      const page = document.createElement("div");
+      page.className = "settings-page"; page.setAttribute("data-page", "quality");
+      const hdr = document.createElement("button"); hdr.className = "settings-sub-header"; hdr.setAttribute("data-back", "true");
+      hdr.innerHTML = `<span class="settings-sub-back">‹</span><span>Quality</span>`;
+      page.appendChild(hdr);
+      const qMenu = document.createElement("div");
+      qMenu.className = "video-quality-menu"; qMenu.setAttribute("role", "menu"); qMenu.setAttribute("part", "quality-menu");
+      page.appendChild(qMenu);
+      menu.appendChild(page);
     }
 
-    container.appendChild(btn);
+    // Speed sub-page
+    if (config.showSpeed) {
+      const page = document.createElement("div");
+      page.className = "settings-page"; page.setAttribute("data-page", "speed");
+      const hdr = document.createElement("button"); hdr.className = "settings-sub-header"; hdr.setAttribute("data-back", "true");
+      hdr.innerHTML = `<span class="settings-sub-back">‹</span><span>Speed</span>`;
+      page.appendChild(hdr);
+      const sMenu = document.createElement("div");
+      sMenu.className = "video-speed-menu"; sMenu.setAttribute("role", "menu"); sMenu.setAttribute("part", "speed-menu");
+      config.speedOptions.forEach((speed) => {
+        const opt = document.createElement("button");
+        opt.className = `settings-option ${speed === 1 ? "active" : ""}`;
+        opt.setAttribute("data-speed", speed.toString()); opt.textContent = speed + "x"; opt.setAttribute("part", "speed-option");
+        sMenu.appendChild(opt);
+      });
+      page.appendChild(sMenu);
+      menu.appendChild(page);
+    }
 
-    const menu = document.createElement("div");
-    menu.className = "video-speed-menu";
-    menu.setAttribute("role", "menu");
-    menu.setAttribute("part", "speed-menu");
+    // Subtitle sub-page
+    if (config.showSubtitles) {
+      const page = document.createElement("div");
+      page.className = "settings-page"; page.setAttribute("data-page", "subtitle");
+      const hdr = document.createElement("button"); hdr.className = "settings-sub-header"; hdr.setAttribute("data-back", "true");
+      hdr.innerHTML = `<span class="settings-sub-back">‹</span><span>Subtitles</span>`;
+      page.appendChild(hdr);
+      const stMenu = document.createElement("div");
+      stMenu.className = "video-subtitle-menu"; stMenu.setAttribute("role", "menu"); stMenu.setAttribute("part", "subtitle-menu");
+      page.appendChild(stMenu);
+      menu.appendChild(page);
+    }
 
-    config.speedOptions.forEach((speed) => {
-      const opt = document.createElement("button");
-      opt.className = `video-speed-option ${speed === 1 ? "active" : ""}`;
-      opt.setAttribute("role", "menuitem");
-      opt.tabIndex = -1;
-      opt.setAttribute("data-speed", speed.toString());
-      opt.textContent = speed + "x";
-      opt.setAttribute("part", "speed-option");
-      menu.appendChild(opt);
-    });
-
-    container.appendChild(menu);
-    return container;
+    wrap.appendChild(menu);
+    return wrap;
   }
 
   #createTheaterButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn theater-btn";
-    btn.setAttribute("aria-label", "Theater mode");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "theater-btn");
-
-    const theaterSpan = document.createElement("span");
-    theaterSpan.className = "theater-icon";
-    theaterSpan.setAttribute("aria-hidden", "true");
-    theaterSpan.appendChild(this.#createSVGFromString(icons.theater));
-    btn.appendChild(theaterSpan);
-
-    if (config.showTooltips) {
-      const tooltip = document.createElement("span");
-      tooltip.className = "tooltip theater-tooltip";
-      tooltip.textContent = "Theater mode";
-      tooltip.setAttribute("part", "theater-tooltip");
-      btn.appendChild(tooltip);
-    }
+    const btn = document.createElement("button"); btn.className = "video-control-btn theater-btn"; btn.setAttribute("aria-label", "Theater mode"); btn.tabIndex = 0; btn.setAttribute("part", "theater-btn");
+    const s = document.createElement("span"); s.className = "theater-icon"; s.setAttribute("aria-hidden", "true"); s.appendChild(this.#createSVGFromString(icons.theater)); btn.appendChild(s);
+    if (config.showTooltips) { const t = document.createElement("span"); t.className = "tooltip theater-tooltip"; t.textContent = "Theater mode"; t.setAttribute("part", "theater-tooltip"); btn.appendChild(t); }
     return btn;
   }
 
-  #createScreenshotButton(
-    icons: IconSet,
-    config: VideoPlayerConfig
-  ): HTMLElement {
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn screenshot-btn";
-    btn.setAttribute("aria-label", "Screenshot");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "screenshot-btn");
-
-    const screenSpan = document.createElement("span");
-    screenSpan.className = "screenshot-icon";
-    screenSpan.setAttribute("aria-hidden", "true");
-    screenSpan.appendChild(this.#createSVGFromString(icons.screenshot));
-    btn.appendChild(screenSpan);
-
-    if (config.showTooltips) {
-      const tooltip = document.createElement("span");
-      tooltip.className = "tooltip screenshot-tooltip";
-      tooltip.textContent = "Take screenshot";
-      tooltip.setAttribute("part", "screenshot-tooltip");
-      btn.appendChild(tooltip);
-    }
+  #createScreenshotButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
+    const btn = document.createElement("button"); btn.className = "video-control-btn screenshot-btn"; btn.setAttribute("aria-label", "Screenshot"); btn.tabIndex = 0; btn.setAttribute("part", "screenshot-btn");
+    const s = document.createElement("span"); s.className = "screenshot-icon"; s.setAttribute("aria-hidden", "true"); s.appendChild(this.#createSVGFromString(icons.screenshot)); btn.appendChild(s);
+    if (config.showTooltips) { const t = document.createElement("span"); t.className = "tooltip screenshot-tooltip"; t.textContent = "Take screenshot"; t.setAttribute("part", "screenshot-tooltip"); btn.appendChild(t); }
     return btn;
   }
 
   #createAirPlayButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn airplay-btn";
-    btn.setAttribute("aria-label", "AirPlay");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "airplay-btn");
-
-    const airSpan = document.createElement("span");
-    airSpan.className = "airplay-icon";
-    airSpan.setAttribute("aria-hidden", "true");
-    airSpan.appendChild(this.#createSVGFromString(icons.airplay));
-    btn.appendChild(airSpan);
-
-    if (config.showTooltips) {
-      const tooltip = document.createElement("span");
-      tooltip.className = "tooltip airplay-tooltip";
-      tooltip.textContent = "AirPlay";
-      tooltip.setAttribute("part", "airplay-tooltip");
-      btn.appendChild(tooltip);
-    }
+    const btn = document.createElement("button"); btn.className = "video-control-btn airplay-btn"; btn.setAttribute("aria-label", "AirPlay"); btn.tabIndex = 0; btn.setAttribute("part", "airplay-btn");
+    const s = document.createElement("span"); s.className = "airplay-icon"; s.setAttribute("aria-hidden", "true"); s.appendChild(this.#createSVGFromString(icons.airplay)); btn.appendChild(s);
+    if (config.showTooltips) { const t = document.createElement("span"); t.className = "tooltip airplay-tooltip"; t.textContent = "AirPlay"; t.setAttribute("part", "airplay-tooltip"); btn.appendChild(t); }
     return btn;
   }
 
-  #createMiniPlayerButton(
-    icons: IconSet,
-    config: VideoPlayerConfig
-  ): HTMLElement {
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn miniplayer-btn";
-    btn.setAttribute("aria-label", "Mini player");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "miniplayer-btn");
-
-    const miniSpan = document.createElement("span");
-    miniSpan.className = "miniplayer-icon";
-    miniSpan.setAttribute("aria-hidden", "true");
-    miniSpan.appendChild(this.#createSVGFromString(icons.miniplayer));
-    btn.appendChild(miniSpan);
-
-    if (config.showTooltips) {
-      const tooltip = document.createElement("span");
-      tooltip.className = "tooltip miniplayer-tooltip";
-      tooltip.textContent = "Mini player";
-      tooltip.setAttribute("part", "miniplayer-tooltip");
-      btn.appendChild(tooltip);
-    }
+  #createMiniPlayerButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
+    const btn = document.createElement("button"); btn.className = "video-control-btn miniplayer-btn"; btn.setAttribute("aria-label", "Mini player"); btn.tabIndex = 0; btn.setAttribute("part", "miniplayer-btn");
+    const s = document.createElement("span"); s.className = "miniplayer-icon"; s.setAttribute("aria-hidden", "true"); s.appendChild(this.#createSVGFromString(icons.miniplayer)); btn.appendChild(s);
+    if (config.showTooltips) { const t = document.createElement("span"); t.className = "tooltip miniplayer-tooltip"; t.textContent = "Mini player"; t.setAttribute("part", "miniplayer-tooltip"); btn.appendChild(t); }
     return btn;
   }
 
-  #createFullscreenButton(
-    icons: IconSet,
-    config: VideoPlayerConfig
-  ): HTMLElement {
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn fullscreen-btn";
-    btn.setAttribute("aria-label", "Fullscreen");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "fullscreen-btn");
-
-    const fullSpan = document.createElement("span");
-    fullSpan.className = "fullscreen-icon";
-    fullSpan.setAttribute("aria-hidden", "true");
-    fullSpan.appendChild(this.#createSVGFromString(icons.fullscreen));
-
-    const exitSpan = document.createElement("span");
-    exitSpan.className = "exit-fullscreen-icon";
-    exitSpan.style.display = "none";
-    exitSpan.setAttribute("aria-hidden", "true");
-    exitSpan.appendChild(this.#createSVGFromString(icons.exitFullscreen));
-
-    btn.appendChild(fullSpan);
-    btn.appendChild(exitSpan);
-
+  #createFullscreenButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
+    const btn = document.createElement("button"); btn.className = "video-control-btn fullscreen-btn"; btn.setAttribute("aria-label", "Fullscreen"); btn.tabIndex = 0; btn.setAttribute("part", "fullscreen-btn");
+    const fs = document.createElement("span"); fs.className = "fullscreen-icon"; fs.setAttribute("aria-hidden", "true"); fs.appendChild(this.#createSVGFromString(icons.fullscreen));
+    const ex = document.createElement("span"); ex.className = "exit-fullscreen-icon"; ex.style.display = "none"; ex.setAttribute("aria-hidden", "true"); ex.appendChild(this.#createSVGFromString(icons.exitFullscreen));
+    btn.appendChild(fs); btn.appendChild(ex);
     if (config.showTooltips) {
-      const fullTooltip = document.createElement("span");
-      fullTooltip.className = "tooltip fullscreen-tooltip";
-      fullTooltip.textContent = config.tooltipFullscreen;
-      fullTooltip.setAttribute("part", "fullscreen-tooltip");
-
-      const exitTooltip = document.createElement("span");
-      exitTooltip.className = "tooltip exit-fullscreen-tooltip";
-      exitTooltip.style.display = "none";
-      exitTooltip.textContent = config.tooltipExitFullscreen;
-      exitTooltip.setAttribute("part", "exit-fullscreen-tooltip");
-
-      btn.appendChild(fullTooltip);
-      btn.appendChild(exitTooltip);
+      const t1 = document.createElement("span"); t1.className = "tooltip fullscreen-tooltip"; t1.textContent = config.tooltipFullscreen; t1.setAttribute("part", "fullscreen-tooltip");
+      const t2 = document.createElement("span"); t2.className = "tooltip exit-fullscreen-tooltip"; t2.style.display = "none"; t2.textContent = config.tooltipExitFullscreen; t2.setAttribute("part", "exit-fullscreen-tooltip");
+      btn.appendChild(t1); btn.appendChild(t2);
     }
     return btn;
   }
 
   #createMoreButton(icons: IconSet, config: VideoPlayerConfig): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "video-more-control";
-    container.setAttribute("part", "more-control");
-
-    const btn = document.createElement("button");
-    btn.className = "video-control-btn video-more-btn";
-    btn.setAttribute("aria-label", "More controls");
-    btn.setAttribute("aria-haspopup", "true");
-    btn.setAttribute("aria-expanded", "false");
-    btn.tabIndex = 0;
-    btn.setAttribute("part", "more-btn");
-
-    const iconSpan = document.createElement("span");
-    iconSpan.setAttribute("aria-hidden", "true");
-    iconSpan.appendChild(this.#createSVGFromString(icons.more));
-    btn.appendChild(iconSpan);
-
-    container.appendChild(btn);
-
-    const menu = document.createElement("div");
-    menu.className = "video-more-menu";
-    menu.setAttribute("role", "menu");
-    menu.setAttribute("part", "more-menu");
-    container.appendChild(menu);
-
-    return container;
+    const wrap = document.createElement("div"); wrap.className = "video-more-control"; wrap.setAttribute("part", "more-control");
+    const btn = document.createElement("button"); btn.className = "video-control-btn video-more-btn"; btn.setAttribute("aria-label", "More controls"); btn.setAttribute("aria-haspopup", "true"); btn.setAttribute("aria-expanded", "false"); btn.tabIndex = 0; btn.setAttribute("part", "more-btn");
+    const is = document.createElement("span"); is.setAttribute("aria-hidden", "true"); is.appendChild(this.#createSVGFromString(icons.more)); btn.appendChild(is);
+    wrap.appendChild(btn);
+    const menu = document.createElement("div"); menu.className = "video-more-menu"; menu.setAttribute("role", "menu"); menu.setAttribute("part", "more-menu"); wrap.appendChild(menu);
+    return wrap;
   }
 
-  // ---------- LIFECYCLE ----------
+  // ==========================================================================
+  // LIFECYCLE
+  // ==========================================================================
   connectedCallback(): void {
     this.#render();
     this.#init();
     this.#setupVisibilityHandling();
     document.addEventListener("fullscreenchange", this.#boundFullscreenChange);
-    document.addEventListener(
-      "webkitfullscreenchange",
-      this.#boundFullscreenChange
-    );
-    if (
-      this.getAttribute("virtual-playback") === "true" ||
-      this.#getConfig().singleActive
-    ) {
+    document.addEventListener("webkitfullscreenchange", this.#boundFullscreenChange);
+    if (this.getAttribute("virtual-playback") === "true" || this.#getConfig().singleActive)
       GlobalVideoEngine.register(this);
-    }
   }
 
   disconnectedCallback(): void {
     this.#destroy();
     this.#removeVisibilityHandling();
-    document.removeEventListener(
-      "fullscreenchange",
-      this.#boundFullscreenChange
-    );
+    document.removeEventListener("fullscreenchange", this.#boundFullscreenChange);
     if (this.#rafId) cancelAnimationFrame(this.#rafId);
+    if (this.#thumbnailRAF) cancelAnimationFrame(this.#thumbnailRAF);
     GlobalVideoEngine.unregister(this);
     if (this.#resizeObserver) this.#resizeObserver.disconnect();
   }
 
-  attributeChangedCallback(
-    name: string,
-    oldValue: string | null,
-    newValue: string | null
-  ): void {
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (oldValue === newValue) return;
     this.#configCache = null;
     if (!this.#isInitialized) return;
     const config = this.#getConfig();
     switch (name) {
-      case "muted":
-        if (this.#videoElement) this.#videoElement.muted = config.muted;
-        break;
-      case "loop":
-        if (this.#videoElement) this.#videoElement.loop = config.loop;
-        break;
-      case "accent-color":
-      case "theme":
-      case "controls-background":
-      case "center-play-background":
-      case "center-play-size":
-        this.#updateCSSVariables(config);
-        break;
-      default:
-        this.#reinitialize();
+      case "muted": if (this.#videoElement) this.#videoElement.muted = config.muted; break;
+      case "loop":  if (this.#videoElement) this.#videoElement.loop  = config.loop;  break;
+      case "accent-color": case "theme": case "controls-background":
+      case "center-play-background": case "center-play-size":
+        this.#updateCSSVariables(config); break;
+      default: this.#reinitialize();
     }
   }
 
   #updateCSSVariables(config: VideoPlayerConfig): void {
-    const theme =
-      config.theme === "light"
-        ? {
-            accent:
-              config.accentColor !== "#ffffff" ? config.accentColor : "#000000",
-            controlsBg:
-              config.controlsBackground !== "rgba(0,0,0,0.8)"
-                ? config.controlsBackground
-                : "rgba(255,255,255,0.9)",
-            centerPlayBg:
-              config.centerPlayBackground !== "rgba(0,0,0,0.7)"
-                ? config.centerPlayBackground
-                : "rgba(255,255,255,0.8)",
-          }
-        : {
-            accent: config.accentColor,
-            controlsBg: config.controlsBackground,
-            centerPlayBg: config.centerPlayBackground,
-          };
+    const theme = config.theme === "light"
+      ? {
+          accent:       config.accentColor !== "#ffffff" ? config.accentColor : "#000000",
+          controlsBg:   config.controlsBackground !== "rgba(0,0,0,0.8)" ? config.controlsBackground : "rgba(255,255,255,0.9)",
+          centerPlayBg: config.centerPlayBackground !== "rgba(0,0,0,0.7)" ? config.centerPlayBackground : "rgba(255,255,255,0.8)",
+        }
+      : { accent: config.accentColor, controlsBg: config.controlsBackground, centerPlayBg: config.centerPlayBackground };
+
     this.style.setProperty("--accent-color", theme.accent);
-    this.style.setProperty("--controls-bg", theme.controlsBg);
+    this.style.setProperty("--controls-bg",  theme.controlsBg);
     this.style.setProperty("--center-play-bg", theme.centerPlayBg);
-    if (config.centerPlaySize) {
-      this.style.setProperty(
-        "--center-play-size",
-        config.centerPlaySize + "px"
-      );
-    }
+    if (config.centerPlaySize) this.style.setProperty("--center-play-size", config.centerPlaySize + "px");
   }
 
-  // ---------- INITIALIZATION ----------
+  // ==========================================================================
+  // INIT
+  // ==========================================================================
   #init(): void {
     const config = this.#getConfig();
     if (config.lazy || config.pauseOnOutOfView) {
@@ -2435,9 +2007,7 @@ export class ShadowPlyr extends HTMLElement {
   #setupVisibilityHandling(): void {
     const config = this.#getConfig();
     if (config.pauseOnTabHide) {
-      document.addEventListener("visibilitychange", this.#visibilityChange, {
-        passive: true,
-      });
+      document.addEventListener("visibilitychange", this.#visibilityChange, { passive: true });
       window.addEventListener("pagehide", this.#pageHide, { passive: true });
       window.addEventListener("pageshow", this.#pageShow, { passive: true });
     }
@@ -2449,63 +2019,52 @@ export class ShadowPlyr extends HTMLElement {
     window.removeEventListener("pageshow", this.#pageShow);
   }
 
-  // ---------- LAZY LOADING ----------
+  // ==========================================================================
+  // LAZY LOADING
+  // ==========================================================================
   #setupLazyLoading(wrapper: HTMLElement, config: VideoPlayerConfig): void {
-    if (!("IntersectionObserver" in window))
-      return this.#loadVideo(wrapper, config);
-    const options = {
-      root: null,
-      rootMargin: "50px",
-      threshold: config.lazyThreshold,
-    };
+    if (!("IntersectionObserver" in window)) return this.#loadVideo(wrapper, config);
     this.#observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        if (
-          config.lazy &&
-          !this.#isInitialized &&
-          entry.isIntersecting &&
-          entry.intersectionRatio >= config.lazyThreshold
-        ) {
+        if (config.lazy && !this.#isInitialized && entry.isIntersecting && entry.intersectionRatio >= config.lazyThreshold)
           this.#loadVideo(wrapper, config);
-        }
-        if (
-          config.pauseOnOutOfView &&
-          this.#videoElement &&
-          this.#videoLoaded
-        ) {
-          if (
-            !entry.isIntersecting ||
-            entry.intersectionRatio < config.pauseThreshold
-          ) {
-            if (this.#isPlaying) {
-              this.#wasPlayingBeforeHidden = true;
-              this.pauseVideo();
-            }
+        if (config.pauseOnOutOfView && this.#videoElement && this.#videoLoaded) {
+          if (!entry.isIntersecting || entry.intersectionRatio < config.pauseThreshold) {
+            if (this.#isPlaying) { this.#wasPlayingBeforeHidden = true; this.pauseVideo(); }
           } else {
-            if (this.#wasPlayingBeforeHidden && !this.#isPlaying) {
-              this.playVideo();
-              this.#wasPlayingBeforeHidden = false;
-            }
+            if (this.#wasPlayingBeforeHidden && !this.#isPlaying) { this.playVideo(); this.#wasPlayingBeforeHidden = false; }
           }
         }
       });
-    }, options);
+    }, { root: null, rootMargin: "50px", threshold: config.lazyThreshold });
     this.#observer.observe(wrapper);
-    if (!config.lazy && config.pauseOnOutOfView && !this.#isInitialized) {
-      this.#loadVideo(wrapper, config);
-    }
+    if (!config.lazy && config.pauseOnOutOfView && !this.#isInitialized) this.#loadVideo(wrapper, config);
   }
 
-  // ---------- VIDEO LOADING ----------
+  // ==========================================================================
+  // VIDEO LOADING
+  // ==========================================================================
   #loadVideo(wrapper: HTMLElement, config: VideoPlayerConfig): void {
     if (this.#isInitialized) return;
+    // Stamp this load cycle so stale async callbacks (timeouts, source error
+    // listeners) from a previous load can detect they are outdated and bail.
+    const myGeneration = ++this.#loadGeneration;
     wrapper.classList.add("video-loading");
     this.classList.add("video-loading");
+
+    // ── Fix: show poster behind loader immediately ──
+    if (this.#hasPoster) {
+      wrapper.classList.add("poster-visible");
+      this.classList.add("poster-visible");
+      this.#posterVisible = true;
+    }
+
     const video = document.createElement("video");
     this.#videoElement = video;
     this.#exposeVideoAPI();
     this.#exposeVideoMethods();
     this.#forwardNativeEvents();
+
     video.muted = config.muted;
     video.defaultMuted = config.muted;
 
@@ -2513,236 +2072,157 @@ export class ShadowPlyr extends HTMLElement {
       preload: config.preload,
       ...(!config.showPip && { disablepictureinpicture: "" }),
       "webkit-playsinline": "",
-      ...(config.loop && { loop: "" }),
-      ...(config.muted && { muted: "" }),
+      ...(config.loop     && { loop:      "" }),
+      ...(config.muted    && { muted:     "" }),
       ...(config.playsinline && { playsinline: "" }),
     };
     Object.entries(attrs).forEach(([k, v]) => video.setAttribute(k, v));
     video.setAttribute("part", "video");
     video.playsInline = true;
 
-    // ---------- SECURITY: Move and sanitize <track> elements ----------
-    const tracks = Array.from(this.querySelectorAll("track"));
-    tracks.forEach((track) => {
-      // Remove any on* event handlers (defense in depth)
-      for (let i = track.attributes.length - 1; i >= 0; i--) {
-        const attr = track.attributes[i];
-        if (attr.name.startsWith("on")) {
-          track.removeAttribute(attr.name);
-        }
-      }
-      video.appendChild(track);
+    // Sanitise and clone <track> elements (clone keeps originals in light DOM for retry)
+    Array.from(this.querySelectorAll("track")).forEach((track) => {
+      const clone = track.cloneNode(true) as HTMLElement;
+      for (let i = clone.attributes.length - 1; i >= 0; i--)
+        if (clone.attributes[i].name.startsWith("on")) clone.removeAttribute(clone.attributes[i].name);
+      video.appendChild(clone);
     });
 
-    // Collect light‑DOM <source> elements and validate their src
-    const lightSources = Array.from(
-      this.querySelectorAll("source")
-    ) as HTMLSourceElement[];
-
-    // ---------- SECURITY: Validate and sanitize light‑DOM sources ----------
+    // Collect and validate light-DOM <source> elements
+    const lightSources = Array.from(this.querySelectorAll("source")) as HTMLSourceElement[];
     const validSources: HTMLSourceElement[] = [];
     lightSources.forEach((source) => {
-      // Remove any on* event handlers
-      for (let i = source.attributes.length - 1; i >= 0; i--) {
-        const attr = source.attributes[i];
-        if (attr.name.startsWith("on")) {
-          source.removeAttribute(attr.name);
-        }
-      }
-
+      for (let i = source.attributes.length - 1; i >= 0; i--)
+        if (source.attributes[i].name.startsWith("on")) source.removeAttribute(source.attributes[i].name);
       const src = source.getAttribute("src");
-      if (src && this.#isValidMediaUrl(src)) {
-        validSources.push(source);
-      } else {
-        console.warn("ShadowPlyr: Ignored invalid source URL:", src);
-      }
+      if (src && this.#isValidMediaUrl(src)) validSources.push(source);
+      // else console.warn("ShadowPlyr: Ignored invalid source URL:", src);
     });
 
     if (validSources.length > 0) {
-      // Use only validated light‑DOM sources
-      validSources.forEach((source) => video.appendChild(source));
+      // Clone instead of move — originals stay in light DOM so retry/reinitialize
+      // can find them again via querySelectorAll("source").
+      validSources.forEach((s) => video.appendChild(s.cloneNode(true) as HTMLSourceElement));
     } else {
-      // No valid light‑DOM sources – fall back to attribute-based sources
-      // ---------- SECURITY: Validate attribute URLs ----------
+      // Deprecated attribute fallback
       if (config.desktopVideo && this.#isValidMediaUrl(config.desktopVideo)) {
-        const s = document.createElement("source");
-        s.src = config.desktopVideo;
-        s.type = config.videoType;
-        s.media = "(min-width: 769px)";
-        video.appendChild(s);
+        const s = document.createElement("source"); s.src = config.desktopVideo; s.type = config.videoType; s.media = "(min-width: 769px)"; video.appendChild(s);
       }
       if (config.mobileVideo && this.#isValidMediaUrl(config.mobileVideo)) {
-        const s = document.createElement("source");
-        s.src = config.mobileVideo;
-        s.type = config.videoType;
-        s.media = "(max-width: 768px)";
-        video.appendChild(s);
+        const s = document.createElement("source"); s.src = config.mobileVideo; s.type = config.videoType; s.media = "(max-width: 768px)"; video.appendChild(s);
       }
-      // Final fallback: set src attribute directly (if valid)
-      if (config.desktopVideo && this.#isValidMediaUrl(config.desktopVideo)) {
-        video.src = config.desktopVideo;
-      } else if (
-        config.mobileVideo &&
-        this.#isValidMediaUrl(config.mobileVideo)
-      ) {
-        video.src = config.mobileVideo;
-      }
+      if (config.desktopVideo && this.#isValidMediaUrl(config.desktopVideo)) video.src = config.desktopVideo;
+      else if (config.mobileVideo && this.#isValidMediaUrl(config.mobileVideo)) video.src = config.mobileVideo;
     }
 
-    // ---------- SECURITY: Collect manual quality options from sources with data-quality ----------
-    // Only include those with valid HTTPS URLs.
-    const sourceElements = Array.from(
-      video.querySelectorAll("source[data-quality]")
-    ) as HTMLSourceElement[];
-    this.#manualQualities = sourceElements
-      .map((el) => ({
-        src: el.src,
-        type: el.type || "video/mp4",
-        label: el.getAttribute("data-quality")!,
-        media: el.media || null,
-      }))
-      .filter((q) => this.#isValidMediaUrl(q.src)); // <-- filter out invalid URLs
+    // Manual quality sources
+    this.#manualQualities = (Array.from(video.querySelectorAll("source[data-quality]")) as HTMLSourceElement[])
+      .map((el) => ({ src: el.src, type: el.type || "video/mp4", label: el.getAttribute("data-quality")!, media: el.media || null }))
+      .filter((q) => this.#isValidMediaUrl(q.src));
 
-    // ---------- (Rest of the method unchanged) ----------
-    video.addEventListener(
-      "loadedmetadata",
-      this.#onLoadedData.bind(this, wrapper, config),
-      { once: true }
-    );
-    video.addEventListener("playing", this.#onPlaying.bind(this, wrapper));
-    video.addEventListener("pause", this.#onPause.bind(this, wrapper));
-    video.addEventListener("ended", this.#onEnded.bind(this, wrapper, config));
-    video.addEventListener("seeked", () =>
-      this.#emit("video-seeked", { currentTime: video.currentTime })
-    );
-    video.addEventListener("seeking", () =>
-      this.#emit("video-seeking", { currentTime: video.currentTime })
-    );
-    video.addEventListener("progress", this.#throttledProgressUpdate, {
-      passive: true,
-    });
-    video.addEventListener(
-      "volumechange",
-      this.#onVolumeChange.bind(this, wrapper)
-    );
-
-    // Safari fix
-    if (video.muted || config.muted) {
-      this.#updateVolumeIcon(true, wrapper);
-    }
-
-    video.addEventListener("error", this.#onError.bind(this, wrapper));
+    // Wire events
+    video.addEventListener("loadedmetadata", this.#onLoadedData.bind(this, wrapper, config), { once: true });
+    video.addEventListener("playing",     this.#onPlaying.bind(this, wrapper));
+    video.addEventListener("pause",       this.#onPause.bind(this, wrapper));
+    video.addEventListener("ended",       this.#onEnded.bind(this, wrapper, config));
+    video.addEventListener("seeked",      () => this.#emit("video-seeked",   { currentTime: video.currentTime }));
+    video.addEventListener("seeking",     () => this.#emit("video-seeking",  { currentTime: video.currentTime }));
+    video.addEventListener("progress",    this.#throttledProgressUpdate, { passive: true });
+    video.addEventListener("volumechange", this.#onVolumeChange.bind(this, wrapper));
+    video.addEventListener("error",       this.#onError.bind(this, wrapper));
     video.addEventListener("enterpictureinpicture", this.#onPipEnter);
-    video.addEventListener("leavepictureinpicture", this.#onPipLeave);
+    video.addEventListener("leavepictureinpicture",  this.#onPipLeave);
 
+    // SOURCE ELEMENT ERROR DETECTION
+    // The video error event only fires after ALL sources fail.
+    // Each callback checks myGeneration so stale listeners from a previous
+    // load cycle (e.g. after retry) are silently ignored.
+    const sourcesInVideo = Array.from(video.querySelectorAll("source"));
+    if (sourcesInVideo.length > 0) {
+      let sourceErrorCount = 0;
+      sourcesInVideo.forEach((srcEl) => {
+        srcEl.addEventListener("error", () => {
+          if (myGeneration !== this.#loadGeneration) return; // stale load cycle
+          if (this.#videoLoaded || this.#hasError) return;
+          sourceErrorCount++;
+          if (sourceErrorCount >= sourcesInVideo.length) {
+            this.#onError(wrapper);
+          }
+        });
+      });
+    }
+
+    // LOAD-TIMEOUT FALLBACK
+    // If nothing loads within 8 s (DNS hang, network offline, etc.) show the
+    // error overlay. The generation check prevents a stale timeout from a
+    // previous load cycle firing after retry resets #hasError to false.
+    const loadTimeoutId = window.setTimeout(() => {
+      if (myGeneration !== this.#loadGeneration) return; // stale load cycle
+      if (!this.#videoLoaded && !this.#hasError) {
+        this.#onError(wrapper);
+      }
+    }, 8000);
+    // Cancel the timeout as soon as the video resolves one way or another
+    video.addEventListener("loadedmetadata", () => clearTimeout(loadTimeoutId), { once: true });
+    video.addEventListener("error",          () => clearTimeout(loadTimeoutId), { once: true });
+
+    if (video.muted || config.muted) this.#updateVolumeIcon(true, wrapper);
+
+    // Insert video
     const placeholder = wrapper.querySelector(".video-placeholder");
     if (placeholder) placeholder.replaceWith(video);
     video.load();
     video.style.pointerEvents = "auto";
 
+    // Poster click handler
     const picture = wrapper.querySelector("picture");
-    if (picture) {
-      picture.removeEventListener("click", this.#posterClick);
-      picture.addEventListener("click", this.#posterClick);
-    }
+    if (picture) { picture.removeEventListener("click", this.#posterClick); picture.addEventListener("click", this.#posterClick); }
 
     if (config.autoplay && config.muted) this.playVideo();
   }
 
+  // ==========================================================================
+  // PUBLIC API EXPOSURE
+  // ==========================================================================
   #exposeVideoAPI() {
-    const video = this.#videoElement;
-    if (!video) return;
-
     const props: (keyof HTMLVideoElement)[] = [
-      "muted",
-      "loop",
-      "autoplay",
-      "controls",
-      "currentTime",
-      "volume",
-      "playbackRate",
-      "paused",
-      "duration",
-      "ended",
-      "readyState",
-      "networkState",
-      "videoWidth",
-      "videoHeight",
-      "src",
+      "muted","loop","autoplay","controls","currentTime","volume","playbackRate",
+      "paused","duration","ended","readyState","networkState","videoWidth","videoHeight","src",
     ];
-
     props.forEach((prop) => {
       Object.defineProperty(this, prop, {
         get: () => this.#videoElement?.[prop],
-        set: (value) => {
-          if (this.#videoElement) {
-            (this.#videoElement as any)[prop] = value;
-          }
-        },
+        set: (v) => { if (this.#videoElement) (this.#videoElement as any)[prop] = v; },
         configurable: true,
       });
     });
   }
 
   #exposeVideoMethods() {
-    const methods: (keyof HTMLVideoElement)[] = [
-      "play",
-      "pause",
-      "load",
-      "requestPictureInPicture",
-    ];
-
-    methods.forEach((method) => {
-      (this as any)[method] = (...args: any[]) => {
-        return (this.#videoElement as any)?.[method]?.(...args);
-      };
+    (["play","pause","load","requestPictureInPicture"] as (keyof HTMLVideoElement)[]).forEach((m) => {
+      (this as any)[m] = (...args: any[]) => (this.#videoElement as any)?.[m]?.(...args);
     });
   }
 
   #forwardNativeEvents() {
-    const events = [
-      "play",
-      "pause",
-      "ended",
-      "timeupdate",
-      "volumechange",
-      "seeking",
-      "seeked",
-      "loadedmetadata",
-      "error",
-    ];
-
-    events.forEach((event) => {
-      this.#videoElement?.addEventListener(event, (e) => {
-        this.dispatchEvent(new Event(event));
-      });
+    ["play","pause","ended","timeupdate","volumechange","seeking","seeked","loadedmetadata","error"].forEach((ev) => {
+      this.#videoElement?.addEventListener(ev, () => this.dispatchEvent(new Event(ev)));
     });
   }
 
-  // ---------- PUBLIC API ----------
-  public play(): void {
-    this.playVideo();
-  }
-  public pause(): void {
-    this.pauseVideo();
-  }
-  public mute(): void {
-    if (this.#videoElement) this.#videoElement.muted = true;
-  }
-  public unmute(): void {
-    if (this.#videoElement) this.#videoElement.muted = false;
-  }
-  public seek(seconds: number): void {
-    if (this.#videoElement) this.#videoElement.currentTime = seconds;
-  }
+  // ==========================================================================
+  // PUBLIC METHODS
+  // ==========================================================================
+  public play()  : void { this.playVideo(); }
+  public pause() : void { this.pauseVideo(); }
+  public mute()  : void { if (this.#videoElement) this.#videoElement.muted = true; }
+  public unmute(): void { if (this.#videoElement) this.#videoElement.muted = false; }
+  public seek(seconds: number): void { if (this.#videoElement) this.#videoElement.currentTime = seconds; }
 
   public setLoop(isLoop: boolean): void {
     if (!this.#videoElement) return;
-
     this.#videoElement.loop = isLoop;
-
     this.#updateLoopIcon(isLoop);
-
     this.#emit("video-loop-change", { loop: isLoop });
   }
 
@@ -2750,187 +2230,471 @@ export class ShadowPlyr extends HTMLElement {
     if (!this.#videoElement) return;
     const config = this.#getConfig();
     if (config.autoplay) this.#videoElement.muted = true;
-    if (
-      config.singleActive ||
-      this.getAttribute("virtual-playback") === "true"
-    ) {
+    if (config.singleActive || this.getAttribute("virtual-playback") === "true")
       GlobalVideoEngine.requestPlay(this);
-    }
-    const promise = this.#videoElement.play();
-    if (promise) {
-      promise.catch(() => {
-        this.#posterVisible = true;
-        if (this.#$wrapper) {
-          this.#$wrapper.classList.add("poster-visible");
-          this.classList.add("poster-visible");
-        }
-      });
-    }
+    const p = this.#videoElement.play();
+    if (p) p.catch(() => {
+      this.#posterVisible = true;
+      if (this.#$wrapper) { this.#$wrapper.classList.add("poster-visible"); this.classList.add("poster-visible"); }
+    });
   }
 
   public pauseVideo(silent?: boolean): void {
-    if (this.#videoElement) {
-      this.#videoElement.pause();
-      if (!silent) this.#emit("video-paused");
-    }
+    if (this.#videoElement) { this.#videoElement.pause(); if (!silent) this.#emit("video-paused"); }
   }
 
-  // ---------- CONTROLS SETUP ----------
+  // ==========================================================================
+  // CONTROLS SETUP
+  // ==========================================================================
   #setupControlButtons(wrapper: HTMLElement): void {
     wrapper.addEventListener("click", (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
+      // Seekbar click
       const seekbar = target.closest(".video-seekbar");
       if (seekbar) {
         const rect = seekbar.getBoundingClientRect();
         this.#seekTo((e.clientX - rect.left) / rect.width);
-        e.stopPropagation();
-        return;
+        e.stopPropagation(); return;
       }
-
-      const volumeSlider = target.closest(".video-volume-slider");
-      if (volumeSlider) {
-        const rect = volumeSlider.getBoundingClientRect();
+      // Volume click
+      const volSlider = target.closest(".video-volume-slider");
+      if (volSlider) {
+        const rect = volSlider.getBoundingClientRect();
         this.#setVolume((e.clientX - rect.left) / rect.width);
-        e.stopPropagation();
-        return;
+        e.stopPropagation(); return;
       }
 
-      const control = target.closest('[class*="video-"]');
-      if (!control) return;
-      // Do NOT stop propagation here – allow outside-click handler to see clicks
+      // ── Settings submenu navigation (check BEFORE generic closest sweep) ──
+      // Using closest() on data-* attrs so clicks on child spans still bubble up correctly.
+      const subBtn  = target.closest<HTMLElement>("[data-submenu]");
+      if (subBtn) { this.#navigateSettings(wrapper, subBtn.getAttribute("data-submenu")!); return; }
+      const backBtn = target.closest<HTMLElement>("[data-back]");
+      if (backBtn) { this.#navigateSettings(wrapper, "main"); return; }
 
-      if (
-        control.classList.contains("play-pause") ||
-        control.classList.contains("video-center-play")
-      ) {
+      const ctl = target.closest('[class*="video-"],[class*="settings-"]') as HTMLElement | null;
+      if (!ctl) return;
+
+      // Settings button toggle
+      if (ctl.classList.contains("video-settings-btn")) {
+        this.#toggleSettingsMenu(wrapper); return;
+      }
+
+      // ── Controls ──────────────────────────────────────────────────────
+      if (ctl.classList.contains("play-pause") || ctl.classList.contains("video-center-play"))
         this.#togglePlayPause(e);
-      } else if (control.classList.contains("volume-btn")) {
-        this.#toggleMute(e);
-      } else if (control.classList.contains("fullscreen-btn")) {
-        this.#toggleFullscreen(e);
-      } else if (control.classList.contains("loop-btn")) {
-        this.#toggleLoop(e);
-      } else if (control.classList.contains("pip-btn")) {
-        this.#togglePip(e);
-      } else if (control.classList.contains("theater-btn")) {
-        this.#toggleTheaterMode();
-      } else if (control.classList.contains("screenshot-btn")) {
-        this.#takeScreenshot();
-      } else if (control.classList.contains("airplay-btn")) {
-        if (
-          this.#videoElement &&
-          (this.#videoElement as any).webkitShowPlaybackTargetPicker
-        ) {
+      else if (ctl.classList.contains("volume-btn"))     this.#toggleMute(e);
+      else if (ctl.classList.contains("fullscreen-btn")) this.#toggleFullscreen(e);
+      else if (ctl.classList.contains("loop-btn"))       this.#toggleLoop(e);
+      else if (ctl.classList.contains("pip-btn"))        this.#togglePip(e);
+      else if (ctl.classList.contains("theater-btn"))    this.#toggleTheaterMode();
+      else if (ctl.classList.contains("screenshot-btn")) this.#takeScreenshot();
+      else if (ctl.classList.contains("airplay-btn")) {
+        if (this.#videoElement && (this.#videoElement as any).webkitShowPlaybackTargetPicker)
           (this.#videoElement as any).webkitShowPlaybackTargetPicker();
-        }
-      } else if (control.classList.contains("miniplayer-btn")) {
-        this.#toggleMiniPlayer();
-      } else if (control.classList.contains("video-speed-btn")) {
-        this.#toggleSpeedMenu(wrapper);
-      } else if (control.classList.contains("video-quality-btn")) {
-        this.#toggleQualityMenu(wrapper);
-      } else if (control.classList.contains("video-subtitle-btn")) {
-        this.#toggleSubtitleMenu(wrapper);
-      } else if (control.classList.contains("video-more-btn")) {
-        this.#toggleMoreMenu(wrapper);
-      } else if (control.classList.contains("video-speed-option")) {
-        const speed = parseFloat(control.getAttribute("data-speed")!);
+      }
+      else if (ctl.classList.contains("miniplayer-btn"))    this.#toggleMiniPlayer();
+      else if (ctl.classList.contains("video-speed-btn"))   this.#toggleSpeedMenu(wrapper);
+      else if (ctl.classList.contains("video-quality-btn")) this.#toggleQualityMenu(wrapper);
+      else if (ctl.classList.contains("video-subtitle-btn"))this.#toggleSubtitleMenu(wrapper);
+      else if (ctl.classList.contains("video-more-btn"))    this.#toggleMoreMenu(wrapper);
+      else if (ctl.classList.contains("video-speed-option") || (ctl.classList.contains("settings-option") && ctl.hasAttribute("data-speed"))) {
+        const speed = parseFloat(ctl.getAttribute("data-speed")!);
         this.#setSpeed(speed, wrapper);
         this.#closeSpeedMenu(wrapper);
-      } else if (control.classList.contains("video-quality-option")) {
-        const quality = control.getAttribute("data-quality")!;
-        if (quality === "auto") {
-          this.#setAutoQuality();
-        } else if (
-          this.#qualityLevels.length > 0 &&
-          !isNaN(parseInt(quality))
-        ) {
-          this.#setHlsQuality(parseInt(quality));
-        } else {
-          this.#setManualQuality(quality);
-        }
+        if (this.#$settingsMenu) this.#navigateSettings(wrapper, "main");
+      }
+      else if (ctl.classList.contains("video-quality-option")) {
+        const quality = ctl.getAttribute("data-quality")!;
+        if (quality === "auto") this.#setAutoQuality();
+        else if (this.#qualityLevels.length > 0 && !isNaN(parseInt(quality))) this.#setHlsQuality(parseInt(quality));
+        else this.#setManualQuality(quality);
         this.#closeQualityMenu(wrapper);
-      } else if (control.classList.contains("video-subtitle-option")) {
-        const subtitle = control.getAttribute("data-subtitle")!;
-        this.#setSubtitle(subtitle || null);
+        if (this.#$settingsMenu) this.#navigateSettings(wrapper, "main");
+      }
+      else if (ctl.classList.contains("video-subtitle-option")) {
+        const sub = ctl.getAttribute("data-subtitle")!;
+        this.#setSubtitle(sub || null);
         this.#closeSubtitleMenu(wrapper);
+        if (this.#$settingsMenu) this.#navigateSettings(wrapper, "main");
       }
     });
 
+    // Seekbar drag + mousemove (thumbnails)
     const seekbarEl = wrapper.querySelector(".video-seekbar");
     if (seekbarEl) {
-      seekbarEl.addEventListener(
-        "mousedown",
-        this.#onSeekbarMouseDown as EventListener
-      );
-      seekbarEl.addEventListener(
-        "touchstart",
-        this.#onSeekbarTouchStart as EventListener,
-        { passive: true }
-      );
+      seekbarEl.addEventListener("mousedown", this.#onSeekbarMouseDown as EventListener);
+      seekbarEl.addEventListener("touchstart", this.#onSeekbarTouchStart as EventListener, { passive: true });
+      seekbarEl.addEventListener("mousemove", this.#onSeekbarMouseMove as EventListener, { passive: true });
     }
 
-    const volumeSliderEl = wrapper.querySelector(".video-volume-slider");
-    if (volumeSliderEl) {
-      volumeSliderEl.addEventListener(
-        "mousedown",
-        this.#onVolumeMouseDown as EventListener
-      );
-    }
+    // Volume drag
+    const volEl = wrapper.querySelector(".video-volume-slider");
+    if (volEl) volEl.addEventListener("mousedown", this.#onVolumeMouseDown as EventListener);
 
-    if (this.#videoElement) {
-      this.#videoElement.addEventListener("click", this.#togglePlayPause);
-    }
+    if (this.#videoElement) this.#videoElement.addEventListener("click", this.#togglePlayPause);
 
     this.#setupControlsInteraction(wrapper);
   }
 
   #setupControlsInteraction(wrapper: HTMLElement): void {
     wrapper.addEventListener("keydown", this.#handleKeyboard);
-    wrapper.addEventListener(
-      "mouseenter",
-      () => {
-        if (this.#videoLoaded) {
-          wrapper.classList.add("show-controls");
-          this.classList.add("show-controls");
-        }
-      },
-      { passive: true }
-    );
-    wrapper.addEventListener(
-      "mouseleave",
-      () => {
-        wrapper.classList.remove("show-controls");
-        this.classList.remove("show-controls");
-        this.#closeAllMenus();
-      },
-      { passive: true }
-    );
+    wrapper.addEventListener("mouseenter", () => {
+      if (this.#videoLoaded) { wrapper.classList.add("show-controls"); this.classList.add("show-controls"); }
+    }, { passive: true });
+    wrapper.addEventListener("mouseleave", () => {
+      wrapper.classList.remove("show-controls"); this.classList.remove("show-controls");
+      this.#closeAllMenus();
+    }, { passive: true });
     wrapper.addEventListener("touchend", this.#handleTouchTap);
+
+    // Close menus on click outside
+    document.addEventListener("click", (e) => {
+      if (!this.contains(e.target as Node)) this.#closeAllMenus();
+    });
   }
 
+  // ==========================================================================
+  // SETTINGS MENU NAVIGATION
+  // ==========================================================================
+  #toggleSettingsMenu(_wrapper: HTMLElement): void {
+    if (!this.#$settingsMenu) return;
+    this.#closeAllMenus(this.#$settingsMenu);
+    const isOpen = this.#$settingsMenu.classList.toggle("active");
+    if (isOpen && this.#settingsCurrentPage !== "main")
+      this.#navigateSettings(_wrapper, "main", false);
+  }
+
+  #navigateSettings(wrapper: HTMLElement, page: string, animate = true): void {
+    if (!this.#$settingsMenu) return;
+    this.#settingsCurrentPage = page;
+    // Show correct page
+    this.#$settingsMenu.querySelectorAll<HTMLElement>(".settings-page").forEach((p) => {
+      p.classList.toggle("active", p.getAttribute("data-page") === page);
+    });
+  }
+
+  // ==========================================================================
+  // QUALITY / SPEED / SUBTITLE MENUS
+  // ==========================================================================
   #closeAllMenus(except?: HTMLElement | null): void {
-    if (this.#$speedMenu && this.#$speedMenu !== except)
-      this.#$speedMenu.classList.remove("active");
-    if (this.#$qualityMenu && this.#$qualityMenu !== except)
-      this.#$qualityMenu.classList.remove("active");
-    if (this.#$subtitleMenu && this.#$subtitleMenu !== except)
-      this.#$subtitleMenu.classList.remove("active");
-    if (this.#$moreMenu && this.#$moreMenu !== except)
-      this.#$moreMenu.classList.remove("active");
-    // Also reset more button active state if needed
-    if (this.#$moreBtn && this.#$moreMenu !== except)
-      this.#$moreBtn.classList.remove("active");
+    if (this.#$speedMenu    && this.#$speedMenu    !== except) this.#$speedMenu.classList.remove("active");
+    if (this.#$qualityMenu  && this.#$qualityMenu  !== except) this.#$qualityMenu.classList.remove("active");
+    if (this.#$subtitleMenu && this.#$subtitleMenu !== except) this.#$subtitleMenu.classList.remove("active");
+    if (this.#$moreMenu     && this.#$moreMenu     !== except) this.#$moreMenu.classList.remove("active");
+    if (this.#$settingsMenu && this.#$settingsMenu !== except) this.#$settingsMenu.classList.remove("active");
+    if (this.#$moreBtn      && this.#$moreMenu     !== except) this.#$moreBtn.classList.remove("active");
   }
 
+  #toggleSpeedMenu(wrapper: HTMLElement): void { this.#closeAllMenus(this.#$speedMenu); this.#$speedMenu?.classList.toggle("active"); }
+  #closeSpeedMenu(_wrapper: HTMLElement): void  { this.#$speedMenu?.classList.remove("active"); }
+  #toggleQualityMenu(wrapper: HTMLElement): void { this.#closeAllMenus(this.#$qualityMenu); this.#$qualityMenu?.classList.toggle("active"); }
+  #closeQualityMenu(_wrapper: HTMLElement): void  { this.#$qualityMenu?.classList.remove("active"); }
+  #toggleSubtitleMenu(wrapper: HTMLElement): void { this.#closeAllMenus(this.#$subtitleMenu); this.#$subtitleMenu?.classList.toggle("active"); }
+  #closeSubtitleMenu(_wrapper: HTMLElement): void  { this.#$subtitleMenu?.classList.remove("active"); }
+  #toggleMoreMenu(wrapper: HTMLElement): void {
+    this.#closeAllMenus(this.#$moreMenu);
+    const isActive = this.#$moreMenu?.classList.toggle("active");
+    if (this.#$moreBtn) this.#$moreBtn.classList.toggle("active", isActive);
+  }
+
+  // ==========================================================================
+  // POPULATE MENUS
+  // ==========================================================================
+  #populateQualityMenu(): void {
+    if (!this.#$qualityMenu) return;
+    this.#$qualityMenu.innerHTML = "";
+    const labels = [...new Set(this.#manualQualities.map((q) => q.label))].sort();
+    if (labels.length === 0 && this.#qualityLevels.length === 0) {
+      const opt = document.createElement("button"); opt.className = "video-quality-option"; opt.disabled = true; opt.textContent = "No qualities available"; opt.setAttribute("part", "quality-option"); this.#$qualityMenu.appendChild(opt); return;
+    }
+    const auto = document.createElement("button");
+    auto.className = `video-quality-option ${!this.#currentQualityLabel ? "active" : ""}`;
+    auto.setAttribute("data-quality", "auto"); auto.textContent = "Auto"; auto.setAttribute("part", "quality-option");
+    auto.addEventListener("click", () => this.#setAutoQuality()); this.#$qualityMenu.appendChild(auto);
+    this.#qualityLevels.forEach((level, index) => {
+      const lbl = level.height ? `${level.height}` : `Level ${index + 1}`;
+      const opt = document.createElement("button");
+      opt.className = `video-quality-option ${this.#currentQualityIndex === index ? "active" : ""}`;
+      opt.setAttribute("data-quality", index.toString()); opt.textContent = lbl; opt.setAttribute("part", "quality-option");
+      opt.addEventListener("click", () => this.#setHlsQuality(index)); this.#$qualityMenu?.appendChild(opt);
+    });
+    labels.forEach((label) => {
+      const opt = document.createElement("button");
+      opt.className = `video-quality-option ${this.#currentQualityLabel === label ? "active" : ""}`;
+      opt.setAttribute("data-quality", label); opt.textContent = `${label}p`; opt.setAttribute("part", "quality-option");
+      opt.addEventListener("click", () => this.#setManualQuality(label)); this.#$qualityMenu?.appendChild(opt);
+    });
+  }
+
+  #populateSubtitleMenu(wrapper: HTMLElement): void {
+    const menu = wrapper.querySelector(".video-subtitle-menu");
+    if (!menu) return;
+    menu.innerHTML = "";
+    const off = document.createElement("button");
+    off.className = `video-subtitle-option ${!this.#activeSubtitle ? "active" : ""}`;
+    off.setAttribute("data-subtitle", ""); off.textContent = "Off"; off.setAttribute("part", "subtitle-option");
+    off.addEventListener("click", () => this.#setSubtitle(null)); menu.appendChild(off);
+    this.#subtitlesTracks.forEach((track) => {
+      const opt = document.createElement("button");
+      opt.className = `video-subtitle-option ${this.#activeSubtitle === track.label ? "active" : ""}`;
+      opt.setAttribute("data-subtitle", track.label); opt.textContent = track.label || "Subtitles"; opt.setAttribute("part", "subtitle-option");
+      opt.addEventListener("click", () => this.#setSubtitle(track.label)); menu.appendChild(opt);
+    });
+  }
+
+  // ==========================================================================
+  // FRAME LOOP
+  // ==========================================================================
+  #startVideoFrameLoop(): void {
+    const video = this.#videoElement;
+    if (!video) return;
+    const loop = () => {
+      if (!this.#videoElement) return;
+      this.#updateSeekbar();
+      this.#updateTimeDisplay();
+      if ("requestVideoFrameCallback" in video) (video as any).requestVideoFrameCallback(loop);
+      else this.#rafId = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  // ==========================================================================
+  // HLS
+  // ==========================================================================
+  async #initHls(): Promise<void> {
+    if (!this.#videoElement) return;
+    const src = this.#videoElement.currentSrc || this.#videoElement.src;
+    if (!/\.m3u8($|\?)/i.test(src)) return;
+    try {
+      const mod = await import("hls.js");
+      const Hls = mod.default;
+      if (!Hls.isSupported()) { console.warn("ShadowPlyr: HLS not supported in this browser."); return; }
+      this.#setupHls(mod, src);
+    } catch {
+      console.warn("ShadowPlyr: HLS stream detected but hls.js is not installed. Run `npm install hls.js`.");
+    }
+  }
+
+  #setupHls(hlsModule: any, src: string): void {
+    const Hls = hlsModule.default;
+    this.#hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+    this.#hls.loadSource(src);
+    this.#hls.attachMedia(this.#videoElement);
+    this.#hls.on(hlsModule.Events.MANIFEST_PARSED, () => {
+      this.#qualityLevels = this.#hls.levels;
+      this.#populateQualityMenu();
+    });
+  }
+
+  // ==========================================================================
+  // THUMBNAIL PREVIEW
+  // ==========================================================================
+  #initThumbnailVideo(): void {
+    const config = this.#getConfig();
+    if (!config.showThumbnails) return;
+    if (config.thumbnailsVtt) {
+      this.#parseThumbnailVtt(config.thumbnailsVtt);
+      return;
+    }
+    // Create hidden video clone for live frame capture
+    const src = this.#videoElement?.currentSrc || this.#videoElement?.src;
+    if (!src || !this.#isValidMediaUrl(src)) return;
+    if (this.#thumbnailVideo) return; // already created
+    const vid = document.createElement("video");
+    vid.preload = "metadata"; vid.muted = true;
+    vid.style.cssText = "position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;top:0;left:0;";
+    vid.src = src; vid.load();
+    this.#thumbnailVideo = vid;
+    this.#$wrapper?.appendChild(vid);
+  }
+
+  async #parseThumbnailVtt(url: string): Promise<void> {
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+      this.#thumbnailVttCues = this.#parseVttCues(text);
+    } catch { console.warn("ShadowPlyr: Failed to fetch thumbnails VTT:", url); }
+  }
+
+  #parseVttCues(vttText: string): ThumbnailVttCue[] {
+    const cues: ThumbnailVttCue[] = [];
+    const lines = vttText.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      const tm = lines[i].trim().match(/^(\d{2}:\d{2}:\d{2}[.,]\d{3})\s+-->\s+(\d{2}:\d{2}:\d{2}[.,]\d{3})/);
+      if (tm) {
+        const start = this.#vttTimeToSec(tm[1]);
+        const end   = this.#vttTimeToSec(tm[2]);
+        const content = (lines[++i] || "").trim();
+        const xywh = content.match(/#xywh=(\d+),(\d+),(\d+),(\d+)/);
+        const url = content.split("#")[0];
+        if (url) cues.push({ start, end, url, x: xywh ? +xywh[1] : 0, y: xywh ? +xywh[2] : 0, w: xywh ? +xywh[3] : 160, h: xywh ? +xywh[4] : 90 });
+      }
+    }
+    return cues;
+  }
+
+  #vttTimeToSec(t: string): number {
+    const [h, m, s] = t.split(":"); return +h * 3600 + +m * 60 + parseFloat(s.replace(",", "."));
+  }
+
+  /** Called on seekbar mousemove / drag; updates the floating thumbnail preview */
+  #updateThumbnailAt(percent: number, seekbar: Element): void {
+    if (!this.#getConfig().showThumbnails) return;
+    const preview   = this.#$thumbnailPreview;
+    const canvas    = this.#$thumbnailCanvas;
+    const label     = this.#$thumbnailLabel;
+    if (!preview || !canvas || !label) return;
+
+    const duration = this.#videoElement?.duration || 0;
+    if (!duration) return;
+    const time = Math.max(0, Math.min(1, percent)) * duration;
+    label.textContent = this.#formatTime(time);
+
+    // Position preview
+    const rect = (seekbar as HTMLElement).offsetWidth;
+    const pos  = Math.max(80, Math.min(rect - 80, percent * rect));
+    preview.style.left = pos + "px";
+
+    // VTT cue lookup
+    if (this.#thumbnailVttCues.length > 0) {
+      const cue = this.#thumbnailVttCues.find((c) => time >= c.start && time <= c.end)
+               ?? this.#thumbnailVttCues[this.#thumbnailVttCues.length - 1];
+      if (cue) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => { canvas.getContext("2d")?.drawImage(img, cue.x, cue.y, cue.w, cue.h, 0, 0, 160, 90); };
+        img.src = cue.url;
+      }
+      return;
+    }
+
+    // Hidden video frame capture
+    if (this.#thumbnailVideo && this.#thumbnailVideo.readyState >= 1) {
+      if (this.#thumbnailRAF) cancelAnimationFrame(this.#thumbnailRAF);
+      this.#thumbnailRAF = requestAnimationFrame(() => {
+        const vid = this.#thumbnailVideo!;
+        vid.currentTime = time;
+        vid.addEventListener("seeked", () => {
+          canvas.getContext("2d")?.drawImage(vid, 0, 0, 160, 90);
+        }, { once: true });
+      });
+    }
+  }
+
+  // ==========================================================================
+  // UI UPDATE METHODS
+  // ==========================================================================
+  #updateSeekbar(): void {
+    const v = this.#videoElement;
+    if (!v || !v.duration) return;
+    const pct = v.currentTime / v.duration;
+    if (this.#$seekbarFill) this.#$seekbarFill.style.transform = `scaleX(${pct})`;
+    if (this.#$seekbarHandle) this.#$seekbarHandle.style.left = `${pct * 100}%`;
+    if (this.#$seekbar) this.#$seekbar.setAttribute("aria-valuenow", Math.round(pct * 100).toString());
+    this.#updateTimeDisplay();
+  }
+
+  #updateTimeDisplay(): void {
+    if (!this.#$timeDisplay || !this.#videoElement) return;
+    this.#$timeDisplay.textContent = `${this.#formatTime(this.#videoElement.currentTime)} / ${this.#formatTime(this.#videoElement.duration)}`;
+  }
+
+  #formatTime(seconds: number): string {
+    if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  #updatePlayPauseIcon(isPlaying: boolean, wrapper?: HTMLElement): void {
+    if (!wrapper) wrapper = this.#$wrapper!;
+    wrapper.querySelectorAll(".play-pause, .video-center-play").forEach((el) => {
+      const play = el.querySelector(".play-icon")  as HTMLElement;
+      const pause = el.querySelector(".pause-icon") as HTMLElement;
+      if (play)  play.style.display  = isPlaying ? "none"  : "block";
+      if (pause) pause.style.display = isPlaying ? "block" : "none";
+      el.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
+      const pt = el.querySelector(".play-tooltip")  as HTMLElement;
+      const pa = el.querySelector(".pause-tooltip") as HTMLElement;
+      if (pt) pt.style.display = isPlaying ? "none" : "block";
+      if (pa) pa.style.display = isPlaying ? "block" : "none";
+    });
+  }
+
+  #updateVolumeIcon(isMuted: boolean, wrapper?: HTMLElement): void {
+    if (!wrapper) wrapper = this.#$wrapper!;
+    const btn = wrapper.querySelector(".volume-btn");
+    if (!btn) return;
+    const v = btn.querySelector(".volume-icon") as HTMLElement;
+    const m = btn.querySelector(".muted-icon")  as HTMLElement;
+    if (v) v.style.display = isMuted ? "none" : "block";
+    if (m) m.style.display = isMuted ? "block" : "none";
+    btn.setAttribute("aria-label", isMuted ? "Unmute" : "Mute");
+    const vt = btn.querySelector(".volume-tooltip") as HTMLElement;
+    const mt = btn.querySelector(".muted-tooltip")  as HTMLElement;
+    if (vt) vt.style.display = isMuted ? "none" : "block";
+    if (mt) mt.style.display = isMuted ? "block" : "none";
+  }
+
+  #updateFullscreenIcon(isFullscreen: boolean, wrapper?: HTMLElement): void {
+    if (!wrapper) wrapper = this.#$wrapper!;
+    const btn = wrapper.querySelector(".fullscreen-btn");
+    if (!btn) return;
+    const fi = btn.querySelector(".fullscreen-icon")      as HTMLElement;
+    const ei = btn.querySelector(".exit-fullscreen-icon") as HTMLElement;
+    if (fi) fi.style.display = isFullscreen ? "none" : "block";
+    if (ei) ei.style.display = isFullscreen ? "block" : "none";
+    btn.setAttribute("aria-label", isFullscreen ? "Exit fullscreen" : "Fullscreen");
+    const ft = btn.querySelector(".fullscreen-tooltip")      as HTMLElement;
+    const et = btn.querySelector(".exit-fullscreen-tooltip") as HTMLElement;
+    if (ft) ft.style.display = isFullscreen ? "none" : "block";
+    if (et) et.style.display = isFullscreen ? "block" : "none";
+  }
+
+  #updateLoopIcon(isLoop: boolean): void {
+    const btn = this.#$wrapper?.querySelector(".loop-btn");
+    if (!btn) return;
+    const ic = btn.querySelector(".loop-icon");
+    if (!ic) return;
+    const icons = this.#getIcons();
+    ic.innerHTML = "";
+    ic.appendChild(this.#createSVGFromString(isLoop ? icons.loop : icons.loopOnce));
+    btn.setAttribute("aria-label", isLoop ? "Disable loop" : "Enable loop");
+    const on  = btn.querySelector(".loop-on-tooltip")  as HTMLElement;
+    const off = btn.querySelector(".loop-off-tooltip") as HTMLElement;
+    if (on)  on.style.display  = isLoop ? "block" : "none";
+    if (off) off.style.display = isLoop ? "none" : "block";
+  }
+
+  #updatePipIcon(isPip: boolean): void {
+    const btn = this.#$wrapper?.querySelector(".pip-btn");
+    if (btn) { btn.classList.toggle("active", isPip); this.classList.toggle("active", isPip); }
+  }
+
+  #updateVolumeSlider(volume: number, _wrapper?: HTMLElement): void {
+    if (this.#$volumeProgress) this.#$volumeProgress.style.width = volume * 100 + "%";
+  }
+
+  #updateQualityText(): void {
+    const val = this.#currentQualityLabel ? this.#currentQualityLabel + "p" : "Auto";
+    if (this.#$qualityText) this.#$qualityText.textContent = val;
+    if (this.#$settingsQualityValue) this.#$settingsQualityValue.textContent = val;
+  }
+
+  #updateSubtitleText(): void {
+    const val = this.#activeSubtitle ? "On" : "Off";
+    if (this.#$subtitleText) this.#$subtitleText.textContent = this.#activeSubtitle ? "CC" : "Off";
+    if (this.#$settingsSubtitleValue) this.#$settingsSubtitleValue.textContent = val;
+  }
+
+  // ==========================================================================
+  // RESPONSIVE
+  // ==========================================================================
   #setupResponsive(wrapper: HTMLElement): void {
     if (!this.#resizeObserver) {
       this.#resizeObserver = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          const width = entry.contentRect.width;
-          this.#updateResponsiveMenu(wrapper, width);
-        }
+        for (const entry of entries) this.#updateResponsiveMenu(wrapper, entry.contentRect.width);
       });
     }
     this.#resizeObserver.observe(wrapper);
@@ -2938,376 +2702,120 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   #updateResponsiveMenu(wrapper: HTMLElement, width: number): void {
+    // When the unified settings menu is active there is no kabab button — nothing to do.
+    if (this.#getConfig().showSettings) return;
+
     const threshold = 500;
-    const controlSelectors = [
-      ".loop-btn",
-      ".pip-btn",
-      ".video-subtitle-control",
-      ".video-quality-control",
-      ".video-speed-control",
-      ".theater-btn",
-      ".screenshot-btn",
-      ".airplay-btn",
-      ".miniplayer-btn",
+    const selectors = [
+      ".loop-btn", ".pip-btn",
+      ".video-subtitle-control", ".video-quality-control", ".video-speed-control",
+      ".video-settings-control",
+      ".theater-btn", ".screenshot-btn", ".airplay-btn", ".miniplayer-btn",
     ];
     const moreMenu = wrapper.querySelector(".video-more-menu");
-    const moreBtn = wrapper.querySelector(".video-more-btn");
+    const moreBtn  = wrapper.querySelector(".video-more-btn");
     if (!moreMenu || !moreBtn) return;
-
     if (width < threshold) {
-      controlSelectors.forEach((sel) => {
+      selectors.forEach((sel) => {
         const el = wrapper.querySelector(sel);
         if (el && !el.classList.contains("responsive-hidden")) {
           el.classList.add("responsive-hidden");
           const clone = el.cloneNode(true) as HTMLElement;
-          clone.classList.remove("responsive-hidden");
-          clone.classList.add("video-more-option");
-          clone.addEventListener("click", (e) => {
-            e.stopPropagation();
-            const original = wrapper.querySelector(sel) as HTMLElement;
-            if (original) original.click();
-          });
+          clone.classList.remove("responsive-hidden"); clone.classList.add("video-more-option");
+          clone.addEventListener("click", (e) => { e.stopPropagation(); (wrapper.querySelector(sel) as HTMLElement)?.click(); });
           moreMenu.appendChild(clone);
         }
       });
       moreBtn.classList.remove("responsive-hidden");
     } else {
-      controlSelectors.forEach((sel) => {
-        const el = wrapper.querySelector(sel);
-        if (el) el.classList.remove("responsive-hidden");
-      });
+      selectors.forEach((sel) => wrapper.querySelector(sel)?.classList.remove("responsive-hidden"));
       moreBtn.classList.add("responsive-hidden");
       moreMenu.innerHTML = "";
     }
   }
 
-  #populateMoreMenu(wrapper: HTMLElement): void {
-    // Reserved for future dynamic population
-  }
+  #populateMoreMenu(_wrapper: HTMLElement): void { /* reserved */ }
 
-  // ---------- UI UPDATE METHODS ----------
-  #updateSeekbar(): void {
-    const v = this.#videoElement;
-    if (!v || !v.duration) return;
-
-    const percent = v.currentTime / v.duration;
-
-    if (this.#$seekbarFill) {
-      this.#$seekbarFill.style.transform = `scaleX(${percent})`;
-    }
-
-    if (this.#$seekbarHandle) {
-      this.#$seekbarHandle.style.left = `${percent * 100}%`;
-    }
-
-    if (this.#$seekbar) {
-      this.#$seekbar.setAttribute(
-        "aria-valuenow",
-        Math.round(percent * 100).toString()
-      );
-    }
-
-    this.#updateTimeDisplay();
-  }
-
-  #updateTimeDisplay(): void {
-    if (!this.#$timeDisplay || !this.#videoElement) return;
-    const current = this.#formatTime(this.#videoElement.currentTime);
-    const duration = this.#formatTime(this.#videoElement.duration);
-    this.#$timeDisplay.textContent = `${current} / ${duration}`;
-  }
-
-  #formatTime(seconds: number): string {
-    if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  }
-
-  #updatePlayPauseIcon(isPlaying: boolean, wrapper?: HTMLElement): void {
-    if (!wrapper) wrapper = this.#$wrapper!;
-    wrapper
-      .querySelectorAll(".play-pause, .video-center-play")
-      .forEach((el) => {
-        const play = el.querySelector(".play-icon") as HTMLElement;
-        const pause = el.querySelector(".pause-icon") as HTMLElement;
-        if (play) play.style.display = isPlaying ? "none" : "block";
-        if (pause) pause.style.display = isPlaying ? "block" : "none";
-        el.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
-        const playTooltip = el.querySelector(".play-tooltip") as HTMLElement;
-        const pauseTooltip = el.querySelector(".pause-tooltip") as HTMLElement;
-        if (playTooltip)
-          playTooltip.style.display = isPlaying ? "none" : "block";
-        if (pauseTooltip)
-          pauseTooltip.style.display = isPlaying ? "block" : "none";
-      });
-  }
-
-  #updateVolumeIcon(isMuted: boolean, wrapper?: HTMLElement): void {
-    if (!wrapper) wrapper = this.#$wrapper!;
-    const btn = wrapper.querySelector(".volume-btn");
-    if (btn) {
-      const vol = btn.querySelector(".volume-icon") as HTMLElement;
-      const mut = btn.querySelector(".muted-icon") as HTMLElement;
-      if (vol) vol.style.display = isMuted ? "none" : "block";
-      if (mut) mut.style.display = isMuted ? "block" : "none";
-      btn.setAttribute("aria-label", isMuted ? "Unmute" : "Mute");
-      const volTooltip = btn.querySelector(".volume-tooltip") as HTMLElement;
-      const mutTooltip = btn.querySelector(".muted-tooltip") as HTMLElement;
-      if (volTooltip) volTooltip.style.display = isMuted ? "none" : "block";
-      if (mutTooltip) mutTooltip.style.display = isMuted ? "block" : "none";
-    }
-  }
-
-  #updateFullscreenIcon(isFullscreen: boolean, wrapper?: HTMLElement): void {
-    if (!wrapper) wrapper = this.#$wrapper!;
-    const btn = wrapper.querySelector(".fullscreen-btn");
-    if (!btn) return;
-
-    const fullIcon = btn.querySelector(".fullscreen-icon") as HTMLElement;
-    const exitIcon = btn.querySelector(".exit-fullscreen-icon") as HTMLElement;
-
-    if (fullIcon) fullIcon.style.display = isFullscreen ? "none" : "block";
-    if (exitIcon) exitIcon.style.display = isFullscreen ? "block" : "none";
-
-    btn.setAttribute(
-      "aria-label",
-      isFullscreen ? "Exit fullscreen" : "Fullscreen"
-    );
-
-    const fullTooltip = btn.querySelector(".fullscreen-tooltip") as HTMLElement;
-    const exitTooltip = btn.querySelector(
-      ".exit-fullscreen-tooltip"
-    ) as HTMLElement;
-
-    if (fullTooltip)
-      fullTooltip.style.display = isFullscreen ? "none" : "block";
-    if (exitTooltip)
-      exitTooltip.style.display = isFullscreen ? "block" : "none";
-  }
-
-  #updateLoopIcon(isLoop: boolean): void {
-    const btn = this.#$wrapper?.querySelector(".loop-btn");
-    if (!btn) return;
-
-    const iconContainer = btn.querySelector(".loop-icon");
-    if (!iconContainer) return;
-
-    const icons = this.#getIcons();
-
-    iconContainer.innerHTML = "";
-    const newSvg = this.#createSVGFromString(
-      isLoop ? icons.loop : icons.loopOnce
-    );
-    iconContainer.appendChild(newSvg);
-
-    btn.setAttribute("aria-label", isLoop ? "Disable loop" : "Enable loop");
-
-    const onTooltip = btn.querySelector(".loop-on-tooltip") as HTMLElement;
-    const offTooltip = btn.querySelector(".loop-off-tooltip") as HTMLElement;
-    if (onTooltip && offTooltip) {
-      onTooltip.style.display = isLoop ? "block" : "none";
-      offTooltip.style.display = isLoop ? "none" : "block";
-    }
-  }
-
-  #updatePipIcon(isPip: boolean): void {
-    const btn = this.#$wrapper?.querySelector(".pip-btn");
-    if (btn) {
-      btn.classList.toggle("active", isPip);
-      this.classList.toggle("active", isPip);
-    }
-  }
-
-  #updateVolumeSlider(volume: number, wrapper?: HTMLElement): void {
-    if (this.#$volumeProgress)
-      this.#$volumeProgress.style.width = volume * 100 + "%";
-  }
-
-  #updateQualityText(): void {
-    if (!this.#$qualityText) return;
-    if (this.#currentQualityLabel) {
-      this.#$qualityText.textContent = this.#currentQualityLabel + "p";
-    } else {
-      this.#$qualityText.textContent = "Auto";
-    }
-  }
-
-  #updateSubtitleText(): void {
-    if (!this.#$subtitleText) return;
-    this.#$subtitleText.textContent = this.#activeSubtitle ? "CC" : "Off";
-  }
-
-  #toggleSpeedMenu(wrapper: HTMLElement): void {
-    this.#closeAllMenus(this.#$speedMenu);
-    this.#$speedMenu?.classList.toggle("active");
-  }
-
-  #closeSpeedMenu(wrapper: HTMLElement): void {
-    this.#$speedMenu?.classList.remove("active");
-  }
-
-  #toggleQualityMenu(wrapper: HTMLElement): void {
-    this.#closeAllMenus(this.#$qualityMenu);
-    this.#$qualityMenu?.classList.toggle("active");
-  }
-
-  #closeQualityMenu(wrapper: HTMLElement): void {
-    this.#$qualityMenu?.classList.remove("active");
-  }
-
-  #toggleSubtitleMenu(wrapper: HTMLElement): void {
-    this.#closeAllMenus(this.#$subtitleMenu);
-    this.#$subtitleMenu?.classList.toggle("active");
-  }
-
-  #closeSubtitleMenu(wrapper: HTMLElement): void {
-    this.#$subtitleMenu?.classList.remove("active");
-  }
-
-  #toggleMoreMenu(wrapper: HTMLElement): void {
-    this.#closeAllMenus(this.#$moreMenu);
-    const isActive = this.#$moreMenu?.classList.toggle("active");
-    if (this.#$moreBtn) {
-      this.#$moreBtn.classList.toggle("active", isActive);
-    }
-  }
-
-  #closeMoreMenu(wrapper: HTMLElement): void {
-    this.#$moreMenu?.classList.remove("active");
-    this.#$moreBtn?.classList.remove("active");
-  }
-
+  // ==========================================================================
+  // MISC HELPERS
+  // ==========================================================================
   #seekBackward(): void {
-    if (this.#videoElement) {
-      this.#videoElement.currentTime = Math.max(
-        0,
-        this.#videoElement.currentTime - this.#getConfig().seekStep
-      );
-    }
+    if (this.#videoElement) this.#videoElement.currentTime = Math.max(0, this.#videoElement.currentTime - this.#getConfig().seekStep);
   }
-
   #seekForward(): void {
-    if (this.#videoElement) {
-      this.#videoElement.currentTime = Math.min(
-        this.#videoElement.duration,
-        this.#videoElement.currentTime + this.#getConfig().seekStep
-      );
-    }
+    if (this.#videoElement) this.#videoElement.currentTime = Math.min(this.#videoElement.duration, this.#videoElement.currentTime + this.#getConfig().seekStep);
   }
+  #adjustVolume(delta: number): void { if (this.#videoElement) this.#setVolume(this.#videoElement.volume + delta); }
 
-  #adjustVolume(delta: number): void {
-    if (this.#videoElement) {
-      this.#setVolume(this.#videoElement.volume + delta);
-    }
-  }
-
-  // ---------- PERFORMANCE MODE ----------
   #enablePerformanceMode(): void {
-    if (this.#$wrapper) {
-      this.#$wrapper.classList.add("perf-mode");
-      this.classList.add("perf-mode");
-    }
+    if (this.#$wrapper) { this.#$wrapper.classList.add("perf-mode"); this.classList.add("perf-mode"); }
   }
 
-  // ---------- REINITIALIZE / DESTROY ----------
+  // ==========================================================================
+  // REINITIALIZE / DESTROY
+  // ==========================================================================
   #reinitialize(): void {
     this.#destroy();
     this.#render();
-    requestAnimationFrame(() => {
-      this.#init();
-      this.#setupVisibilityHandling();
-    });
+    requestAnimationFrame(() => { this.#init(); this.#setupVisibilityHandling(); });
   }
 
   #destroy(): void {
     this.#removeVisibilityHandling();
-    if (this.#observer) {
-      this.#observer.disconnect();
-      this.#observer = null;
-    }
+    if (this.#observer) { this.#observer.disconnect(); this.#observer = null; }
     if (this.#$wrapper) {
       this.#$wrapper.removeEventListener("keydown", this.#handleKeyboard);
-      if ((this.#$wrapper as any).__closeMenus) {
-        document.removeEventListener(
-          "click",
-          (this.#$wrapper as any).__closeMenus
-        );
-      }
+      document.removeEventListener("click", () => this.#closeAllMenus());
     }
     if (this.#videoElement) {
       this.#videoElement.pause();
       this.#videoElement.removeEventListener("click", this.#togglePlayPause);
-      this.#videoElement.removeEventListener(
-        "enterpictureinpicture",
-        this.#onPipEnter
-      );
-      this.#videoElement.removeEventListener(
-        "leavepictureinpicture",
-        this.#onPipLeave
-      );
-      this.#videoElement.src = "";
-      this.#videoElement.load();
+      this.#videoElement.removeEventListener("enterpictureinpicture", this.#onPipEnter);
+      this.#videoElement.removeEventListener("leavepictureinpicture",  this.#onPipLeave);
+      this.#videoElement.src = ""; this.#videoElement.load();
       this.#videoElement = null;
     }
-    this.classList.remove(
-      "video-loading",
-      "video-loaded",
-      "is-playing",
-      "poster-visible",
-      "show-controls",
-      "theater-mode",
-      "mini-player"
-    );
+    // Thumbnail cleanup
+    if (this.#thumbnailVideo) { this.#thumbnailVideo.src = ""; this.#thumbnailVideo = null; }
+    if (this.#thumbnailRAF) { cancelAnimationFrame(this.#thumbnailRAF); this.#thumbnailRAF = null; }
+    this.#thumbnailVttCues = [];
+
+    // Clean up mini-player drag listeners
+    this.#detachMiniPlayerDrag();
+    this.#miniPlayerActive = false;
+
+    this.classList.remove("video-loading","video-loaded","is-playing","poster-visible","show-controls","theater-mode","mini-player","has-error","has-custom-loader");
     if (this.#rafId) cancelAnimationFrame(this.#rafId);
-    if (this.#hls) this.#hls.destroy();
-    this.#isInitialized = false;
-    this.#isPlaying = false;
-    this.#videoLoaded = false;
-    this.#wasPlayingBeforeHidden = false;
-    this.#hasPlayedOnce = false;
-    this.#posterVisible = this.#hasPoster;
-    this.#currentSpeed = 1;
-    this.#$wrapper = null;
-    this.#$container = null;
-    this.#$seekbar = null;
-    this.#$seekbarProgress = null;
-    this.#$seekbarBuffer = null;
-    this.#$timeDisplay = null;
-    this.#$volumeProgress = null;
-    this.#$speedMenu = null;
-    this.#$speedText = null;
-    this.#$qualityMenu = null;
-    this.#$qualityText = null;
-    this.#$subtitleMenu = null;
-    this.#$subtitleText = null;
-    this.#$moreMenu = null;
-    this.#$moreBtn = null;
-    this.#configCache = null;
-    this.#qualityLevels = [];
-    this.#manualQualities = [];
-    document.removeEventListener(
-      "webkitfullscreenchange",
-      this.#boundFullscreenChange
-    );
+    if (this.#hls) { this.#hls.destroy(); this.#hls = null; }
+    this.#isInitialized = false; this.#isPlaying = false; this.#videoLoaded = false;
+    this.#loadGeneration++; // invalidate any in-flight async callbacks from previous load
+    this.#wasPlayingBeforeHidden = false; this.#hasPlayedOnce = false;
+    this.#posterVisible = this.#hasPoster; this.#currentSpeed = 1;
+    this.#hasError = false;
+    this.#$wrapper = null; this.#$container = null; this.#$seekbar = null;
+    this.#$seekbarProgress = null; this.#$seekbarBuffer = null;
+    this.#$timeDisplay = null; this.#$volumeProgress = null;
+    this.#$speedMenu = null; this.#$speedText = null;
+    this.#$qualityMenu = null; this.#$qualityText = null;
+    this.#$subtitleMenu = null; this.#$subtitleText = null;
+    this.#$moreMenu = null; this.#$moreBtn = null;
+    this.#$settingsMenu = null; this.#$settingsQualityValue = null;
+    this.#$settingsSpeedValue = null; this.#$settingsSubtitleValue = null;
+    this.#$thumbnailPreview = null; this.#$thumbnailCanvas = null; this.#$thumbnailLabel = null;
+    this.#configCache = null; this.#qualityLevels = []; this.#manualQualities = [];
+    document.removeEventListener("webkitfullscreenchange", this.#boundFullscreenChange);
   }
 
   #emit(name: string, detail: Record<string, any> = {}): void {
-    this.dispatchEvent(
-      new CustomEvent(name, { detail, bubbles: true, composed: true })
-    );
+    this.dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true }));
   }
 }
 
-// Auto-define if not already defined
-if (!customElements.get("shadow-plyr")) {
-  customElements.define("shadow-plyr", ShadowPlyr);
-}
+// Auto-define
+if (!customElements.get("shadow-plyr")) customElements.define("shadow-plyr", ShadowPlyr);
 
 declare global {
-  interface HTMLElementTagNameMap {
-    "shadow-plyr": ShadowPlyr;
-  }
+  interface HTMLElementTagNameMap { "shadow-plyr": ShadowPlyr; }
 }
 
 export {};
