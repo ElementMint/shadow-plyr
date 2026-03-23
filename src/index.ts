@@ -2,7 +2,7 @@ import { ShadowPlyr } from './shadow-plyr';
 
 export { ShadowPlyr };
 
-// Auto-define if not already defined
+// Auto-define if not already registered
 if (!customElements.get('shadow-plyr')) {
-    customElements.define('shadow-plyr', ShadowPlyr);
+  customElements.define('shadow-plyr', ShadowPlyr);
 }
