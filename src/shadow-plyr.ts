@@ -98,12 +98,7 @@ export class ShadowPlyr extends HTMLElement {
   #resizeObserver: ResizeObserver | null = null;
   #hls: any = null;
   #qualityLevels: any[] = [];
-  #manualQualities: Array<{
-    src: string;
-    type: string;
-    label: string;
-    media: string | null;
-  }> = [];
+  #manualQualities: Array<{src: string; type: string; label: string; media: string | null}> = [];
   #currentQualityLabel: string | null = null;
   #currentQualityIndex: number | null = null;
   #subtitlesTracks: TextTrack[] = [];
@@ -142,13 +137,8 @@ export class ShadowPlyr extends HTMLElement {
       arrowdown: () => this.#adjustVolume(-0.1),
       m: () => this.#toggleMute(),
       f: () => this.#toggleFullscreen(),
-      home: () => {
-        if (this.#videoElement) this.#videoElement.currentTime = 0;
-      },
-      end: () => {
-        if (this.#videoElement)
-          this.#videoElement.currentTime = this.#videoElement.duration;
-      },
+      home: () => { if (this.#videoElement) this.#videoElement.currentTime = 0; },
+      end: () => { if (this.#videoElement) this.#videoElement.currentTime = this.#videoElement.duration; },
       l: () => this.#toggleLoop(),
       p: () => this.#togglePip(),
       t: () => this.#toggleTheaterMode(),
@@ -169,14 +159,12 @@ export class ShadowPlyr extends HTMLElement {
   #togglePlayPause = (e?: Event): void => {
     if (e) e.stopPropagation();
     if (!this.#videoElement) return;
-    if (this.#isPlaying) this.pauseVideo();
-    else this.playVideo();
+    if (this.#isPlaying) this.pauseVideo(); else this.playVideo();
   };
 
   #toggleMute = (e?: Event): void => {
     if (e) e.stopPropagation();
-    if (this.#videoElement)
-      this.#videoElement.muted = !this.#videoElement.muted;
+    if (this.#videoElement) this.#videoElement.muted = !this.#videoElement.muted;
   };
 
   #toggleFullscreen = (e?: Event): void => {
@@ -188,16 +176,13 @@ export class ShadowPlyr extends HTMLElement {
       !(document as any).webkitFullscreenElement
     ) {
       if (video && "webkitEnterFullscreen" in video) {
-        (video as any).webkitEnterFullscreen();
-        return;
+        (video as any).webkitEnterFullscreen(); return;
       }
       if (elem?.requestFullscreen) elem.requestFullscreen();
-      else if (elem && "webkitRequestFullscreen" in elem)
-        (elem as any).webkitRequestFullscreen();
+      else if (elem && "webkitRequestFullscreen" in elem) (elem as any).webkitRequestFullscreen();
     } else {
       if (document.exitFullscreen) document.exitFullscreen();
-      else if ((document as any).webkitExitFullscreen)
-        (document as any).webkitExitFullscreen();
+      else if ((document as any).webkitExitFullscreen) (document as any).webkitExitFullscreen();
     }
   };
 
@@ -218,9 +203,7 @@ export class ShadowPlyr extends HTMLElement {
       } else if (this.#videoElement.requestPictureInPicture) {
         await this.#videoElement.requestPictureInPicture();
       }
-    } catch (err) {
-      console.warn("PiP failed", err);
-    }
+    } catch (err) { console.warn("PiP failed", err); }
   };
 
   #toggleTheaterMode = (): void => {
@@ -381,9 +364,7 @@ export class ShadowPlyr extends HTMLElement {
         <button class="close-help">Close</button>
       </div>`;
     help.addEventListener("click", () => help.remove());
-    help
-      .querySelector(".close-help")
-      ?.addEventListener("click", () => help.remove());
+    help.querySelector(".close-help")?.addEventListener("click", () => help.remove());
     this.#$wrapper?.appendChild(help);
   };
 
@@ -397,20 +378,13 @@ export class ShadowPlyr extends HTMLElement {
       if (!ctx) return;
       ctx.drawImage(this.#videoElement, 0, 0, canvas.width, canvas.height);
       canvas.toBlob((blob) => {
-        if (!blob) {
-          console.warn("Screenshot blocked due to CORS.");
-          return;
-        }
+        if (!blob) { console.warn("Screenshot blocked due to CORS."); return; }
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url;
-        a.download = `screenshot-${Date.now()}.png`;
-        a.click();
+        a.href = url; a.download = `screenshot-${Date.now()}.png`; a.click();
         URL.revokeObjectURL(url);
       });
-    } catch (err) {
-      console.warn("Screenshot failed:", err);
-    }
+    } catch (err) { console.warn("Screenshot failed:", err); }
   };
 
   // SEEK / VOLUME / SPEED
@@ -451,16 +425,11 @@ export class ShadowPlyr extends HTMLElement {
     if (!video) return;
     const currentTime = video.currentTime;
     const wasPlaying = this.#isPlaying;
-    video.removeAttribute("src");
-    video.load();
-    video.addEventListener(
-      "loadeddata",
-      () => {
-        video.currentTime = currentTime;
-        if (wasPlaying) video.play();
-      },
-      { once: true }
-    );
+    video.removeAttribute("src"); video.load();
+    video.addEventListener("loadeddata", () => {
+      video.currentTime = currentTime;
+      if (wasPlaying) video.play();
+    }, { once: true });
     this.#currentQualityLabel = null;
     this.#updateQualityText();
     this.#populateQualityMenu();
@@ -483,7 +452,6 @@ export class ShadowPlyr extends HTMLElement {
       q.media ? window.matchMedia(q.media).matches : true
     );
     if (!source) return;
-
     const currentTime = video.currentTime;
     const wasPlaying = !video.paused;
 
@@ -549,9 +517,7 @@ export class ShadowPlyr extends HTMLElement {
     if (!this.#videoElement) return;
     this.#subtitlesTracks.forEach((t) => (t.mode = "disabled"));
     if (trackId) {
-      const track = this.#subtitlesTracks.find(
-        (t) => t.id === trackId || t.label === trackId
-      );
+      const track = this.#subtitlesTracks.find((t) => t.id === trackId || t.label === trackId);
       if (track) track.mode = "showing";
     }
     this.#activeSubtitle = trackId;
@@ -562,14 +528,10 @@ export class ShadowPlyr extends HTMLElement {
   #visibilityChange = (): void => {
     if (!this.#videoLoaded || !this.#videoElement) return;
     if (document.hidden) {
-      if (this.#isPlaying) {
-        this.#wasPlayingBeforeHidden = true;
-        this.pauseVideo();
-      }
+      if (this.#isPlaying) { this.#wasPlayingBeforeHidden = true; this.pauseVideo(); }
     } else {
       if (this.#wasPlayingBeforeHidden && !this.#isPlaying) {
-        this.playVideo();
-        this.#wasPlayingBeforeHidden = false;
+        this.playVideo(); this.#wasPlayingBeforeHidden = false;
       }
     }
   };
@@ -581,8 +543,7 @@ export class ShadowPlyr extends HTMLElement {
   };
   #pageShow = (): void => {
     if (this.#wasPlayingBeforeHidden && !this.#isPlaying) {
-      this.playVideo();
-      this.#wasPlayingBeforeHidden = false;
+      this.playVideo(); this.#wasPlayingBeforeHidden = false;
     }
   };
 
@@ -926,7 +887,7 @@ export class ShadowPlyr extends HTMLElement {
     const ripple = document.createElement("div");
     ripple.className = "tap-ripple";
     ripple.style.left = x - rect.left + "px";
-    ripple.style.top = y - rect.top + "px";
+    ripple.style.top  = y - rect.top  + "px";
     this.#$wrapper.appendChild(ripple);
     setTimeout(() => ripple.remove(), 600);
   }
@@ -1043,9 +1004,7 @@ export class ShadowPlyr extends HTMLElement {
       if (parsed.protocol === "https:") return true;
       if (isDev && parsed.protocol === "http:") return true;
       return false;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
   #isValidPicture(picture: HTMLPictureElement): boolean {
@@ -1167,13 +1126,8 @@ export class ShadowPlyr extends HTMLElement {
     const attr = this.getAttribute("speed-options");
     if (!attr) return [0.5, 0.75, 1, 1.25, 1.5, 2];
     try {
-      return attr
-        .split(",")
-        .map((s) => parseFloat(s.trim()))
-        .filter((n) => !isNaN(n));
-    } catch {
-      return [0.5, 0.75, 1, 1.25, 1.5, 2];
-    }
+      return attr.split(",").map((s) => parseFloat(s.trim())).filter((n) => !isNaN(n));
+    } catch { return [0.5, 0.75, 1, 1.25, 1.5, 2]; }
   }
 
   // RENDER
@@ -1276,9 +1230,7 @@ export class ShadowPlyr extends HTMLElement {
       }
       if (this.#isValidMediaUrl(config.desktopPoster)) {
         const img = document.createElement("img");
-        img.src = config.desktopPoster;
-        img.alt = "Video thumbnail";
-        img.loading = "lazy";
+        img.src = config.desktopPoster; img.alt = "Video thumbnail"; img.loading = "lazy";
         picture.appendChild(img);
       }
       wrapper.appendChild(picture);
@@ -1308,12 +1260,10 @@ export class ShadowPlyr extends HTMLElement {
       centerPlay.setAttribute("aria-label", "Play video");
       centerPlay.setAttribute("part", "center-play");
       const playSpan = document.createElement("span");
-      playSpan.className = "play-icon";
-      playSpan.setAttribute("aria-hidden", "true");
+      playSpan.className = "play-icon"; playSpan.setAttribute("aria-hidden", "true");
       playSpan.appendChild(this.#createSVGFromString(icons.play));
       const pauseSpan = document.createElement("span");
-      pauseSpan.className = "pause-icon";
-      pauseSpan.style.display = "none";
+      pauseSpan.className = "pause-icon"; pauseSpan.style.display = "none";
       pauseSpan.setAttribute("aria-hidden", "true");
       pauseSpan.appendChild(this.#createSVGFromString(icons.pause));
       centerPlay.appendChild(playSpan);
@@ -1446,10 +1396,7 @@ export class ShadowPlyr extends HTMLElement {
     div.innerHTML = svgString.trim();
     const svg = div.firstElementChild as SVGElement;
     if (!svg || svg.tagName.toLowerCase() !== "svg") {
-      const fallback = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg"
-      );
+      const fallback = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       fallback.setAttribute("viewBox", "0 0 24 24");
       return fallback;
     }
@@ -1491,26 +1438,18 @@ export class ShadowPlyr extends HTMLElement {
     container.className = "video-seek-buttons";
     container.setAttribute("part", "seek-buttons");
     const left = document.createElement("button");
-    left.className = "seek-left";
-    left.textContent = `-${config.seekButtonSeconds}s`;
+    left.className = "seek-left"; left.textContent = `-${config.seekButtonSeconds}s`;
     left.setAttribute("part", "seek-left");
     const right = document.createElement("button");
-    right.className = "seek-right";
-    right.textContent = `+${config.seekButtonSeconds}s`;
+    right.className = "seek-right"; right.textContent = `+${config.seekButtonSeconds}s`;
     right.setAttribute("part", "seek-right");
     left.addEventListener("click", () => {
       if (!this.#videoElement) return;
-      this.#videoElement.currentTime = Math.max(
-        0,
-        this.#videoElement.currentTime - config.seekButtonSeconds
-      );
+      this.#videoElement.currentTime = Math.max(0, this.#videoElement.currentTime - config.seekButtonSeconds);
     });
     right.addEventListener("click", () => {
       if (!this.#videoElement) return;
-      this.#videoElement.currentTime = Math.min(
-        this.#videoElement.duration,
-        this.#videoElement.currentTime + config.seekButtonSeconds
-      );
+      this.#videoElement.currentTime = Math.min(this.#videoElement.duration, this.#videoElement.currentTime + config.seekButtonSeconds);
     });
     container.appendChild(left);
     container.appendChild(right);
@@ -1519,9 +1458,7 @@ export class ShadowPlyr extends HTMLElement {
 
   // ICONS
   #getIcons(): IconSet {
-    const cacheKey = `${this.getAttribute("play-icon") || ""}-${
-      this.getAttribute("pause-icon") || ""
-    }`;
+    const cacheKey = `${this.getAttribute("play-icon") || ""}-${this.getAttribute("pause-icon") || ""}`;
     if (IconCache.has(cacheKey)) return IconCache.get(cacheKey)!;
     const p = { USE_PROFILES: { svg: true } };
     const icons: IconSet = {
@@ -1683,14 +1620,12 @@ export class ShadowPlyr extends HTMLElement {
       row.appendChild(this.#createVolumeControl(icons, config));
 
     const timeDisplay = document.createElement("div");
-    timeDisplay.className = "video-time-display";
-    timeDisplay.textContent = "0:00 / 0:00";
+    timeDisplay.className = "video-time-display"; timeDisplay.textContent = "0:00 / 0:00";
     timeDisplay.setAttribute("part", "time-display");
     row.appendChild(timeDisplay);
 
     const spacer = document.createElement("div");
-    spacer.className = "video-controls-spacer";
-    spacer.setAttribute("part", "controls-spacer");
+    spacer.className = "video-controls-spacer"; spacer.setAttribute("part", "controls-spacer");
     row.appendChild(spacer);
 
     if (config.showLoop) row.appendChild(this.#createLoopButton(icons, config));
@@ -1887,8 +1822,8 @@ export class ShadowPlyr extends HTMLElement {
     wrap.className = "video-quality-control";
     wrap;
     const btn = document.createElement("button");
-    btn.className = "video-control-btn video-quality-btn";
-    btn.setAttribute("aria-label", "Quality");
+    btn.className = "video-control-btn video-settings-btn";
+    btn.setAttribute("aria-label", config.tooltipSettings ?? "Settings");
     btn.setAttribute("aria-haspopup", "true");
     btn.setAttribute("aria-expanded", "false");
     btn.tabIndex = 0;
@@ -1911,7 +1846,7 @@ export class ShadowPlyr extends HTMLElement {
     }
     wrap.appendChild(btn);
     const menu = document.createElement("div");
-    menu.className = "video-quality-menu";
+    menu.className = "video-settings-menu";
     menu.setAttribute("role", "menu");
     menu.setAttribute("part", "quality-menu");
     wrap.appendChild(menu);
@@ -2173,31 +2108,18 @@ export class ShadowPlyr extends HTMLElement {
     if (this.#resizeObserver) this.#resizeObserver.disconnect();
   }
 
-  attributeChangedCallback(
-    name: string,
-    oldValue: string | null,
-    newValue: string | null
-  ): void {
+  attributeChangedCallback(name: string, oldValue: string | null, newValue: string | null): void {
     if (oldValue === newValue) return;
     this.#configCache = null;
     if (!this.#isInitialized) return;
     const config = this.#getConfig();
     switch (name) {
-      case "muted":
-        if (this.#videoElement) this.#videoElement.muted = config.muted;
-        break;
-      case "loop":
-        if (this.#videoElement) this.#videoElement.loop = config.loop;
-        break;
-      case "accent-color":
-      case "theme":
-      case "controls-background":
-      case "center-play-background":
-      case "center-play-size":
-        this.#updateCSSVariables(config);
-        break;
-      default:
-        this.#reinitialize();
+      case "muted": if (this.#videoElement) this.#videoElement.muted = config.muted; break;
+      case "loop":  if (this.#videoElement) this.#videoElement.loop  = config.loop;  break;
+      case "accent-color": case "theme": case "controls-background":
+      case "center-play-background": case "center-play-size":
+        this.#updateCSSVariables(config); break;
+      default: this.#reinitialize();
     }
   }
 
@@ -2223,7 +2145,7 @@ export class ShadowPlyr extends HTMLElement {
           };
 
     this.style.setProperty("--accent-color", theme.accent);
-    this.style.setProperty("--controls-bg", theme.controlsBg);
+    this.style.setProperty("--controls-bg",  theme.controlsBg);
     this.style.setProperty("--center-play-bg", theme.centerPlayBg);
     if (config.centerPlaySize)
       this.style.setProperty(
@@ -2247,9 +2169,7 @@ export class ShadowPlyr extends HTMLElement {
   #setupVisibilityHandling(): void {
     const config = this.#getConfig();
     if (config.pauseOnTabHide) {
-      document.addEventListener("visibilitychange", this.#visibilityChange, {
-        passive: true,
-      });
+      document.addEventListener("visibilitychange", this.#visibilityChange, { passive: true });
       window.addEventListener("pagehide", this.#pageHide, { passive: true });
       window.addEventListener("pageshow", this.#pageShow, { passive: true });
     }
@@ -2337,8 +2257,8 @@ export class ShadowPlyr extends HTMLElement {
       preload: config.preload,
       ...(!config.showPip && { disablepictureinpicture: "" }),
       "webkit-playsinline": "",
-      ...(config.loop && { loop: "" }),
-      ...(config.muted && { muted: "" }),
+      ...(config.loop     && { loop:      "" }),
+      ...(config.muted    && { muted:     "" }),
       ...(config.playsinline && { playsinline: "" }),
     };
     Object.entries(attrs).forEach(([k, v]) => video.setAttribute(k, v));
@@ -2359,11 +2279,7 @@ export class ShadowPlyr extends HTMLElement {
     } else {
       // Deprecated attribute fallback
       if (config.desktopVideo && this.#isValidMediaUrl(config.desktopVideo)) {
-        const s = document.createElement("source");
-        s.src = config.desktopVideo;
-        s.type = config.videoType;
-        s.media = "(min-width: 769px)";
-        video.appendChild(s);
+        const s = document.createElement("source"); s.src = config.desktopVideo; s.type = config.videoType; s.media = "(min-width: 769px)"; video.appendChild(s);
       }
       if (config.mobileVideo && this.#isValidMediaUrl(config.mobileVideo)) {
         const s = document.createElement("source");
@@ -2467,10 +2383,7 @@ export class ShadowPlyr extends HTMLElement {
 
     // Poster click handler
     const picture = wrapper.querySelector("picture");
-    if (picture) {
-      picture.removeEventListener("click", this.#posterClick);
-      picture.addEventListener("click", this.#posterClick);
-    }
+    if (picture) { picture.removeEventListener("click", this.#posterClick); picture.addEventListener("click", this.#posterClick); }
 
     if (config.autoplay && config.muted) this.playVideo();
   }
@@ -2478,21 +2391,8 @@ export class ShadowPlyr extends HTMLElement {
   // PUBLIC API EXPOSURE
   #exposeVideoAPI() {
     const props: (keyof HTMLVideoElement)[] = [
-      "muted",
-      "loop",
-      "autoplay",
-      "controls",
-      "currentTime",
-      "volume",
-      "playbackRate",
-      "paused",
-      "duration",
-      "ended",
-      "readyState",
-      "networkState",
-      "videoWidth",
-      "videoHeight",
-      "src",
+      "muted","loop","autoplay","controls","currentTime","volume","playbackRate",
+      "paused","duration","ended","readyState","networkState","videoWidth","videoHeight","src",
     ];
     props.forEach((prop) => {
       Object.defineProperty(this, prop, {
@@ -2579,10 +2479,7 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   public pauseVideo(silent?: boolean): void {
-    if (this.#videoElement) {
-      this.#videoElement.pause();
-      if (!silent) this.#emit("video-paused");
-    }
+    if (this.#videoElement) { this.#videoElement.pause(); if (!silent) this.#emit("video-paused"); }
   }
 
   // CONTROLS SETUP
@@ -2595,16 +2492,14 @@ export class ShadowPlyr extends HTMLElement {
       if (seekbar) {
         const rect = seekbar.getBoundingClientRect();
         this.#seekTo((e.clientX - rect.left) / rect.width);
-        e.stopPropagation();
-        return;
+        e.stopPropagation(); return;
       }
       // Volume click
       const volSlider = target.closest(".video-volume-slider");
       if (volSlider) {
         const rect = volSlider.getBoundingClientRect();
         this.#setVolume((e.clientX - rect.left) / rect.width);
-        e.stopPropagation();
-        return;
+        e.stopPropagation(); return;
       }
 
       // ── Settings submenu navigation (check BEFORE generic closest sweep) ──
@@ -2720,25 +2615,13 @@ export class ShadowPlyr extends HTMLElement {
 
   #setupControlsInteraction(wrapper: HTMLElement): void {
     wrapper.addEventListener("keydown", this.#handleKeyboard);
-    wrapper.addEventListener(
-      "mouseenter",
-      () => {
-        if (this.#videoLoaded) {
-          wrapper.classList.add("show-controls");
-          this.classList.add("show-controls");
-        }
-      },
-      { passive: true }
-    );
-    wrapper.addEventListener(
-      "mouseleave",
-      () => {
-        wrapper.classList.remove("show-controls");
-        this.classList.remove("show-controls");
-        this.#closeAllMenus();
-      },
-      { passive: true }
-    );
+    wrapper.addEventListener("mouseenter", () => {
+      if (this.#videoLoaded) { wrapper.classList.add("show-controls"); this.classList.add("show-controls"); }
+    }, { passive: true });
+    wrapper.addEventListener("mouseleave", () => {
+      wrapper.classList.remove("show-controls"); this.classList.remove("show-controls");
+      this.#closeAllMenus();
+    }, { passive: true });
     wrapper.addEventListener("touchend", this.#handleTouchTap);
 
     // Close menus on click outside
@@ -3191,10 +3074,7 @@ export class ShadowPlyr extends HTMLElement {
 
   #updatePipIcon(isPip: boolean): void {
     const btn = this.#$wrapper?.querySelector(".pip-btn");
-    if (btn) {
-      btn.classList.toggle("active", isPip);
-      this.classList.toggle("active", isPip);
-    }
+    if (btn) { btn.classList.toggle("active", isPip); this.classList.toggle("active", isPip); }
   }
 
   #updateVolumeSlider(volume: number, _wrapper?: HTMLElement): void {
@@ -3298,30 +3178,22 @@ export class ShadowPlyr extends HTMLElement {
   #adjustVolume(delta: number): void {
     if (this.#videoElement) this.#setVolume(this.#videoElement.volume + delta);
   }
+  #adjustVolume(delta: number): void { if (this.#videoElement) this.#setVolume(this.#videoElement.volume + delta); }
 
   #enablePerformanceMode(): void {
-    if (this.#$wrapper) {
-      this.#$wrapper.classList.add("perf-mode");
-      this.classList.add("perf-mode");
-    }
+    if (this.#$wrapper) { this.#$wrapper.classList.add("perf-mode"); this.classList.add("perf-mode"); }
   }
 
   // REINITIALIZE / DESTROY
   #reinitialize(): void {
     this.#destroy();
     this.#render();
-    requestAnimationFrame(() => {
-      this.#init();
-      this.#setupVisibilityHandling();
-    });
+    requestAnimationFrame(() => { this.#init(); this.#setupVisibilityHandling(); });
   }
 
   #destroy(): void {
     this.#removeVisibilityHandling();
-    if (this.#observer) {
-      this.#observer.disconnect();
-      this.#observer = null;
-    }
+    if (this.#observer) { this.#observer.disconnect(); this.#observer = null; }
     if (this.#$wrapper) {
       this.#$wrapper.removeEventListener("keydown", this.#handleKeyboard);
       document.removeEventListener("click", () => this.#closeAllMenus());
@@ -3329,16 +3201,9 @@ export class ShadowPlyr extends HTMLElement {
     if (this.#videoElement) {
       this.#videoElement.pause();
       this.#videoElement.removeEventListener("click", this.#togglePlayPause);
-      this.#videoElement.removeEventListener(
-        "enterpictureinpicture",
-        this.#onPipEnter
-      );
-      this.#videoElement.removeEventListener(
-        "leavepictureinpicture",
-        this.#onPipLeave
-      );
-      this.#videoElement.src = "";
-      this.#videoElement.load();
+      this.#videoElement.removeEventListener("enterpictureinpicture", this.#onPipEnter);
+      this.#videoElement.removeEventListener("leavepictureinpicture",  this.#onPipLeave);
+      this.#videoElement.src = ""; this.#videoElement.load();
       this.#videoElement = null;
     }
     // Thumbnail cleanup
@@ -3413,9 +3278,7 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   #emit(name: string, detail: Record<string, any> = {}): void {
-    this.dispatchEvent(
-      new CustomEvent(name, { detail, bubbles: true, composed: true })
-    );
+    this.dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true }));
   }
 }
 
