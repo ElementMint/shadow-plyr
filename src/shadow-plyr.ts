@@ -2,7 +2,7 @@
  * Shadow Plyr
  * A production-grade Web Component video player
  *
- * @version 2.0.0
+ * @version 1.8.1
  * @license MIT
  * @author Element Mint
  * @copyright (c) 2026 Element Mint
@@ -3174,9 +3174,6 @@ export class ShadowPlyr extends HTMLElement {
         this.#videoElement.duration,
         this.#videoElement.currentTime + this.#getConfig().seekStep
       );
-  }
-  #adjustVolume(delta: number): void {
-    if (this.#videoElement) this.#setVolume(this.#videoElement.volume + delta);
   }
   #adjustVolume(delta: number): void { if (this.#videoElement) this.#setVolume(this.#videoElement.volume + delta); }
 
