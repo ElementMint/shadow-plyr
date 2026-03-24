@@ -678,7 +678,7 @@
     <header class="site-header">
         <div class="container header-row">
             <a class="brand" href="#top" aria-label="ElementMint Shadow Plyr home">
-                <span class="brand-badge"></span>
+                <img src="shadow-plyr-preview.png" class="brand-badge" alt="ElementMint Shadow-plyr logo" title="Element Shadow-plyr" loading="lazy">
                 <span>
                     ElementMint • Shadow Plyr
                     <small>Creative Web Component Demo Studio</small>
@@ -734,34 +734,29 @@
                         show-center-play="true" show-speed="true" show-quality="true" show-subtitles="true"
                         show-loop="true" show-pip="true" airplay="true" mini-player="true" show-tooltips="true"
                         double-tap-seek="true" accent-color="#c27e44" controls-background="#1C274C"
-                        center-play-background="#fff" center-play-size="90" theme="dark" resume="true"
+                        center-play-background="#fff" center-play-size="90" theme="dark"
                         responsive-controls="true" buffer-progress="true" show-fullscreen="true" show-seekbar="true"
                         show-volume="true"
                         show-settings="true"
                         show-thumbnails="true"
                         subtitle-icon='<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="subtitle"><path id="fill1" d="M22 4L22 20L2 20L2 4L14 4L18 4L22 4Z" fill="#fff"/><path id="stroke1" d="M22 4V20L2 20L2 4L22 4Z" stroke="currentColor" stroke-width="2"/><path id="stroke2" d="M10 15H7C6.44772 15 6 14.5523 6 14V10C6 9.44772 6.44772 9 7 9H10M18 15H15C14.4477 15 14 14.5523 14 14V10C14 9.44772 14.4477 9 15 9H18" stroke="black" stroke-width="2" stroke-linecap="square"/></g></svg>'>
-                        <picture>
-                            <source
-                                srcset="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=675&fit=crop"
-                                media="(min-width:321px)" />
-                            <source
-                                srcset="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=450&fit=crop"
-                                media="(max-width:320px)" />
-                            <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=675&fit=crop"
-                                alt="poster" title="video poster" loading="lazy" />
-                        </picture>
+                        
+                            <picture>
+                                <source src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.jpg" media="(min-width:320px)" />
+                                <img src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.jpg" alt="video from a blue moon trailer" title="Video from a blue moon trailer" loading="lazy"/>
+                            </picture>
+                            
+                            <source src="View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_480P.mp4" type="video/mp4" data-quality="480" media="(min-width:768px)" />
+                            <source src="View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_720P.mp4" type="video/mp4" data-quality="720" media="(min-width:768px)" />
+                            <source src="View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_1080P.mp4" type="video/mp4" data-quality="1080" media="(min-width:768px)" />
 
-                        <source src="https://cdn.jsdelivr.net/npm/video-media-samples/big-buck-bunny-480p-30sec.mp4"
-                            data-quality="480" media="(min-width: 769px)" type="video/mp4">
-                        <source src="https://cdn.jsdelivr.net/npm/video-media-samples/big-buck-bunny-1080p-30sec.mp4"
-                            data-quality="1080" media="(min-width: 769px)" type="video/mp4">
+                            <source src="https://cdn.jsdelivr.net/npm/video-media-samples/big-buck-bunny-480p-30sec.mp4" media="(min-width:320px)" data-quality="480" type="video/mp4"/>
+                            <source src="https://cdn.jsdelivr.net/npm/video-media-samples/big-buck-bunny-1080p-30sec.mp4" media="(min-width:320px)" data-quality="1080" type="video/mp4"/>
 
 
-                        <source src="https://cdn.jsdelivr.net/npm/video-media-samples/big-buck-bunny-480p-30sec.mp4"
-                            data-quality="480" media="(max-width: 768px)" type="video/mp4">
-                        <source src="https://cdn.jsdelivr.net/npm/video-media-samples/big-buck-bunny-1080p-30sec.mp4"
-                            data-quality="1080" media="(max-width: 768px)" type="video/mp4">
-
+                            <!-- Caption files -->
+                            <track kind="subtitles" label="English" srclang="en" src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.en.vtt" />
+                            <track kind="subtitles" label="Español" srclang="fr" src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.fr.vtt" />
                     </shadow-plyr>
                 </div>
             </article>
