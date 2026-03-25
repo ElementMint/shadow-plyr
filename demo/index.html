@@ -9,7 +9,7 @@
         content="Creative, intuitive demo website with complete Shadow Plyr configurations and ElementMint branding.">
     <meta property="og:image" content="shadow-plyr-preview.png">
     <meta property="og:type" content="website">
-    
+
     <link rel="icon" type="image/x-icon" href="shadow-plyr-fav.ico">
 
     <title>ElementMint • Shadow Plyr Demo Studio</title>
@@ -230,7 +230,7 @@
         .demo-grid {
             display: grid;
             gap: 0.95rem;
-            margin-top:20px;
+            margin-top: 20px;
 
         }
 
@@ -535,8 +535,8 @@
             border-radius: 20px;
         }
 
-        shadow-plyr::part(time-display){
-            @media only screen and (max-width:768px){
+        shadow-plyr::part(time-display) {
+            @media only screen and (max-width:768px) {
                 display: none;
             }
         }
@@ -655,23 +655,25 @@
             background: none;
         }
 
-        shadow-plyr.mini-player::part(loop-btn){
-            display: none;
-        }
-        shadow-plyr.mini-player::part(pip-btn){
+        shadow-plyr.mini-player::part(loop-btn) {
             display: none;
         }
 
-        shadow-plyr.mini-player::part(settings-control){
+        shadow-plyr.mini-player::part(pip-btn) {
             display: none;
         }
 
-        shadow-plyr::part(controls-row){
-            @media only screen and (max-width:768px){
-                gap:10px;
+        shadow-plyr.mini-player::part(settings-control) {
+            display: none;
+        }
+
+        shadow-plyr::part(controls-row) {
+            @media only screen and (max-width:768px) {
+                gap: 10px;
             }
         }
-        shadow-plyr::part(poster){
+
+        shadow-plyr::part(poster) {
             object-fit: cover;
         }
     </style>
@@ -681,7 +683,8 @@
     <header class="site-header">
         <div class="container header-row">
             <a class="brand" href="#top" aria-label="ElementMint Shadow Plyr home">
-                <img src="shadow-plyr-preview.png" class="brand-badge" alt="ElementMint Shadow-plyr logo" title="Element Shadow-plyr" loading="lazy">
+                <img src="shadow-plyr-preview.png" class="brand-badge" alt="ElementMint Shadow-plyr logo"
+                    title="Element Shadow-plyr" loading="lazy">
                 <span>
                     ElementMint • Shadow Plyr
                     <small>Creative Web Component Demo Studio</small>
@@ -737,31 +740,44 @@
                         show-center-play="true" show-speed="true" show-quality="true" show-subtitles="true"
                         show-loop="true" show-pip="true" airplay="true" mini-player="true" show-tooltips="true"
                         double-tap-seek="true" accent-color="#c27e44" controls-background="#1C274C"
-                        center-play-background="#fff" center-play-size="90" theme="dark"
-                        responsive-controls="true" buffer-progress="true" show-fullscreen="true" show-seekbar="true"
-                        show-volume="true"
-                        show-settings="true"
-                        show-thumbnails="true"
+                        center-play-background="#fff" center-play-size="90" theme="dark" responsive-controls="true"
+                        buffer-progress="true" show-fullscreen="true" show-seekbar="true" show-volume="true"
+                        show-settings="true" show-thumbnails="true"
                         subtitle-icon='<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="subtitle"><path id="fill1" d="M22 4L22 20L2 20L2 4L14 4L18 4L22 4Z" fill="#fff"/><path id="stroke1" d="M22 4V20L2 20L2 4L22 4Z" stroke="currentColor" stroke-width="2"/><path id="stroke2" d="M10 15H7C6.44772 15 6 14.5523 6 14V10C6 9.44772 6.44772 9 7 9H10M18 15H15C14.4477 15 14 14.5523 14 14V10C14 9.44772 14.4477 9 15 9H18" stroke="black" stroke-width="2" stroke-linecap="square"/></g></svg>'>
-                        
-                            <picture>
-                                <source srcset="View_From_A_Blue_Moon_Trailer-HD.jpg" media="(min-width:768px)" />
-                                <source srcset="Big_Buck_Bunny_Poster.jpg" media="(min-width:320px)" />
-                                <img src="Big_Buck_Bunny_Poster.jpg" part="poster" alt="Shadow Plyr by ElementMint" title="Shadow Plyr by ElementMint" loading="lazy"/>
-                            </picture>
-                            
-                            <source src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_480P.mp4" type="video/mp4" data-quality="480" media="(min-width:768px)" />
-                            <source src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_720P.mp4" type="video/mp4" data-quality="720" media="(min-width:768px)" />
-                            <source src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_1080P.mp4" type="video/mp4" data-quality="1080" media="(min-width:768px)" />
 
-                            <source src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/Big_Buck_Bunny_60fps_4K_-_Official_Blender_Foundation_Short_Film_480P.mp4" media="(min-width:320px)" data-quality="480" type="video/mp4"/>
-                            <source src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/Big_Buck_Bunny_60fps_4K_-_Official_Blender_Foundation_Short_Film_720P.mp4" media="(min-width:320px)" data-quality="720" type="video/mp4"/>
-                            <source src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/Big_Buck_Bunny_60fps_4K_-_Official_Blender_Foundation_Short_Film_1080P.mp4" media="(min-width:320px)" data-quality="1080" type="video/mp4"/>
+                        <picture>
+                            <source srcset="View_From_A_Blue_Moon_Trailer-HD.jpg" media="(min-width:768px)" />
+                            <source srcset="Big_Buck_Bunny_Poster.jpg" media="(min-width:320px)" />
+                            <img src="Big_Buck_Bunny_Poster.jpg" part="poster" alt="Shadow Plyr by ElementMint"
+                                title="Shadow Plyr by ElementMint" loading="lazy" />
+                        </picture>
+
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_480P.mp4"
+                            type="video/mp4" data-quality="480" media="(min-width:768px)" />
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_720P.mp4"
+                            type="video/mp4" data-quality="720" media="(min-width:768px)" />
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_1080P.mp4"
+                            type="video/mp4" data-quality="1080" media="(min-width:768px)" />
+
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/Big_Buck_Bunny_60fps_4K_-_Official_Blender_Foundation_Short_Film_480P.mp4"
+                            media="(min-width:320px)" data-quality="480" type="video/mp4" />
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/Big_Buck_Bunny_60fps_4K_-_Official_Blender_Foundation_Short_Film_720P.mp4"
+                            media="(min-width:320px)" data-quality="720" type="video/mp4" />
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/Big_Buck_Bunny_60fps_4K_-_Official_Blender_Foundation_Short_Film_1080P.mp4"
+                            media="(min-width:320px)" data-quality="1080" type="video/mp4" />
 
 
-                            <!-- Caption files -->
-                            <track kind="subtitles" label="English" srclang="en" src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.en.vtt" />
-                            <track kind="subtitles" label="Español" srclang="fr" src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.fr.vtt" />
+                        <!-- Caption files -->
+                        <track kind="subtitles" label="English" srclang="en"
+                            src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.en.vtt" />
+                        <track kind="subtitles" label="Español" srclang="fr"
+                            src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.fr.vtt" />
                     </shadow-plyr>
                 </div>
             </article>

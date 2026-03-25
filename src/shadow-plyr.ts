@@ -3285,5 +3285,4 @@ if (!customElements.get("shadow-plyr")) customElements.define("shadow-plyr", Sha
 declare global {
   interface HTMLElementTagNameMap { "shadow-plyr": ShadowPlyr; }
 }
-
 export {};
