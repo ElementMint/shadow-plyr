@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="ElementMint Shadow Plyr - Complete Demo Studio">
+    <meta property="og:description"
+        content="Creative, intuitive demo website with complete Shadow Plyr configurations and ElementMint branding.">
+    <meta property="og:image" content="shadow-plyr-preview.png">
+    <meta property="og:type" content="website">
+
+    <link rel="icon" type="image/x-icon" href="shadow-plyr-fav.ico">
+
+    <title>ElementMint • Shadow Plyr Demo Studio</title>
+
+    <script type="importmap">
+        {
+          "imports": {
+            "shadow-plyr": "./dist/index.js",
+            "hls.js": "https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.mjs"
+          }
+        }
+      </script>
+
+    <style>
+        :root {
+            --bg: #050912;
+            --bg-soft: #0c1326;
+            --panel: rgba(12, 19, 36, 0.74);
+            --panel-strong: rgba(11, 17, 31, 0.95);
+            --line: rgba(255, 255, 255, 0.12);
+            --text: #f3f6ff;
+            --text-soft: #b4c0e6;
+            --brand: #6f8dff;
+            --brand-2: #5ee1ff;
+            --brand-3: #18d89a;
+            --shadow: 0 20px 70px rgba(2, 6, 20, 0.52);
+            --radius-lg: 16px;
+            --radius-xl: 26px;
+            --max: 1320px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+        }
+
+        body {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 5% 0%, rgba(111, 141, 255, 0.27), transparent 34%),
+                radial-gradient(circle at 98% 0%, rgba(94, 225, 255, 0.2), transparent 28%),
+                radial-gradient(circle at 95% 95%, rgba(24, 216, 154, 0.17), transparent 30%),
+                var(--bg);
+            min-height: 100vh;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .container {
+            width: min(var(--max), calc(100% - 1.6rem));
+            margin: 0 auto;
+        }
+
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            border-bottom: 1px solid var(--line);
+            backdrop-filter: blur(12px);
+            background: linear-gradient(to bottom, rgba(5, 9, 18, 0.95), rgba(5, 9, 18, 0.7));
+        }
+
+        .header-row {
+            min-height: 72px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding: 0.6rem 0;
+        }
+
+        .brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+        }
+
+        .brand-badge {
+            width: 36px;
+            height: 36px;
+            border-radius: 11px;
+            background: linear-gradient(135deg, var(--brand), var(--brand-2));
+            box-shadow: 0 8px 22px rgba(94, 225, 255, 0.35);
+        }
+
+        .brand small {
+            display: block;
+            color: var(--text-soft);
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .top-nav {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-soft);
+            padding: 0.42rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        .hero {
+            margin-top: 1.3rem;
+            border-radius: var(--radius-xl);
+            border: 1px solid var(--line);
+            background: linear-gradient(150deg, rgba(13, 22, 41, 0.9), rgba(8, 14, 29, 0.9));
+            box-shadow: var(--shadow);
+            padding: 1.8rem;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1rem;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+
+        .hero h1 span {
+            color: var(--brand-2);
+        }
+
+        .hero p {
+            margin: 0.9rem 0 0;
+            color: var(--text-soft);
+            font-size: 1rem;
+            line-height: 1.7;
+            max-width: 780px;
+        }
+
+        .stats {
+            display: grid;
+            gap: 0.65rem;
+            grid-template-columns: repeat(2, minmax(110px, 1fr));
+        }
+
+        .stat {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0.72rem;
+        }
+
+        .stat b {
+            display: block;
+            font-size: 1.2rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .stat span {
+            color: var(--text-soft);
+            font-size: 0.8rem;
+        }
+
+        .showcase-bar {
+            margin-top: 1rem;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--panel-strong);
+            padding: 0.8rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            font-size: 0.72rem;
+            border-radius: 999px;
+            border: 1px solid rgba(184, 204, 255, 0.35);
+            padding: 0.3rem 0.62rem;
+            background: rgba(91, 125, 233, 0.2);
+            color: #e9eeff;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .section-heading {
+            margin: 1.7rem 0 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+            font-size: clamp(1.2rem, 2vw, 1.65rem);
+        }
+
+        .section-heading p {
+            margin: 0;
+            color: var(--text-soft);
+            font-size: 0.9rem;
+        }
+
+        .demo-grid {
+            display: grid;
+            gap: 0.95rem;
+            margin-top: 20px;
+
+        }
+
+        .demo-card {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            padding: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7rem;
+        }
+
+        .demo-card h3 {
+            margin: 0;
+            font-size: 1.02rem;
+        }
+
+        .demo-card p {
+            margin: 0.35rem 0 0;
+            color: var(--text-soft);
+            font-size: 0.89rem;
+            line-height: 1.55;
+        }
+
+        .chip-row {
+            margin-top: 0.55rem;
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            border: 1px solid rgba(177, 201, 255, 0.28);
+            border-radius: 999px;
+            background: rgba(85, 116, 218, 0.2);
+            color: #e7edff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 0.24rem 0.53rem;
+            text-transform: uppercase;
+        }
+
+        .chip.good {
+            border-color: rgba(24, 216, 154, 0.45);
+            background: rgba(24, 216, 154, 0.18);
+        }
+
+        .player-box {
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #02040b;
+            aspect-ratio: 16 / 9;
+        }
+
+        shadow-plyr {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .notes {
+            margin-top: 1rem;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            background: var(--panel-strong);
+            padding: 0.95rem;
+            display: grid;
+            gap: 0.7rem;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .note {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.72rem;
+        }
+
+        .note h4 {
+            margin: 0 0 0.35rem;
+            font-size: 0.9rem;
+        }
+
+        .note p {
+            margin: 0;
+            color: var(--text-soft);
+            font-size: 0.84rem;
+            line-height: 1.55;
+        }
+
+
+        .brand-links {
+            margin-top: 0.9rem;
+            display: flex;
+            gap: 0.55rem;
+            flex-wrap: wrap;
+        }
+
+        .brand-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.42rem 0.72rem;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-soft);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .brand-link svg,
+        .footer-social a svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
+        .footer-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .made-with {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.28rem;
+            color: var(--text-soft);
+        }
+
+        .made-with svg {
+            width: 14px;
+            height: 14px;
+            fill: #ff5f8f;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-social a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 0.4rem 0.68rem;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-soft);
+            font-weight: 650;
+            font-size: 0.8rem;
+        }
+
+        .site-footer {
+            margin-top: 1.9rem;
+            border-top: 1px solid var(--line);
+            padding: 1rem 0 1.4rem;
+            position: sticky;
+            z-index: 99;
+            bottom: 0;
+            backdrop-filter: blur(12px);
+            background: linear-gradient(to bottom, rgba(5, 9, 18, 0.95), rgba(5, 9, 18, 0.7));
+        }
+
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            color: var(--text-soft);
+            font-size: 0.86rem;
+        }
+
+        @media (max-width: 980px) {
+            .hero {
+                grid-template-columns: 1fr;
+                padding: 1.25rem;
+            }
+
+            .container {
+                width: min(var(--max), calc(100% - 1.1rem));
+            }
+
+            .header-row {
+                min-height: 62px;
+            }
+        }
+
+        .player-wrapper {
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px #1C274C;
+            background: #1C274C;
+        }
+
+        /* ===== CUSTOM STYLING VIA ::part ===== */
+        shadow-plyr {
+            --aspect-ratio: 16/9;
+            display: block;
+        }
+
+        /* Main container */
+        shadow-plyr::part(video-container) {
+            border-radius: 24px;
+        }
+
+        /* Controls bar background – gradient with transparency */
+        shadow-plyr::part(controls) {
+            background: #1C274C;
+            backdrop-filter: blur(4px);
+        }
+
+        /* All buttons */
+        shadow-plyr::part(play-pause),
+        shadow-plyr::part(volume-btn),
+        shadow-plyr::part(loop-btn),
+        shadow-plyr::part(pip-btn),
+        shadow-plyr::part(subtitle-btn),
+        shadow-plyr::part(quality-btn),
+        shadow-plyr::part(speed-btn),
+        shadow-plyr::part(theater-btn),
+        shadow-plyr::part(screenshot-btn),
+        shadow-plyr::part(airplay-btn),
+        shadow-plyr::part(miniplayer-btn),
+        shadow-plyr::part(fullscreen-btn),
+        shadow-plyr::part(more-btn) {
+            background: #1C274C;
+            border-radius: 12px;
+            padding: 6px;
+            transition: all 0.2s ease;
+            color: #fff;
+        }
+
+        shadow-plyr::part(play-pause):hover,
+        shadow-plyr::part(volume-btn):hover,
+        shadow-plyr::part(loop-btn):hover,
+        shadow-plyr::part(pip-btn):hover,
+        shadow-plyr::part(subtitle-btn):hover,
+        shadow-plyr::part(quality-btn):hover,
+        shadow-plyr::part(speed-btn):hover,
+        shadow-plyr::part(theater-btn):hover,
+        shadow-plyr::part(screenshot-btn):hover,
+        shadow-plyr::part(airplay-btn):hover,
+        shadow-plyr::part(miniplayer-btn):hover,
+        shadow-plyr::part(fullscreen-btn):hover,
+        shadow-plyr::part(more-btn):hover {
+            transform: scale(1.1);
+            background: #7b8cc1;
+        }
+
+        /* Seekbar */
+        shadow-plyr::part(seekbar) {
+            height: 8px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        shadow-plyr::part(seekbar-progress) {
+
+            border-radius: 10px;
+            box-shadow: 0 0 10px #1C274C;
+        }
+
+        shadow-plyr::part(seekbar-buffer) {
+            background: #7b8cc1;
+            border-radius: 10px;
+        }
+
+        shadow-plyr::part(seekbar-handle) {
+            background: #c27e44;
+            box-shadow: 0 0 10px #0f172a;
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Volume slider */
+        shadow-plyr::part(volume-slider) {
+            background: #7b8cc1;
+            height: 4px;
+        }
+
+        shadow-plyr::part(volume-progress) {
+            background: #c27e44;
+        }
+
+        /* Time display */
+        shadow-plyr::part(time-display) {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            text-shadow: 0 0 8px #0f172a;
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        shadow-plyr::part(time-display) {
+            @media only screen and (max-width:768px) {
+                display: none;
+            }
+        }
+
+        /* Center play button */
+        shadow-plyr::part(center-play) {
+            background: #1C274C;
+            box-shadow: 0 8px 20px #0f172a;
+            ;
+            border: 2px solid #7b8cc1;
+        }
+
+        shadow-plyr::part(center-play):hover {
+            background: #7b8cc1;
+            transform: translate(-50%, -50%) scale(1.15);
+        }
+
+        /* Tooltips */
+        shadow-plyr::part(play-pause) .tooltip,
+        shadow-plyr::part(volume-btn) .tooltip,
+        shadow-plyr::part(loop-btn) .tooltip,
+        shadow-plyr::part(pip-btn) .tooltip,
+        shadow-plyr::part(subtitle-btn) .tooltip,
+        shadow-plyr::part(quality-btn) .tooltip,
+        shadow-plyr::part(speed-btn) .tooltip,
+        shadow-plyr::part(theater-btn) .tooltip,
+        shadow-plyr::part(screenshot-btn) .tooltip,
+        shadow-plyr::part(airplay-btn) .tooltip,
+        shadow-plyr::part(miniplayer-btn) .tooltip,
+        shadow-plyr::part(fullscreen-btn) .tooltip,
+        shadow-plyr::part(more-btn) .tooltip {
+            background: #1C274C;
+            color: #fff;
+            font-size: 12px;
+            border-radius: 8px;
+            padding: 4px 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Menus */
+        shadow-plyr::part(speed-menu),
+        shadow-plyr::part(quality-menu),
+        shadow-plyr::part(subtitle-menu),
+        shadow-plyr::part(more-menu) {
+            background: #1C274C;
+            backdrop-filter: blur(8px);
+            border: 1px solid #1C274C;
+            border-radius: 12px;
+            padding: 6px 0;
+        }
+
+        shadow-plyr::part(speed-option),
+        shadow-plyr::part(quality-option),
+        shadow-plyr::part(subtitle-option),
+        shadow-plyr::part(more-option) {
+            color: #fff;
+            font-size: 13px;
+            padding: 8px 16px;
+        }
+
+        shadow-plyr::part(speed-option):hover,
+        shadow-plyr::part(quality-option):hover,
+        shadow-plyr::part(subtitle-option):hover,
+        shadow-plyr::part(more-option):hover {
+            background: #7b8cc1;
+        }
+
+        shadow-plyr::part(speed-option).active,
+        shadow-plyr::part(quality-option).active,
+        shadow-plyr::part(subtitle-option).active,
+        shadow-plyr::part(more-option).active {
+            background: #1C274C;
+            font-weight: bold;
+        }
+
+
+
+        /* Mini player button active state */
+        shadow-plyr::part(miniplayer-btn).active {
+            background: #1C274C;
+        }
+
+        shadow-plyr::part(subtitle-text) {
+            display: none;
+        }
+
+        shadow-plyr::part(video) {
+            object-fit: cover;
+        }
+
+        shadow-plyr.mini-player::part(center-play) {
+            height: 50px;
+            width: 50px;
+        }
+
+        shadow-plyr.mini-player::part(seekbar) {
+            display: none;
+        }
+
+
+        shadow-plyr.mini-player::part(controls) {
+            background: transparent !important;
+            backdrop-filter: blur(0px);
+        }
+
+        shadow-plyr.mini-player::part(play-pause),
+        shadow-plyr.mini-player::part(volume-control) {
+            display: none;
+        }
+
+        shadow-plyr.mini-player::part(miniplayer-btn) {
+            background: transparent;
+        }
+
+        shadow-plyr.mini-player::part(miniplyr-btn):hover {
+            background: none;
+        }
+
+        shadow-plyr.mini-player::part(loop-btn) {
+            display: none;
+        }
+
+        shadow-plyr.mini-player::part(pip-btn) {
+            display: none;
+        }
+
+        shadow-plyr.mini-player::part(settings-control) {
+            display: none;
+        }
+
+        shadow-plyr::part(controls-row) {
+            @media only screen and (max-width:768px) {
+                gap: 10px;
+            }
+        }
+
+        shadow-plyr::part(poster) {
+            object-fit: cover;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="container header-row">
+            <a class="brand" href="#top" aria-label="ElementMint Shadow Plyr home">
+                <img src="shadow-plyr-preview.png" class="brand-badge" alt="ElementMint Shadow-plyr logo"
+                    title="Element Shadow-plyr" loading="lazy">
+                <span>
+                    ElementMint • Shadow Plyr
+                    <small>Creative Web Component Demo Studio</small>
+                </span>
+            </a>
+            <nav class="top-nav">
+                <a class="pill" href="https://github.com/elementmint/shadow-plyr" target="_blank"
+                    rel="noopener noreferrer">GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container" id="top">
+        <section class="hero">
+            <div>
+                <h1>Complete <span>Shadow Plyr</span> Experience</h1>
+                <div class="brand-links">
+                    <a class="brand-link" href="https://github.com/elementmint/shadow-plyr" target="_blank"
+                        rel="noopener noreferrer" aria-label="Shadow Plyr on GitHub">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.3-1.6-1.3-1.6-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6A4.7 4.7 0 0 1 6.4 8c-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1a4.7 4.7 0 0 1 1.2 3.2c0 4.7-2.8 5.7-5.5 6 .4.3.8 1 .8 2.1v3.1c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z" />
+                        </svg>
+                        GitHub
+                    </a>
+                    <a class="brand-link" href="https://www.npmjs.com/package/@elementmints/shadow-plyr" target="_blank"
+                        rel="noopener noreferrer" aria-label="Shadow Plyr npm package">
+                        <svg viewBox="0 0 18 18" aria-hidden="true">
+                            <path d="M1 17V1h16v16h-4V5H9v12H1Zm4-4h2V7H5v6Zm4 0h2V7H9v6Zm4 0h2V7h-2v6Z" />
+                        </svg>
+                        npm
+                    </a>
+                    <a class="brand-link" href="https://www.buymeacoffee.com/elementmint" target="_blank"
+                        rel="noopener noreferrer" aria-label="Buy Me a Coffee for ElementMint">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                d="M18 6h1a3 3 0 0 1 0 6h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V6h16Zm1 2v2a1 1 0 0 0 0-2v0ZM6 3h2v2H6V3Zm4 0h2v2h-2V3Zm4 0h2v2h-2V3Z" />
+                        </svg>
+                        Buy me a coffee
+                    </a>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="demo-grid">
+
+            <article class="demo-card">
+                <div class="player-box">
+
+
+                    <shadow-plyr id="demoPlayer" autoplay="false" muted="false" loop="false" show-controls="true"
+                        show-center-play="true" show-speed="true" show-quality="true" show-subtitles="true"
+                        show-loop="true" show-pip="true" airplay="true" mini-player="true" show-tooltips="true"
+                        double-tap-seek="true" accent-color="#c27e44" controls-background="#1C274C"
+                        center-play-background="#fff" center-play-size="90" theme="dark" responsive-controls="true"
+                        buffer-progress="true" show-fullscreen="true" show-seekbar="true" show-volume="true"
+                        show-settings="true" show-thumbnails="true"
+                        subtitle-icon='<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="subtitle"><path id="fill1" d="M22 4L22 20L2 20L2 4L14 4L18 4L22 4Z" fill="#fff"/><path id="stroke1" d="M22 4V20L2 20L2 4L22 4Z" stroke="currentColor" stroke-width="2"/><path id="stroke2" d="M10 15H7C6.44772 15 6 14.5523 6 14V10C6 9.44772 6.44772 9 7 9H10M18 15H15C14.4477 15 14 14.5523 14 14V10C14 9.44772 14.4477 9 15 9H18" stroke="black" stroke-width="2" stroke-linecap="square"/></g></svg>'>
+
+                        <picture>
+                            <source srcset="View_From_A_Blue_Moon_Trailer-HD.jpg" media="(min-width:768px)" />
+                            <source srcset="Big_Buck_Bunny_Poster.jpg" media="(min-width:320px)" />
+                            <img src="Big_Buck_Bunny_Poster.jpg" part="poster" alt="Shadow Plyr by ElementMint"
+                                title="Shadow Plyr by ElementMint" loading="lazy" />
+                        </picture>
+
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_480P.mp4"
+                            type="video/mp4" data-quality="480" media="(min-width:768px)" />
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_720P.mp4"
+                            type="video/mp4" data-quality="720" media="(min-width:768px)" />
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/View_From_A_Blue_Moon_-_Official_Trailer_4K_Ultra_HD_-_John_Florence_1080P.mp4"
+                            type="video/mp4" data-quality="1080" media="(min-width:768px)" />
+
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/Big_Buck_Bunny_60fps_4K_-_Official_Blender_Foundation_Short_Film_480P.mp4"
+                            media="(min-width:320px)" data-quality="480" type="video/mp4" />
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/Big_Buck_Bunny_60fps_4K_-_Official_Blender_Foundation_Short_Film_720P.mp4"
+                            media="(min-width:320px)" data-quality="720" type="video/mp4" />
+                        <source
+                            src="https://pub-97f3fb796e6b4513a54e1a96e1b9c10e.r2.dev/Big_Buck_Bunny_60fps_4K_-_Official_Blender_Foundation_Short_Film_1080P.mp4"
+                            media="(min-width:320px)" data-quality="1080" type="video/mp4" />
+
+
+                        <!-- Caption files -->
+                        <track kind="subtitles" label="English" srclang="en"
+                            src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.en.vtt" />
+                        <track kind="subtitles" label="Español" srclang="fr"
+                            src="https://cdn.plyr.io/static/demo/View_From_A_Blue_Moon_Trailer-HD.fr.vtt" />
+                    </shadow-plyr>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container footer-row">
+            <div class="footer-left">
+                <span>© ElementMint • Shadow Plyr Demo Studio</span>
+                <span class="made-with">Made with
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A4.5 4.5 0 0 1 6.5 4c1.74 0 3.41.81 4.5 2.09A6 6 0 0 1 15 3.95 4.5 4.5 0 0 1 20 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z" />
+                    </svg>
+                    by ElementMint
+                </span>
+            </div>
+            <div class="footer-social">
+                <a href="https://github.com/elementmint/shadow-plyr" target="_blank" rel="noopener noreferrer"
+                    aria-label="GitHub">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.3-1.6-1.3-1.6-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6A4.7 4.7 0 0 1 6.4 8c-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1a4.7 4.7 0 0 1 1.2 3.2c0 4.7-2.8 5.7-5.5 6 .4.3.8 1 .8 2.1v3.1c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z" />
+                    </svg>
+                    GitHub
+                </a>
+                <a href="https://www.npmjs.com/package/@elementmints/shadow-plyr" target="_blank"
+                    rel="noopener noreferrer" aria-label="npm package">
+                    <svg viewBox="0 0 18 18" aria-hidden="true">
+                        <path d="M1 17V1h16v16h-4V5H9v12H1Zm4-4h2V7H5v6Zm4 0h2V7H9v6Zm4 0h2V7h-2v6Z" />
+                    </svg>
+                    npm
+                </a>
+                <a href="https://www.buymeacoffee.com/elementmint" target="_blank" rel="noopener noreferrer"
+                    aria-label="Buy me a coffee">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            d="M18 6h1a3 3 0 0 1 0 6h-1v1a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V6h16Zm1 2v2a1 1 0 0 0 0-2v0ZM6 3h2v2H6V3Zm4 0h2v2h-2V3Zm4 0h2v2h-2V3Z" />
+                    </svg>
+                    Buy me a coffee
+                </a>
+            </div>
+        </div>
+    </footer>
+    <script type="module">
+        import 'shadow-plyr'
+    </script>
+</body>
+
+</html>
