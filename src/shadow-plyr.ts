@@ -8,12 +8,11 @@
  * @copyright (c) 2026 Element Mint
  */
 
-import { VideoPlayerConfig, IconSet, ThumbnailVttCue } from "./types";
+import { VideoPlayerConfig, IconSet, ThumbnailVttCue, ChapterCue, HotspotDef } from "./types";
 import { DEFAULT_ICONS, IconCache } from "./icons";
-import { throttle } from "./utils";
-import DOMPurify from "dompurify";
+import { throttle, sanitizeSvg } from "./utils";
 const sheet = new CSSStyleSheet();
-sheet.replaceSync(`:host{display:block;position:relative;width:100%;max-width:100%;height:100%;}*{box-sizing:border-box;}.video-container{position:relative;width:100%;aspect-ratio:var(--aspect-ratio,16/9);background:#000;overflow:hidden;height:100%;}.shadow-plyr-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;outline:none;}video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block;pointer-events:auto;opacity:0;transition:opacity .3s ease;will-change:opacity,transform;transform:translateZ(0);}.video-loaded.is-playing video,.video-loaded:not(.poster-visible) video{opacity:1;}video::-webkit-media-controls{display:none;}picture{position:absolute;top:0;left:0;width:100%;height:100%;display:block;z-index:5;opacity:0;transition:opacity .3s ease;pointer-events:none;cursor:pointer;}picture img{width:100%;height:100%;object-fit:contain;display:block;}.poster-visible picture{opacity:1;pointer-events:auto;}.video-loading::after{content:'';position:absolute;top:50%;left:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;z-index:10;}.has-custom-loader.video-loading::after{display:none;}@keyframes spin{to{transform:rotate(360deg);}}.video-custom-loader{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:11;pointer-events:none;display:none;align-items:center;justify-content:center;max-width:80px;max-height:80px;}.video-loading .video-custom-loader{display:flex;}.video-custom-loader img,.video-custom-loader svg{max-width:80px;max-height:80px;display:block;}.video-error-overlay{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.88);padding:20px;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s ease;}.has-error .video-error-overlay{opacity:1;pointer-events:auto;}.error-icon{margin-bottom:12px;}.error-icon svg{width:44px;height:44px;fill:#ff5252;color:#ff5252;}.error-title{color:#fff;font-size:.95rem;font-weight:700;margin:0 0 6px;font-family:inherit;}.error-message{color:rgba(255,255,255,.7);font-size:.83rem;line-height:1.6;margin:0 0 16px;font-family:inherit;}.error-retry-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:.82rem;font-weight:600;transition:background .2s;font-family:inherit;}.error-retry-btn:hover{background:rgba(255,255,255,.24);}.video-center-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:var(--center-play-size,80px);height:var(--center-play-size,80px);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s ease;z-index:20;opacity:0;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.3);background:var(--center-play-bg,rgba(0,0,0,.7));will-change:transform,opacity;}.video-center-play svg{width:calc(var(--center-play-size,80px) * 0.5);height:calc(var(--center-play-size,80px) * 0.5);fill:var(--accent-color,#fff);color:var(--accent-color,#fff);}.video-loaded .video-center-play{opacity:.8;pointer-events:auto;}.video-loaded.is-playing .video-center-play{opacity:0;pointer-events:none;}.video-loaded.is-playing:hover .video-center-play{opacity:.8;pointer-events:auto;}.video-center-play:hover{transform:translate(-50%,-50%) scale(1.1);}.video-controls-bar{position:absolute;bottom:0;left:0;right:0;padding:40px 15px 15px;display:flex;flex-direction:column;gap:10px;transition:opacity .3s ease,transform .3s ease;z-index:25;opacity:0;transform:translateY(100%);pointer-events:none;will-change:transform,opacity;background:var(--controls-bg,linear-gradient(to top,rgba(0,0,0,.8),transparent));}.video-loaded:not(.is-playing) .video-controls-bar,.video-loaded:hover .video-controls-bar,.video-loaded.show-controls .video-controls-bar,.video-loaded.is-playing:hover .video-controls-bar{opacity:1;transform:translateY(0);pointer-events:auto;}.video-loaded.is-playing .video-controls-bar{opacity:0;transform:translateY(100%);pointer-events:none;}.video-seekbar{position:relative;width:100%;height:14px;cursor:pointer;}.video-seekbar-track{position:absolute;top:50%;left:0;width:100%;height:8px;transform:translateY(-50%);background:rgba(255,255,255,.3);border-radius:6px;overflow:hidden;}.video-seekbar-buffer{position:absolute;inset:0;background:rgba(255,255,255,.2);transform-origin:left center;transform:scaleX(0);}.video-seekbar-progress{height:8px;}.video-seekbar-fill{height:100%;width:100%;background:var(--accent-color,#ff8c42);transform-origin:left center;transform:scaleX(0);}.video-seekbar-handle{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;background:var(--accent-color,#ff8c42);transform:translate(-50%,-50%);}.video-seekbar:hover .video-seekbar-handle{opacity:1;}.seek-thumbnail-preview{position:absolute;bottom:calc(100% + 14px);transform:translateX(-50%);pointer-events:none;opacity:0;z-index:40;transition:opacity .12s ease;}.video-loaded .video-seekbar:hover .seek-thumbnail-preview{opacity:1;}.seek-thumbnail-canvas,.seek-thumbnail-img-el{display:block;width:160px;height:90px;border-radius:4px;border:2px solid rgba(255,255,255,.5);background:#000;object-fit:cover;}.seek-thumbnail-time{text-align:center;font-size:11px;color:#fff;margin-top:4px;font-family:monospace;text-shadow:0 1px 4px rgba(0,0,0,.9);}.video-controls-row{display:flex;align-items:center;gap:15px;}.video-control-btn{background:none;border:none;cursor:pointer;padding:5px;display:flex;align-items:center;justify-content:center;transition:transform .2s;position:relative;}.video-control-btn:hover{transform:scale(1.1);background:rgba(255,255,255,.1);}.video-control-btn svg{width:24px;height:24px;fill:var(--accent-color,#fff);color:var(--accent-color,#fff);}.video-control-btn.play-pause svg{width:28px;height:28px;}.video-volume-control{display:flex;align-items:center;gap:8px;}.video-volume-slider{width:0;height:3px;background:rgba(255,255,255,.3);border-radius:3px;cursor:pointer;position:relative;overflow:hidden;transition:width .3s ease;}.video-volume-control:hover .video-volume-slider{width:60px;}.video-volume-progress{height:100%;width:100%;transition:width .1s;background:var(--accent-color,#fff);will-change:width;}.video-controls-spacer{flex:1;}.video-time-display{font-size:13px;font-family:monospace;user-select:none;color:var(--accent-color,#fff);}.video-speed-control,.video-quality-control,.video-subtitle-control,.video-more-control{position:relative;}.video-speed-btn,.video-quality-btn,.video-subtitle-btn,.video-more-btn{min-width:45px;font-size:13px;font-weight:600;color:var(--accent-color,#fff);}.video-speed-menu,.video-quality-menu,.video-subtitle-menu,.video-more-menu{position:absolute;bottom:100%;right:0;border-radius:4px;padding:5px 0;margin-bottom:10px;min-width:80px;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s ease;z-index:100;background:var(--controls-bg,rgba(0,0,0,.8));}.video-speed-menu.active,.video-quality-menu.active,.video-subtitle-menu.active,.video-more-menu.active{opacity:1;visibility:visible;transform:translateY(0);}.settings-page .video-quality-menu,.settings-page .video-speed-menu,.settings-page .video-subtitle-menu{position:static;opacity:1;visibility:visible;transform:none;transition:none;background:transparent;padding:0;margin:0;min-width:0;}.video-speed-option,.video-quality-option,.video-subtitle-option,.video-more-option{display:block;width:100%;padding:8px 15px;background:none;border:none;font-size:13px;text-align:left;cursor:pointer;transition:background .2s;color:var(--accent-color,#fff);}.video-speed-option:hover,.video-quality-option:hover,.video-subtitle-option:hover,.video-more-option:hover{background:rgba(255,255,255,.1);}.video-speed-option.active,.video-quality-option.active,.video-subtitle-option.active,.video-more-option.active{background:rgba(255,255,255,.2);font-weight:600;}.video-settings-control{position:relative;}.video-settings-menu{position:absolute;bottom:100%;right:0;min-width:220px;border-radius:6px;margin-bottom:10px;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s ease;z-index:100;overflow:hidden;background:var(--controls-bg,rgba(0,0,0,.85));box-shadow:0 8px 28px rgba(0,0,0,.45); max-height:120px; overflow-y:auto;}.video-settings-menu.active{opacity:1;visibility:visible;transform:translateY(0);}.settings-page{display:none;}.settings-page.active{display:block;animation:sfade .15s ease;}@keyframes sfade{from{opacity:0;transform:translateX(6px);}to{opacity:1;transform:translateX(0);}}.settings-main-item{display:flex;align-items:center;gap:8px;width:100%;padding:11px 15px;background:none;border:none;color:var(--accent-color,#fff);font-size:13px;cursor:pointer;transition:background .15s;text-align:left;}.settings-main-item:hover{background:rgba(255,255,255,.1);}.settings-main-label{flex:1;}.settings-main-value{opacity:.55;font-size:12px;white-space:nowrap;}.settings-main-arrow{opacity:.35;font-size:15px;line-height:1;}.settings-sub-header{display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:none;border-bottom:1px solid rgba(255,255,255,.1);color:var(--accent-color,#fff);font-size:13px;cursor:pointer;font-weight:700;text-align:left;transition:background .15s; position:sticky; top:0; z-index:1; background-color:var(--controls-bg)}.settings-sub-header:hover{background:rgba(255,255,255,.1);}.settings-sub-back{font-size:18px;opacity:.65;line-height:1;}.settings-option{display:block;width:100%;padding:9px 15px;background:none;border:none;font-size:13px;text-align:left;cursor:pointer;transition:background .15s;color:var(--accent-color,#fff);}.settings-option:hover{background:rgba(255,255,255,.1);}.settings-option.active{background:rgba(255,255,255,.15);font-weight:600;}.video-control-btn:focus-visible,.video-seekbar:focus-visible,.video-volume-slider:focus-visible{outline:2px solid var(--accent-color,#fff);outline-offset:2px;}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0;}.tooltip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:8px;padding:4px 8px;background:var(--tooltip-bg,rgba(0,0,0,0.8));color:var(--tooltip-color,#fff);font-size:var(--tooltip-font-size,12px);white-space:nowrap;border-radius:4px;pointer-events:none;opacity:0;transition:opacity 0.2s;z-index:30;}.video-control-btn:hover .tooltip,.video-center-play:hover .tooltip{opacity:1;}.video-control-btn.disabled,.video-control-btn:disabled{opacity:0.4;cursor:not-allowed;pointer-events:auto;}@media (max-width:768px){.video-center-play{width:60px;height:60px;}.video-center-play svg{width:30px;height:30px;}.video-controls-bar{padding:30px 10px 10px;}.video-control-btn svg{width:20px;height:20px;}.video-volume-slider{display:none;}.video-time-display{font-size:11px;}}.responsive-hidden{display:none;}.responsive-more-menu .video-control-btn{display:flex;width:100%;padding:10px;}.tap-ripple{position:absolute;width:20px;height:20px;background:rgba(255,255,255,0.4);border-radius:50%;transform:translate(-50%,-50%);animation:ripple-expand 0.6s ease-out forwards;pointer-events:none;z-index:50;}@keyframes ripple-expand{from{opacity:1;transform:translate(-50%,-50%) scale(1);}to{opacity:0;transform:translate(-50%,-50%) scale(8);}}.video-seek-buttons{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;pointer-events:none;}.video-seek-buttons button{pointer-events:auto;width:30%;height:60%;background:transparent;border:none;color:#fff;font-size:20px;font-weight:bold;opacity:0.6;}.seek-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:white;font-weight:bold;pointer-events:none;animation:fadeOut 0.6s forwards;}@keyframes fadeOut{from{opacity:1;}to{opacity:0;}}.video-container.theater-mode{max-width:none;aspect-ratio:auto;}.mini-player{position:fixed;bottom:20px;right:20px;width:320px;height:180px;z-index:9999;box-shadow:0 0 20px rgba(0,0,0,.5);top:auto;left:auto;border-radius:8px;overflow:hidden;cursor:move;user-select:none;transition:box-shadow .15s ease;}.mini-player.is-dragging{box-shadow:0 8px 40px rgba(0,0,0,.7);transition:none;}.mini-player .video-volume-slider,.mini-player .video-time-display,.mini-player .fullscreen-btn,.mini-player .video-more-control{display:none !important;}.mini-player .miniplayer-btn{display:block !important;}.mini-player .video-controls-bar{gap:0;padding:16px 6px 2px;cursor:default;}.mini-player video,.mini-player img{border-radius:8px;}::cue{font-family:var(--subtitle-font-family,inherit);font-size:var(--subtitle-font-size,1em);color:var(--subtitle-color,#fff);background:var(--subtitle-bg,rgba(0,0,0,0.75));text-shadow:var(--subtitle-text-shadow,none);font-weight:var(--subtitle-font-weight,normal);white-space:pre-line;padding:.1em .3em;border-radius:var(--subtitle-border-radius,2px);}::cue(b){font-weight:bold;}::cue(i){font-style:italic;}::cue(u){text-decoration:underline;}`);
+sheet.replaceSync(`:host{display:block;position:relative;width:100%;max-width:100%;height:100%;}*{box-sizing:border-box;}.video-container{position:relative;width:100%;aspect-ratio:var(--aspect-ratio,16/9);background:#000;overflow:hidden;height:100%;}.shadow-plyr-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;outline:none;}video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block;pointer-events:auto;opacity:0;transition:opacity .3s ease;will-change:opacity,transform;transform:translateZ(0);}.video-loaded.is-playing video,.video-loaded:not(.poster-visible) video{opacity:1;}video::-webkit-media-controls{display:none;}picture{position:absolute;top:0;left:0;width:100%;height:100%;display:block;z-index:5;opacity:0;transition:opacity .3s ease;pointer-events:none;cursor:pointer;}picture img{width:100%;height:100%;object-fit:contain;display:block;}.poster-visible picture{opacity:1;pointer-events:auto;}.video-loading::after{content:'';position:absolute;top:50%;left:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;z-index:10;}.has-custom-loader.video-loading::after{display:none;}@keyframes spin{to{transform:rotate(360deg);}}.video-custom-loader{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:11;pointer-events:none;display:none;align-items:center;justify-content:center;max-width:80px;max-height:80px;}.video-loading .video-custom-loader{display:flex;}.video-custom-loader img,.video-custom-loader svg{max-width:80px;max-height:80px;display:block;}.video-error-overlay{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.88);padding:20px;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s ease;}.has-error .video-error-overlay{opacity:1;pointer-events:auto;}.error-icon{margin-bottom:12px;}.error-icon svg{width:44px;height:44px;fill:#ff5252;color:#ff5252;}.error-title{color:#fff;font-size:.95rem;font-weight:700;margin:0 0 6px;font-family:inherit;}.error-message{color:rgba(255,255,255,.7);font-size:.83rem;line-height:1.6;margin:0 0 16px;font-family:inherit;}.error-retry-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:.82rem;font-weight:600;transition:background .2s;font-family:inherit;}.error-retry-btn:hover{background:rgba(255,255,255,.24);}.video-center-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:var(--center-play-size,80px);height:var(--center-play-size,80px);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s ease;z-index:20;opacity:0;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.3);background:var(--center-play-bg,rgba(0,0,0,.7));will-change:transform,opacity;}.video-center-play svg{width:calc(var(--center-play-size,80px) * 0.5);height:calc(var(--center-play-size,80px) * 0.5);fill:var(--accent-color,#fff);color:var(--accent-color,#fff);}.video-loaded .video-center-play{opacity:.8;pointer-events:auto;}.video-loaded.is-playing .video-center-play{opacity:0;pointer-events:none;}.video-loaded.is-playing.show-controls .video-center-play{opacity:.8;pointer-events:auto;}.video-center-play:hover{transform:translate(-50%,-50%) scale(1.1);}.video-controls-bar{position:absolute;bottom:0;left:0;right:0;padding:40px 15px 15px;display:flex;flex-direction:column;gap:10px;transition:opacity .3s ease,transform .3s ease;z-index:25;opacity:0;transform:translateY(100%);pointer-events:none;will-change:transform,opacity;background:var(--controls-bg,linear-gradient(to top,rgba(0,0,0,.8),transparent));}.video-loaded:not(.is-playing) .video-controls-bar{opacity:1;transform:translateY(0);pointer-events:auto;}.video-loaded.is-playing .video-controls-bar{opacity:0;transform:translateY(100%);pointer-events:none;}.video-loaded.show-controls .video-controls-bar{opacity:1;transform:translateY(0);pointer-events:auto;}.video-seekbar{position:relative;width:100%;height:14px;cursor:pointer;}.video-seekbar-track{position:absolute;top:50%;left:0;width:100%;height:8px;transform:translateY(-50%);background:rgba(255,255,255,.3);border-radius:6px;overflow:hidden;}.video-seekbar-buffer{position:absolute;inset:0;background:rgba(255,255,255,.2);transform-origin:left center;transform:scaleX(0);}.video-seekbar-progress{height:8px;}.video-seekbar-fill{height:100%;width:100%;background:var(--accent-color,#ff8c42);transform-origin:left center;transform:scaleX(0);}.video-seekbar-handle{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;background:var(--accent-color,#ff8c42);transform:translate(-50%,-50%);}.video-seekbar:hover .video-seekbar-handle{opacity:1;}.seek-thumbnail-preview{position:absolute;bottom:calc(100% + 14px);transform:translateX(-50%);pointer-events:none;opacity:0;z-index:40;transition:opacity .12s ease;}.video-loaded .video-seekbar:hover .seek-thumbnail-preview{opacity:1;}.seek-thumbnail-canvas,.seek-thumbnail-img-el{display:block;width:160px;height:90px;border-radius:4px;border:2px solid rgba(255,255,255,.5);background:#000;object-fit:cover;}.seek-thumbnail-time{text-align:center;font-size:11px;color:#fff;margin-top:4px;font-family:monospace;text-shadow:0 1px 4px rgba(0,0,0,.9);}.video-controls-row{display:flex;align-items:center;gap:15px;}.video-control-btn{background:none;border:none;cursor:pointer;padding:5px;display:flex;align-items:center;justify-content:center;transition:transform .2s;position:relative;}.video-control-btn:hover{transform:scale(1.1);background:rgba(255,255,255,.1);}.video-control-btn svg{width:24px;height:24px;fill:var(--accent-color,#fff);color:var(--accent-color,#fff);}.video-control-btn.play-pause svg{width:28px;height:28px;}.video-volume-control{display:flex;align-items:center;gap:8px;}.video-volume-slider{width:0;height:3px;background:rgba(255,255,255,.3);border-radius:3px;cursor:pointer;position:relative;overflow:hidden;transition:width .3s ease;}.video-volume-control:hover .video-volume-slider{width:60px;}.video-volume-progress{height:100%;width:100%;transition:width .1s;background:var(--accent-color,#fff);will-change:width;}.video-controls-spacer{flex:1;}.video-time-display{font-size:13px;font-family:monospace;user-select:none;color:var(--accent-color,#fff);}.video-speed-control,.video-quality-control,.video-subtitle-control,.video-more-control{position:relative;}.video-speed-btn,.video-quality-btn,.video-subtitle-btn,.video-more-btn{min-width:45px;font-size:13px;font-weight:600;color:var(--accent-color,#fff);}.video-speed-menu,.video-quality-menu,.video-subtitle-menu,.video-more-menu{position:absolute;bottom:100%;right:0;border-radius:4px;padding:5px 0;margin-bottom:10px;min-width:80px;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s ease;z-index:100;background:var(--controls-bg,rgba(0,0,0,.8));}.video-speed-menu.active,.video-quality-menu.active,.video-subtitle-menu.active,.video-more-menu.active{opacity:1;visibility:visible;transform:translateY(0);}.settings-page .video-quality-menu,.settings-page .video-speed-menu,.settings-page .video-subtitle-menu{position:static;opacity:1;visibility:visible;transform:none;transition:none;background:transparent;padding:0;margin:0;min-width:0;}.video-speed-option,.video-quality-option,.video-subtitle-option,.video-more-option{display:block;width:100%;padding:8px 15px;background:none;border:none;font-size:13px;text-align:left;cursor:pointer;transition:background .2s;color:var(--accent-color,#fff);}.video-speed-option:hover,.video-quality-option:hover,.video-subtitle-option:hover,.video-more-option:hover{background:rgba(255,255,255,.1);}.video-speed-option.active,.video-quality-option.active,.video-subtitle-option.active,.video-more-option.active{background:rgba(255,255,255,.2);font-weight:600;}.video-settings-control{position:relative;}.video-settings-menu{position:absolute;bottom:100%;right:0;min-width:220px;border-radius:6px;margin-bottom:10px;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s ease;z-index:100;overflow:hidden;background:var(--controls-bg,rgba(0,0,0,.85));box-shadow:0 8px 28px rgba(0,0,0,.45); max-height:120px; overflow-y:auto;}.video-settings-menu.active{opacity:1;visibility:visible;transform:translateY(0);}.settings-page{display:none;}.settings-page.active{display:block;animation:sfade .15s ease;}@keyframes sfade{from{opacity:0;transform:translateX(6px);}to{opacity:1;transform:translateX(0);}}.settings-main-item{display:flex;align-items:center;gap:8px;width:100%;padding:11px 15px;background:none;border:none;color:var(--accent-color,#fff);font-size:13px;cursor:pointer;transition:background .15s;text-align:left;}.settings-main-item:hover{background:rgba(255,255,255,.1);}.settings-main-label{flex:1;}.settings-main-value{opacity:.55;font-size:12px;white-space:nowrap;}.settings-main-arrow{opacity:.35;font-size:15px;line-height:1;}.settings-sub-header{display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:none;border-bottom:1px solid rgba(255,255,255,.1);color:var(--accent-color,#fff);font-size:13px;cursor:pointer;font-weight:700;text-align:left;transition:background .15s; position:sticky; top:0; z-index:1; background-color:var(--controls-bg)}.settings-sub-header:hover{background:rgba(255,255,255,.1);}.settings-sub-back{font-size:18px;opacity:.65;line-height:1;}.settings-option{display:block;width:100%;padding:9px 15px;background:none;border:none;font-size:13px;text-align:left;cursor:pointer;transition:background .15s;color:var(--accent-color,#fff);}.settings-option:hover{background:rgba(255,255,255,.1);}.settings-option.active{background:rgba(255,255,255,.15);font-weight:600;}.chapter-marker span{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);padding:3px 8px;background:rgba(0,0,0,0.85);color:#fff;font-size:11px;white-space:nowrap;border-radius:4px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:40;}.chapter-marker{top:50%;position:absolute;transform:translate(-50%,-50%);width:3px;height:14px;background:rgba(255,255,255,0.7);border-radius:2px;pointer-events:auto;z-index:4;cursor:pointer;}.video-control-btn:focus-visible,.video-seekbar:focus-visible,.video-volume-slider:focus-visible{outline:2px solid var(--accent-color,#fff);outline-offset:2px;}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0;}.tooltip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:8px;padding:4px 8px;background:var(--tooltip-bg,rgba(0,0,0,0.8));color:var(--tooltip-color,#fff);font-size:var(--tooltip-font-size,12px);white-space:nowrap;border-radius:4px;pointer-events:none;opacity:0;transition:opacity 0.2s;z-index:30;}.video-control-btn:hover .tooltip,.video-center-play:hover .tooltip{opacity:1;}.video-control-btn.disabled,.video-control-btn:disabled{opacity:0.4;cursor:not-allowed;pointer-events:auto;}@media (max-width:768px){.video-center-play{width:60px;height:60px;}.video-center-play svg{width:30px;height:30px;}.video-controls-bar{padding:30px 10px 10px;}.video-control-btn svg{width:20px;height:20px;}.video-volume-slider{display:none;}.video-time-display{font-size:11px;}}.responsive-hidden{display:none;}.responsive-more-menu .video-control-btn{display:flex;width:100%;padding:10px;}.tap-ripple{position:absolute;width:20px;height:20px;background:rgba(255,255,255,0.4);border-radius:50%;transform:translate(-50%,-50%);animation:ripple-expand 0.6s ease-out forwards;pointer-events:none;z-index:50;}@keyframes ripple-expand{from{opacity:1;transform:translate(-50%,-50%) scale(1);}to{opacity:0;transform:translate(-50%,-50%) scale(8);}}.video-seek-buttons{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;pointer-events:none;}.video-seek-buttons button{pointer-events:auto;width:30%;height:60%;background:transparent;border:none;color:#fff;font-size:20px;font-weight:bold;opacity:0.6;}.seek-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:white;font-weight:bold;pointer-events:none;animation:fadeOut 0.6s forwards;}@keyframes fadeOut{from{opacity:1;}to{opacity:0;}}.video-container.theater-mode{max-width:none;aspect-ratio:auto;}.mini-player{position:fixed;bottom:20px;right:20px;width:320px;height:180px;z-index:9999;box-shadow:0 0 20px rgba(0,0,0,.5);top:auto;left:auto;border-radius:8px;overflow:hidden;cursor:move;user-select:none;transition:box-shadow .15s ease;}.mini-player.is-dragging{box-shadow:0 8px 40px rgba(0,0,0,.7);transition:none;}.mini-player .video-volume-slider,.mini-player .video-time-display,.mini-player .fullscreen-btn,.mini-player .video-more-control{display:none !important;}.mini-player .miniplayer-btn{display:block !important;}.mini-player .video-controls-bar{gap:0;padding:16px 6px 2px;cursor:default;}.mini-player video,.mini-player img{border-radius:8px;}::cue{font-family:var(--subtitle-font-family,inherit);font-size:var(--subtitle-font-size,1em);color:var(--subtitle-color,#fff);background:var(--subtitle-bg,rgba(0,0,0,0.75));text-shadow:var(--subtitle-text-shadow,none);font-weight:var(--subtitle-font-weight,normal);white-space:pre-line;padding:.1em .3em;border-radius:var(--subtitle-border-radius,2px);}::cue(b){font-weight:bold;}::cue(i){font-style:italic;}::cue(u){text-decoration:underline;}.video-watermark{position:absolute;z-index:30;pointer-events:none;max-width:30%;max-height:30%;display:flex;align-items:center;justify-content:center;padding:6px 10px;}.video-watermark.wm-top-left{top:10px;left:10px;}.video-watermark.wm-top-right{top:10px;right:10px;}.video-watermark.wm-bottom-left{bottom:60px;left:10px;}.video-watermark.wm-bottom-right{bottom:60px;right:10px;}.video-watermark.wm-center{top:50%;left:50%;transform:translate(-50%,-50%);}.video-watermark a{pointer-events:auto;display:flex;}.video-watermark img{max-width:120px;max-height:48px;object-fit:contain;display:block;}.video-watermark span{font-size:12px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap;user-select:none;}.aria-live-region{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;pointer-events:none;}.loop-ab-handle{position:absolute;top:50%;width:4px;height:16px;border-radius:2px;transform:translate(-50%,-50%);cursor:ew-resize;z-index:5;pointer-events:auto;}.loop-ab-start{background:#4caf50;}.loop-ab-end{background:#f44336;}.loop-ab-range{position:absolute;top:50%;height:8px;transform:translateY(-50%);background:rgba(255,255,255,0.25);pointer-events:none;z-index:1;border-radius:3px;}.playlist-controls{display:flex;align-items:center;gap:6px;}.playlist-controls button{background:none;border:none;cursor:pointer;padding:4px;color:var(--accent-color,#fff);opacity:.8;transition:opacity .2s;display:flex;align-items:center;justify-content:center;}.playlist-controls button:hover{opacity:1;}.playlist-controls button svg{width:20px;height:20px;fill:currentColor;}@media(prefers-contrast:more){.video-controls-bar{background:rgba(0,0,0,.95) !important;}.video-control-btn svg{fill:#fff !important;color:#fff !important;}.video-seekbar-track{background:rgba(255,255,255,.6);}.video-time-display{color:#fff;font-weight:700;}.tooltip{background:#000;border:1px solid #fff;color:#fff;}}.hotspot{position:absolute;cursor:pointer;border:2px solid rgba(255,255,255,.7);border-radius:4px;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;pointer-events:auto;z-index:28;opacity:0;transition:opacity .2s;backdrop-filter:blur(2px);}.hotspot.visible{opacity:1;}.hotspot-label{font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);padding:3px 6px;white-space:nowrap;pointer-events:none;}.hotspot-pulse{position:absolute;inset:0;border-radius:3px;animation:hotspot-ping 1.5s ease-out infinite;border:2px solid rgba(255,255,255,.5);}@keyframes hotspot-ping{0%{transform:scale(1);opacity:.8;}70%{transform:scale(1.2);opacity:0;}100%{transform:scale(1.2);opacity:0;}}.skeleton-loader{position:absolute;inset:0;z-index:10;background:#111;display:none;flex-direction:column;justify-content:flex-end;padding:12px;gap:8px;pointer-events:none;}.video-loading .skeleton-loader{display:flex;}.skeleton-bar{border-radius:4px;background:linear-gradient(90deg,rgba(255,255,255,.06) 25%,rgba(255,255,255,.12) 50%,rgba(255,255,255,.06) 75%);background-size:200% 100%;animation:shimmer 1.5s ease infinite;}@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}.skeleton-bar.sk-seekbar{height:6px;width:100%;}.skeleton-bar.sk-row{height:28px;width:100%;display:flex;gap:8px;}.skeleton-btn{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:inherit;background-size:inherit;animation:inherit;}.skeleton-time{width:90px;height:14px;border-radius:3px;align-self:center;background:inherit;background-size:inherit;animation:inherit;}:host(.theater-mode){position:fixed;top:0;left:0;width:100vw !important;max-width:100vw !important;height:100vh;z-index:9990;}:host(.theater-mode) .video-container{aspect-ratio:auto;height:100vh;}`);
 const GlobalVideoEngine = (() => {
   const instances = new Set<ShadowPlyr>();
   let activeInstance: ShadowPlyr | null = null;
@@ -119,6 +118,37 @@ export class ShadowPlyr extends HTMLElement {
   #boundMiniPointerMove: ((e: PointerEvent) => void) | null = null;
   #boundMiniPointerUp: ((e: PointerEvent) => void) | null = null;
 
+  // ── Chapters ───────────────────────────────────────────────────────────────
+  #chapterCues: ChapterCue[] = [];
+  #currentChapterIndex = -1;
+
+  // ── Analytics / quartile tracking ─────────────────────────────────────────
+  #quartilesFired = new Set<number>();
+
+  // ── Speed memory ───────────────────────────────────────────────────────────
+  #speedKey: string | null = null;
+
+  // ── Loop A→B ───────────────────────────────────────────────────────────────
+  #loopAbStart: number | null = null;
+  #loopAbEnd: number | null = null;
+  #$loopAbRange: HTMLElement | null = null;
+  #$loopAbStartHandle: HTMLElement | null = null;
+  #$loopAbEndHandle: HTMLElement | null = null;
+
+  // ── Playlist ───────────────────────────────────────────────────────────────
+  #playlistItems: import("./types").PlaylistItem[] = [];
+  #playlistIndex = 0;
+
+  // ── Hotspots ───────────────────────────────────────────────────────────────
+  #hotspotDefs: HotspotDef[] = [];
+  #$hotspotLayer: HTMLElement | null = null;
+
+  // ── Controls auto-hide ──────────────────────────────────────────────────
+  #controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // ── ARIA live region ───────────────────────────────────────────────────────
+  #$ariaLive: HTMLElement | null = null;
+
   // ── Bound helpers ──────────────────────────────────────────────────────────
   #throttledSeekbarUpdate: () => void;
   #throttledProgressUpdate: () => void;
@@ -143,6 +173,8 @@ export class ShadowPlyr extends HTMLElement {
       p: () => this.#togglePip(),
       t: () => this.#toggleTheaterMode(),
       "?": () => this.#showKeyboardHelp(),
+      "[": () => this.#setLoopAbStart(),
+      "]": () => this.#setLoopAbEnd(),
     };
     if (actions[key]) {
       e.preventDefault();
@@ -417,6 +449,11 @@ export class ShadowPlyr extends HTMLElement {
     if (this.#$speedText) this.#$speedText.textContent = speed + "x";
     if (this.#$settingsSpeedValue)
       this.#$settingsSpeedValue.textContent = speed + "x";
+    // Persist per-video speed memory
+    if (this.#speedKey && window.isSecureContext) {
+      try { localStorage.setItem(this.#speedKey, String(speed)); } catch { /* quota */ }
+    }
+    this.#announce(`Speed ${speed}x`);
   };
 
   // QUALITY
@@ -438,19 +475,8 @@ export class ShadowPlyr extends HTMLElement {
   #setManualQuality = (label: string): void => {
     const video = this.#videoElement;
     if (!video || this.#currentQualityLabel === label) return;
-    const sorted = this.#manualQualities
-      .filter((q) => q.label === label)
-      .sort((a, b) => {
-        const getMin = (m:any) => m?.match(/min-width:\s*(\d+)/)?.[1] || 0;
-        return (
-          parseInt(b.media?.includes("min-width") ? getMin(b.media) : 0) -
-          parseInt(a.media?.includes("min-width") ? getMin(a.media) : 0)
-        );
-      });
-
-    const source = sorted.find((q) =>
-      q.media ? window.matchMedia(q.media).matches : true
-    );
+    // Use shared helper — sorts by min-width desc, picks first device match
+    const source = this.#bestSourceForLabel(label);
     if (!source) return;
     const currentTime = video.currentTime;
     const wasPlaying = !video.paused;
@@ -710,6 +736,23 @@ export class ShadowPlyr extends HTMLElement {
       }
     }
 
+    // Speed memory — restore saved playback speed for this video
+    if (config.speedMemory && this.#speedKey) {
+      const savedSpeed = localStorage.getItem(this.#speedKey);
+      if (savedSpeed) {
+        const s = parseFloat(savedSpeed);
+        if (isFinite(s) && s > 0) this.#setSpeed(s, wrapper);
+      }
+    }
+
+    // Loop A→B — render handles once duration is known
+    if (config.loopAb && this.#loopAbStart !== null)
+      this.#renderLoopAbHandles();
+
+    // Auto quality — if async probe wasn't possible during #loadVideo,
+    // run the full async detection now as a fallback upgrade
+    if (config.autoQuality && !this.#currentQualityLabel) this.#autoSelectQuality();
+
     if (config.showControls) this.#setupControlButtons(wrapper);
     if (!config.autoplay) {
       this.#hasPlayedOnce = false;
@@ -723,6 +766,8 @@ export class ShadowPlyr extends HTMLElement {
 
     // Initialise thumbnail preview if requested
     if (config.showThumbnails) this.#initThumbnailVideo();
+    if (config.showChapters) this.#loadChapters();
+    this.#updateMediaSession();
   };
 
   #onPlaying = (wrapper: HTMLElement): void => {
@@ -739,9 +784,16 @@ export class ShadowPlyr extends HTMLElement {
     this.#posterVisible = false;
     this.#updatePlayPauseIcon(true, wrapper);
     this.#startVideoFrameLoop();
+    this.#updateMediaSession();
+    if ("mediaSession" in navigator)
+      navigator.mediaSession.playbackState = "playing";
+    this.#announce("Playing");
+    this.#resetControlsHideTimer();
   };
 
   #onPause = (wrapper: HTMLElement): void => {
+    if ("mediaSession" in navigator)
+      navigator.mediaSession.playbackState = "paused";
     this.#cancelFrameLoop();
     this.#emit("video-paused", {
       currentTime: this.#videoElement!.currentTime,
@@ -750,6 +802,8 @@ export class ShadowPlyr extends HTMLElement {
     this.classList.remove("is-playing");
     this.#isPlaying = false;
     this.#updatePlayPauseIcon(false, wrapper);
+    this.#announce("Paused");
+    this.#clearControlsHideTimer();
     const config = this.#getConfig();
     if (
       config.resume &&
@@ -769,6 +823,11 @@ export class ShadowPlyr extends HTMLElement {
     this.classList.remove("is-playing");
     this.#isPlaying = false;
     this.#updatePlayPauseIcon(false, wrapper);
+    // Playlist auto-advance
+    if (this.#playlistItems.length > 1) {
+      this.#playlistNext();
+      return;
+    }
     if (!config.loop) {
       if (config.resetOnEnded) this.#videoElement!.currentTime = 0;
       if (config.showPosterOnEnded && this.#hasPoster) {
@@ -990,8 +1049,39 @@ export class ShadowPlyr extends HTMLElement {
       "show-retry",
       "loader-src",
       "loader-html",
+      "loader-type",
       "show-thumbnails",
       "thumbnails-vtt",
+      // Chapters
+      "show-chapters",
+      // Media Session
+      "media-title",
+      "media-artist",
+      "media-album",
+      "media-thumbnail",
+      // Analytics
+      "analytics-events",
+      // Speed memory
+      "speed-memory",
+      // Watermark
+      "watermark",
+      "watermark-position",
+      "watermark-opacity",
+      "watermark-link",
+      // Subtitle style
+      "subtitle-font-size",
+      "subtitle-color",
+      "subtitle-background",
+      "subtitle-font-family",
+      "subtitle-font-weight",
+      // Loop A→B
+      "loop-ab",
+      // Playlist
+      "playlist",
+      // Hotspots
+      "hotspots",
+      // Auto quality
+      "auto-quality",
     ];
   }
 
@@ -1114,8 +1204,47 @@ export class ShadowPlyr extends HTMLElement {
       showRetry: ga("show-retry") !== "false",
       loaderSrc: ga("loader-src") || "",
       loaderHtml: ga("loader-html") || "",
+      loaderType: (ga("loader-type") as VideoPlayerConfig["loaderType"]) || "spinner",
       showThumbnails: ga("show-thumbnails") === "true",
       thumbnailsVtt: ga("thumbnails-vtt") || "",
+      // Chapters
+      showChapters: ga("show-chapters") === "true",
+      // Media Session
+      mediaTitle:     ga("media-title")     || "",
+      mediaArtist:    ga("media-artist")    || "",
+      mediaAlbum:     ga("media-album")     || "",
+      mediaThumbnail: ga("media-thumbnail") || "",
+      // Analytics
+      analyticsEvents: ga("analytics-events") === "true",
+      // Speed memory
+      speedMemory: ga("speed-memory") === "true",
+      // Watermark
+      watermark: ga("watermark") || "",
+      watermarkPosition: (ga("watermark-position") as VideoPlayerConfig["watermarkPosition"]) || "top-right",
+      watermarkOpacity: parseFloat(ga("watermark-opacity") || "0.5"),
+      watermarkLink: ga("watermark-link") || "",
+      // Subtitle style
+      subtitleFontSize:   ga("subtitle-font-size")   || "",
+      subtitleColor:      ga("subtitle-color")       || "",
+      subtitleBackground: ga("subtitle-background")  || "",
+      subtitleFontFamily: ga("subtitle-font-family") || "",
+      subtitleFontWeight: ga("subtitle-font-weight") || "",
+      // Loop A→B
+      loopAb: ga("loop-ab") === "true",
+      // Playlist
+      playlist: (() => {
+        const raw = ga("playlist");
+        if (!raw) return undefined;
+        try { return JSON.parse(raw); } catch { return undefined; }
+      })(),
+      // Hotspots
+      hotspots: (() => {
+        const raw = ga("hotspots");
+        if (!raw) return undefined;
+        try { return JSON.parse(raw); } catch { return undefined; }
+      })(),
+      // Auto quality
+      autoQuality: ga("auto-quality") === "true",
     };
     this.#configCache = config;
     this.#configCacheTime = now;
@@ -1197,9 +1326,14 @@ export class ShadowPlyr extends HTMLElement {
       config.mobilePoster
     );
     this.#posterVisible = this.#hasPoster && !this.#hasPlayedOnce;
-    this.#resumeKey = config.resume
-      ? `shadowplyr-${config.desktopVideo || config.mobileVideo}`
-      : null;
+    // Use the first harvested <source> src as per-video key (falls back to deprecated attr)
+    const firstSrc = (this.#savedSources[0]?.getAttribute("src") || config.desktopVideo || config.mobileVideo || "").trim();
+    this.#resumeKey = config.resume && firstSrc ? `shadowplyr-${firstSrc}` : null;
+    this.#speedKey  = config.speedMemory && firstSrc ? `shadowplyr-speed-${firstSrc}` : null;
+
+    // Apply CSS custom properties immediately so initial attribute values take effect
+    // (attributeChangedCallback skips early setup because #isInitialized is false)
+    this.#updateCSSVariables(config);
 
     // Wrapper
     const wrapper = document.createElement("div");
@@ -1208,6 +1342,13 @@ export class ShadowPlyr extends HTMLElement {
     wrapper.setAttribute("role", "application");
     wrapper.setAttribute("aria-label", "Video player");
     wrapper.setAttribute("part", "shadow-plyr-wrapper");
+
+    // Show poster immediately — without this the wrapper has no poster-visible class
+    // until loadeddata fires, leaving a black screen on first load.
+    if (this.#posterVisible) {
+      wrapper.classList.add("poster-visible");
+      this.classList.add("poster-visible");
+    }
 
     // Poster — clone from saved copy (already sanitised in #harvestLightDOM)
     if (useLightPicture && this.#savedPicture) {
@@ -1245,6 +1386,21 @@ export class ShadowPlyr extends HTMLElement {
     if (config.loaderSrc || config.loaderHtml) {
       wrapper.classList.add("has-custom-loader");
       wrapper.appendChild(this.#createCustomLoader(config));
+    } else if (config.loaderType === "skeleton") {
+      wrapper.classList.add("has-custom-loader");
+      const skel = document.createElement("div");
+      skel.className = "skeleton-loader";
+      skel.innerHTML = `
+        <div class="skeleton-bar sk-seekbar"></div>
+        <div class="skeleton-bar sk-row">
+          <div class="skeleton-btn"></div>
+          <div class="skeleton-btn"></div>
+          <div class="skeleton-time"></div>
+          <div style="flex:1"></div>
+          <div class="skeleton-btn"></div>
+          <div class="skeleton-btn"></div>
+        </div>`;
+      wrapper.appendChild(skel);
     }
 
     // Error overlay (always present, toggled via class)
@@ -1286,6 +1442,58 @@ export class ShadowPlyr extends HTMLElement {
     if (config.showSeekButtons)
       wrapper.appendChild(this.#createSeekButtons(config));
 
+    // Watermark
+    if (config.watermark) {
+      const wm = document.createElement("div");
+      const pos = config.watermarkPosition || "top-right";
+      wm.className = `video-watermark wm-${pos}`;
+      wm.style.opacity = String(config.watermarkOpacity ?? 0.5);
+      const isImageUrl = /\.(png|jpe?g|gif|svg|webp)(\?|$)/i.test(config.watermark);
+      const inner = isImageUrl
+        ? `<img src="${config.watermark}" alt="watermark" />`
+        : `<span>${config.watermark.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>`;
+      if (config.watermarkLink) {
+        const a = document.createElement("a");
+        a.href = config.watermarkLink;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.innerHTML = inner;
+        wm.appendChild(a);
+      } else {
+        wm.innerHTML = inner;
+      }
+      wrapper.appendChild(wm);
+    }
+
+    // Hotspot layer (always present, hotspots injected by #checkHotspots)
+    const hotspotLayer = document.createElement("div");
+    hotspotLayer.style.cssText = "position:absolute;inset:0;pointer-events:none;z-index:27;";
+    wrapper.appendChild(hotspotLayer);
+    this.#hotspotDefs = config.hotspots || [];
+
+    // ARIA live region for screen-reader announcements
+    const ariaLive = document.createElement("div");
+    ariaLive.className = "aria-live-region";
+    ariaLive.setAttribute("aria-live", "polite");
+    ariaLive.setAttribute("aria-atomic", "true");
+    wrapper.appendChild(ariaLive);
+
+    // Apply subtitle CSS custom properties
+    if (config.subtitleFontSize)   wrapper.style.setProperty("--subtitle-font-size",   config.subtitleFontSize);
+    if (config.subtitleColor)      wrapper.style.setProperty("--subtitle-color",        config.subtitleColor);
+    if (config.subtitleBackground) wrapper.style.setProperty("--subtitle-bg",           config.subtitleBackground);
+    if (config.subtitleFontFamily) wrapper.style.setProperty("--subtitle-font-family",  config.subtitleFontFamily);
+    if (config.subtitleFontWeight) wrapper.style.setProperty("--subtitle-font-weight",  config.subtitleFontWeight);
+
+    // Playlist state initialisation
+    if (config.playlist && config.playlist.length > 0) {
+      this.#playlistItems = config.playlist;
+      if (this.#playlistIndex >= this.#playlistItems.length) this.#playlistIndex = 0;
+    } else {
+      this.#playlistItems = [];
+      this.#playlistIndex = 0;
+    }
+
     // Container
     const container = document.createElement("div");
     container.className = "video-container";
@@ -1316,6 +1524,8 @@ export class ShadowPlyr extends HTMLElement {
     this.#$thumbnailPreview = wrapper.querySelector(".seek-thumbnail-preview");
     this.#$thumbnailCanvas = wrapper.querySelector(".seek-thumbnail-canvas");
     this.#$thumbnailLabel = wrapper.querySelector(".seek-thumbnail-time");
+    this.#$ariaLive = ariaLive;
+    this.#$hotspotLayer = hotspotLayer;
   }
 
   // DOM BUILDER HELPERS
@@ -1329,26 +1539,30 @@ export class ShadowPlyr extends HTMLElement {
     // Icon
     const iconWrap = document.createElement("div");
     iconWrap.className = "error-icon";
+    iconWrap.setAttribute("part","error-icon");
     const defaultErrorIcon = `<svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>`;
     const rawIcon = config.errorIcon
-      ? DOMPurify.sanitize(config.errorIcon, { USE_PROFILES: { svg: true } })
+      ? sanitizeSvg(config.errorIcon)
       : defaultErrorIcon;
     iconWrap.appendChild(this.#createSVGFromString(rawIcon));
     overlay.appendChild(iconWrap);
 
     const title = document.createElement("p");
     title.className = "error-title";
+    title.setAttribute("part","error-title");
     title.textContent = "Playback Error";
     overlay.appendChild(title);
 
     const msg = document.createElement("p");
     msg.className = "error-message";
+    msg.setAttribute("part","error-message");
     msg.textContent = config.errorMessage ?? "";
     overlay.appendChild(msg);
 
     if (config.showRetry !== false) {
       const btn = document.createElement("button");
       btn.className = "error-retry-btn";
+      btn.setAttribute("part","error-retry-btn");
       btn.textContent = "Try again";
       btn.addEventListener("click", () => this.#retryLoad());
       overlay.appendChild(btn);
@@ -1381,9 +1595,7 @@ export class ShadowPlyr extends HTMLElement {
       img.setAttribute("aria-hidden", "true");
       wrap.appendChild(img);
     } else if (config.loaderHtml) {
-      const clean = DOMPurify.sanitize(config.loaderHtml, {
-        USE_PROFILES: { svg: true, html: true },
-      });
+      const clean = sanitizeSvg(config.loaderHtml);
       const tmp = document.createElement("div");
       tmp.innerHTML = clean;
       while (tmp.firstChild) wrap.appendChild(tmp.firstChild);
@@ -1460,78 +1672,27 @@ export class ShadowPlyr extends HTMLElement {
   #getIcons(): IconSet {
     const cacheKey = `${this.getAttribute("play-icon") || ""}-${this.getAttribute("pause-icon") || ""}`;
     if (IconCache.has(cacheKey)) return IconCache.get(cacheKey)!;
-    const p = { USE_PROFILES: { svg: true } };
+    const s = (attr: string, fallback: string) =>
+      sanitizeSvg(this.getAttribute(attr) || fallback);
     const icons: IconSet = {
-      play: DOMPurify.sanitize(
-        this.getAttribute("play-icon") || DEFAULT_ICONS.play,
-        p
-      ),
-      pause: DOMPurify.sanitize(
-        this.getAttribute("pause-icon") || DEFAULT_ICONS.pause,
-        p
-      ),
-      volume: DOMPurify.sanitize(
-        this.getAttribute("volume-icon") || DEFAULT_ICONS.volume,
-        p
-      ),
-      muted: DOMPurify.sanitize(
-        this.getAttribute("muted-icon") || DEFAULT_ICONS.muted,
-        p
-      ),
-      fullscreen: DOMPurify.sanitize(
-        this.getAttribute("fullscreen-icon") || DEFAULT_ICONS.fullscreen,
-        p
-      ),
-      exitFullscreen: DOMPurify.sanitize(
-        this.getAttribute("exit-fullscreen-icon") ||
-          DEFAULT_ICONS.exitFullscreen,
-        p
-      ),
-      speed: DOMPurify.sanitize(
-        this.getAttribute("speed-icon") || DEFAULT_ICONS.speed,
-        p
-      ),
-      loopOnce: DOMPurify.sanitize(
-        this.getAttribute("loop-once-icon") || DEFAULT_ICONS.loopOnce,
-        p
-      ),
-      loop: DOMPurify.sanitize(
-        this.getAttribute("loop-icon") || DEFAULT_ICONS.loop,
-        p
-      ),
-      pip: DOMPurify.sanitize(
-        this.getAttribute("pip-icon") || DEFAULT_ICONS.pip,
-        p
-      ),
-      subtitle: DOMPurify.sanitize(
-        this.getAttribute("subtitle-icon") || DEFAULT_ICONS.subtitle,
-        p
-      ),
-      quality: DOMPurify.sanitize(
-        this.getAttribute("quality-icon") || DEFAULT_ICONS.quality,
-        p
-      ),
-      more: DOMPurify.sanitize(
-        this.getAttribute("more-icon") || DEFAULT_ICONS.more,
-        p
-      ),
-      theater: DOMPurify.sanitize(
-        this.getAttribute("theater-icon") || DEFAULT_ICONS.theater,
-        p
-      ),
-      screenshot: DOMPurify.sanitize(
-        this.getAttribute("screenshot-icon") || DEFAULT_ICONS.screenshot,
-        p
-      ),
-      airplay: DOMPurify.sanitize(
-        this.getAttribute("airplay-icon") || DEFAULT_ICONS.airplay,
-        p
-      ),
-      miniplayer: DOMPurify.sanitize(
-        this.getAttribute("miniplayer-icon") || DEFAULT_ICONS.miniplayer,
-        p
-      ),
-      settings: DEFAULT_ICONS.settings, // not user-overridable
+      play:           s("play-icon",             DEFAULT_ICONS.play),
+      pause:          s("pause-icon",            DEFAULT_ICONS.pause),
+      volume:         s("volume-icon",           DEFAULT_ICONS.volume),
+      muted:          s("muted-icon",            DEFAULT_ICONS.muted),
+      fullscreen:     s("fullscreen-icon",       DEFAULT_ICONS.fullscreen),
+      exitFullscreen: s("exit-fullscreen-icon",  DEFAULT_ICONS.exitFullscreen),
+      speed:          s("speed-icon",            DEFAULT_ICONS.speed),
+      loopOnce:       s("loop-once-icon",        DEFAULT_ICONS.loopOnce),
+      loop:           s("loop-icon",             DEFAULT_ICONS.loop),
+      pip:            s("pip-icon",              DEFAULT_ICONS.pip),
+      subtitle:       s("subtitle-icon",         DEFAULT_ICONS.subtitle),
+      quality:        s("quality-icon",          DEFAULT_ICONS.quality),
+      more:           s("more-icon",             DEFAULT_ICONS.more),
+      theater:        s("theater-icon",          DEFAULT_ICONS.theater),
+      screenshot:     s("screenshot-icon",       DEFAULT_ICONS.screenshot),
+      airplay:        s("airplay-icon",          DEFAULT_ICONS.airplay),
+      miniplayer:     s("miniplayer-icon",       DEFAULT_ICONS.miniplayer),
+      settings:       DEFAULT_ICONS.settings, // not user-overridable
     };
     IconCache.set(cacheKey, icons);
     return icons;
@@ -1562,6 +1723,7 @@ export class ShadowPlyr extends HTMLElement {
 
       const track = document.createElement("div");
       track.className = "video-seekbar-track";
+      track.setAttribute("part","video-seekbar-track")
       track;
 
       if (config.bufferProgress) {
@@ -1574,6 +1736,7 @@ export class ShadowPlyr extends HTMLElement {
 
       const progress = document.createElement("div");
       progress.className = "video-seekbar-progress";
+      progress.setAttribute("part","video-seekbar-progress");
       progress;
       const fill = document.createElement("div");
       fill.className = "video-seekbar-fill";
@@ -1594,12 +1757,15 @@ export class ShadowPlyr extends HTMLElement {
       if (config.showThumbnails) {
         const preview = document.createElement("div");
         preview.className = "seek-thumbnail-preview";
+        preview.setAttribute("part","seek-thumbnail-preview");
         const canvas = document.createElement("canvas");
         canvas.className = "seek-thumbnail-canvas";
+        canvas.setAttribute("part","seek-thumbnail-canvas");
         canvas.width = 160;
         canvas.height = 90;
         const label = document.createElement("div");
         label.className = "seek-thumbnail-time";
+        label.setAttribute("part","seek-thumbnail-time");
         preview.appendChild(canvas);
         preview.appendChild(label);
         seekbar.appendChild(preview);
@@ -1614,8 +1780,30 @@ export class ShadowPlyr extends HTMLElement {
     row.setAttribute("part", "controls-row");
     bar.appendChild(row);
 
+    // Playlist prev button
+    if (this.#playlistItems.length > 1) {
+      const prevBtn = document.createElement("button");
+      prevBtn.className = "video-control-btn playlist-prev";
+      prevBtn.setAttribute("aria-label", "Previous");
+      prevBtn.setAttribute("part", "playlist-prev");
+      prevBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>`;
+      prevBtn.addEventListener("click", () => this.#playlistPrev());
+      row.appendChild(prevBtn);
+    }
+
     if (config.showPlayPause)
       row.appendChild(this.#createPlayPauseButton(icons, config));
+
+    // Playlist next button
+    if (this.#playlistItems.length > 1) {
+      const nextBtn = document.createElement("button");
+      nextBtn.className = "video-control-btn playlist-next";
+      nextBtn.setAttribute("aria-label", "Next");
+      nextBtn.setAttribute("part", "playlist-next");
+      nextBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zm2.5-6 8.5 6V6z" style="display:none"/><path d="M16 6h2v12h-2zm-2.5 6L5 6v12z"/></svg>`;
+      nextBtn.addEventListener("click", () => this.#playlistNext());
+      row.appendChild(nextBtn);
+    }
     if (config.showVolume)
       row.appendChild(this.#createVolumeControl(icons, config));
 
@@ -2119,6 +2307,16 @@ export class ShadowPlyr extends HTMLElement {
       case "accent-color": case "theme": case "controls-background":
       case "center-play-background": case "center-play-size":
         this.#updateCSSVariables(config); break;
+      case "subtitle-font-size":
+        if (this.#$wrapper) this.#$wrapper.style.setProperty("--subtitle-font-size",  newValue || ""); break;
+      case "subtitle-color":
+        if (this.#$wrapper) this.#$wrapper.style.setProperty("--subtitle-color",       newValue || ""); break;
+      case "subtitle-background":
+        if (this.#$wrapper) this.#$wrapper.style.setProperty("--subtitle-bg",          newValue || ""); break;
+      case "subtitle-font-family":
+        if (this.#$wrapper) this.#$wrapper.style.setProperty("--subtitle-font-family", newValue || ""); break;
+      case "subtitle-font-weight":
+        if (this.#$wrapper) this.#$wrapper.style.setProperty("--subtitle-font-weight", newValue || ""); break;
       default: this.#reinitialize();
     }
   }
@@ -2145,8 +2343,17 @@ export class ShadowPlyr extends HTMLElement {
           };
 
     this.style.setProperty("--accent-color", theme.accent);
-    this.style.setProperty("--controls-bg",  theme.controlsBg);
-    this.style.setProperty("--center-play-bg", theme.centerPlayBg);
+    // Only override --controls-bg when the attribute is explicitly set.
+    // Without this, the CSS gradient fallback in the stylesheet gets replaced
+    // by the solid default colour string and the gradient disappears.
+    if (this.hasAttribute("controls-background"))
+      this.style.setProperty("--controls-bg", theme.controlsBg);
+    else
+      this.style.removeProperty("--controls-bg");
+    if (this.hasAttribute("center-play-background"))
+      this.style.setProperty("--center-play-bg", theme.centerPlayBg);
+    else
+      this.style.removeProperty("--center-play-bg");
     if (config.centerPlaySize)
       this.style.setProperty(
         "--center-play-size",
@@ -2248,10 +2455,12 @@ export class ShadowPlyr extends HTMLElement {
 
     video.muted = config.muted;
     video.defaultMuted = config.muted;
-    // crossOrigin must be set BEFORE sources/tracks are appended.
-    // Without it the browser blocks all cross-origin <track> files (status: blocked:origin)
-    // even when the server sends correct CORS headers.
-    video.crossOrigin = "anonymous";
+    // crossOrigin is only needed when cross-origin <track>, screenshots, or
+    // thumbnail capture are used.  Setting it unconditionally adds an Origin
+    // header to every request, which breaks CDNs that don't return proper CORS
+    // headers (the browser sees a network error / opaque 404).
+    const needsCORS = this.#savedTracks.length > 0 || config.showThumbnails || config.screenshot;
+    if (needsCORS) video.crossOrigin = "anonymous";
 
     const attrs: Record<string, string> = {
       preload: config.preload,
@@ -2315,6 +2524,22 @@ export class ShadowPlyr extends HTMLElement {
 
         return isValid && isMediaMatch;
       });
+
+    // Auto quality — detect bandwidth BEFORE the browser starts fetching
+    // and reorder <source> elements so the best match is first.
+    // The browser tries sources in order, so if the best 404s it falls through.
+    if (config.autoQuality && this.#manualQualities.length > 1) {
+      const best = this.#pickQualityForBandwidth();
+      if (best) {
+        const sources = Array.from(video.querySelectorAll("source"));
+        const bestEl = sources.find(s => s.src === best.src || s.getAttribute("src") === best.src);
+        if (bestEl) {
+          // Move best source to the front — browser tries first match
+          video.insertBefore(bestEl, video.querySelector("source"));
+          this.#currentQualityLabel = best.label;
+        }
+      }
+    }
 
     // Wire events
     video.addEventListener(
@@ -2615,19 +2840,57 @@ export class ShadowPlyr extends HTMLElement {
 
   #setupControlsInteraction(wrapper: HTMLElement): void {
     wrapper.addEventListener("keydown", this.#handleKeyboard);
-    wrapper.addEventListener("mouseenter", () => {
-      if (this.#videoLoaded) { wrapper.classList.add("show-controls"); this.classList.add("show-controls"); }
-    }, { passive: true });
-    wrapper.addEventListener("mouseleave", () => {
-      wrapper.classList.remove("show-controls"); this.classList.remove("show-controls");
+
+    const show = () => {
+      if (!this.#videoLoaded) return;
+      wrapper.classList.add("show-controls");
+      this.classList.add("show-controls");
+      this.#resetControlsHideTimer();
+    };
+    const hide = () => {
+      wrapper.classList.remove("show-controls");
+      this.classList.remove("show-controls");
       this.#closeAllMenus();
+    };
+
+    // Show on any activity inside the player
+    wrapper.addEventListener("mousemove", show, { passive: true });
+    wrapper.addEventListener("mouseenter", show, { passive: true });
+    wrapper.addEventListener("click", show, { passive: true });
+    wrapper.addEventListener("touchstart", show, { passive: true });
+
+    // Hide immediately on mouse leave
+    wrapper.addEventListener("mouseleave", () => {
+      this.#clearControlsHideTimer();
+      hide();
     }, { passive: true });
+
     wrapper.addEventListener("touchend", this.#handleTouchTap);
 
     // Close menus on click outside
     document.addEventListener("click", (e) => {
       if (!this.contains(e.target as Node)) this.#closeAllMenus();
     });
+  }
+
+  #resetControlsHideTimer(): void {
+    this.#clearControlsHideTimer();
+    // Only auto-hide while playing — when paused, controls stay visible
+    if (!this.#isPlaying) return;
+    const delay = this.#getConfig().controlsHideDelay;
+    this.#controlsHideTimer = setTimeout(() => {
+      if (this.#$wrapper && this.#isPlaying) {
+        this.#$wrapper.classList.remove("show-controls");
+        this.classList.remove("show-controls");
+      }
+    }, delay);
+  }
+
+  #clearControlsHideTimer(): void {
+    if (this.#controlsHideTimer !== null) {
+      clearTimeout(this.#controlsHideTimer);
+      this.#controlsHideTimer = null;
+    }
   }
 
   // SETTINGS MENU NAVIGATION
@@ -2780,6 +3043,11 @@ export class ShadowPlyr extends HTMLElement {
       if (!this.#videoElement || !this.#isPlaying) return; // stop if paused/destroyed
       this.#updateSeekbar();
       this.#updateTimeDisplay();
+      this.#checkQuartile();
+      this.#checkChapterChange();
+      this.#checkLoopAb();
+      this.#checkHotspots();
+      this.#syncMediaSessionPosition();
       if (useRvfc) {
         this.#rafId = (video as any).requestVideoFrameCallback(
           loop
@@ -2814,19 +3082,32 @@ export class ShadowPlyr extends HTMLElement {
     if (!this.#videoElement) return;
     const src = this.#videoElement.currentSrc || this.#videoElement.src;
     if (!/\.m3u8($|\?)/i.test(src)) return;
+
+    // Try ESM dynamic import first; fall back to window.Hls for UMD/CDN setups
+    let hlsModule: any = null;
     try {
-      const mod = await import("hls.js");
-      const Hls = mod.default;
-      if (!Hls.isSupported()) {
-        console.warn("ShadowPlyr: HLS not supported in this browser.");
-        return;
-      }
-      this.#setupHls(mod, src);
+      hlsModule = await import("hls.js");
     } catch {
-      console.warn(
-        "ShadowPlyr: HLS stream detected but hls.js is not installed. Run `npm install hls.js`."
-      );
+      const globalHls = (window as any).Hls;
+      if (globalHls) {
+        hlsModule = { default: globalHls, Events: globalHls.Events };
+      }
     }
+
+    if (!hlsModule) {
+      console.warn(
+        "ShadowPlyr: HLS stream detected but hls.js is not available. " +
+        "Install it (`npm install hls.js`) or load it from a CDN before this script."
+      );
+      return;
+    }
+
+    const Hls = hlsModule.default;
+    if (!Hls.isSupported()) {
+      // Native HLS (Safari) — browser handles it natively, no setup needed
+      return;
+    }
+    this.#setupHls(hlsModule, src);
   }
 
   #setupHls(hlsModule: any, src: string): void {
@@ -3268,10 +3549,434 @@ export class ShadowPlyr extends HTMLElement {
     this.#configCache = null;
     this.#qualityLevels = [];
     this.#manualQualities = [];
+    this.#chapterCues = [];
+    this.#currentChapterIndex = -1;
+    this.#quartilesFired.clear();
+    this.#loopAbStart = null;
+    this.#loopAbEnd = null;
+    this.#$loopAbStartHandle = null;
+    this.#$loopAbEndHandle = null;
+    this.#$loopAbRange = null;
+    this.#$ariaLive = null;
+    this.#$hotspotLayer = null;
+    this.#hotspotDefs = [];
+    this.#clearControlsHideTimer();
     document.removeEventListener(
       "webkitfullscreenchange",
       this.#boundFullscreenChange
     );
+  }
+
+  // ── MEDIA SESSION API ────────────────────────────────────────────────────
+  #updateMediaSession(): void {
+    if (!("mediaSession" in navigator) || !this.#videoElement) return;
+    const config = this.#getConfig();
+
+    // Artwork: prefer explicit attribute, then poster image, then nothing
+    const artworkSrc =
+      config.mediaThumbnail ||
+      (this.#$wrapper?.querySelector<HTMLImageElement>("picture img")?.src ?? "");
+    const artwork: MediaImage[] = artworkSrc
+      ? [{ src: artworkSrc, sizes: "512x512", type: "image/jpeg" }]
+      : [];
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title:  config.mediaTitle  || document.title || "Video",
+      artist: config.mediaArtist || "",
+      album:  config.mediaAlbum  || "",
+      artwork,
+    });
+
+    const v = this.#videoElement;
+    navigator.mediaSession.setActionHandler("play",  () => this.playVideo());
+    navigator.mediaSession.setActionHandler("pause", () => this.pauseVideo());
+    navigator.mediaSession.setActionHandler("seekto", (d) => {
+      if (d.seekTime !== undefined) this.seek(d.seekTime);
+    });
+    navigator.mediaSession.setActionHandler("seekbackward", (d) => {
+      this.seek(Math.max(0, v.currentTime - (d.seekOffset ?? this.#getConfig().seekStep)));
+    });
+    navigator.mediaSession.setActionHandler("seekforward", (d) => {
+      this.seek(Math.min(v.duration, v.currentTime + (d.seekOffset ?? this.#getConfig().seekStep)));
+    });
+  }
+
+  /** Update the Media Session position state (called in the RAF loop). */
+  #syncMediaSessionPosition(): void {
+    if (!("mediaSession" in navigator) || !this.#videoElement) return;
+    const v = this.#videoElement;
+    if (!isFinite(v.duration) || v.duration === 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration:     v.duration,
+        playbackRate: v.playbackRate,
+        position:     v.currentTime,
+      });
+    } catch { /* not all browsers support setPositionState */ }
+  }
+
+  // ── QUARTILE ANALYTICS ────────────────────────────────────────────────────
+  #checkQuartile(): void {
+    if (!this.#videoElement || !this.#getConfig().analyticsEvents) return;
+    const v = this.#videoElement;
+    if (!isFinite(v.duration) || v.duration === 0) return;
+    const pct = (v.currentTime / v.duration) * 100;
+    for (const q of [25, 50, 75, 100] as const) {
+      if (pct >= q && !this.#quartilesFired.has(q)) {
+        this.#quartilesFired.add(q);
+        this.#emit("video-quartile", { quartile: q, currentTime: v.currentTime });
+      }
+    }
+  }
+
+  // ── CHAPTERS ─────────────────────────────────────────────────────────────
+  async #loadChapters(): Promise<void> {
+    if (!this.#videoElement) return;
+    // Find a <track kind="chapters"> element
+    const trackEl = Array.from(this.#videoElement.textTracks).find(
+      (t) => t.kind === "chapters"
+    );
+    if (!trackEl) return;
+
+    // Force track to load by switching mode
+    trackEl.mode = "hidden";
+    // Wait for cues to populate (they load asynchronously)
+    await new Promise<void>((resolve) => {
+      if (trackEl.cues && trackEl.cues.length > 0) { resolve(); return; }
+      trackEl.addEventListener("load", () => resolve(), { once: true });
+      // Fallback timeout in case load event never fires
+      setTimeout(resolve, 2000);
+    });
+
+    if (!trackEl.cues) return;
+    this.#chapterCues = Array.from(trackEl.cues).map((c) => ({
+      start: c.startTime,
+      end:   c.endTime,
+      title: (c as VTTCue).text || "",
+    }));
+    trackEl.mode = "disabled";
+    this.#renderChapterMarkers();
+  }
+
+  #renderChapterMarkers(): void {
+    const seekbar = this.#$seekbar;
+    const video   = this.#videoElement;
+    if (!seekbar || !video || !isFinite(video.duration) || video.duration === 0) return;
+
+    // Remove old markers
+    seekbar.querySelectorAll(".chapter-marker").forEach((m) => m.remove());
+
+    this.#chapterCues.forEach((cue) => {
+      if (cue.start === 0) return; // skip the very start
+      const marker = document.createElement("div");
+      marker.className = "chapter-marker";
+      marker.style.cssText = `
+        position:absolute;left:${(cue.start / video.duration) * 100}%;
+      `;
+      marker.setAttribute("part","chapter-marker");
+      // Styled tooltip
+      const tip = document.createElement("span");
+      tip.textContent = cue.title;
+      tip.setAttribute("part","chapter-marker-span")
+      marker.appendChild(tip);
+      marker.addEventListener("mouseenter", () => { tip.style.opacity = "1"; });
+      marker.addEventListener("mouseleave", () => { tip.style.opacity = "0"; });
+      marker.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (this.#videoElement) this.#videoElement.currentTime = cue.start;
+      });
+      seekbar.appendChild(marker);
+    });
+  }
+
+  /** Called in the RAF loop to emit chapter-change events. */
+  #checkChapterChange(): void {
+    if (this.#chapterCues.length === 0 || !this.#videoElement) return;
+    const t = this.#videoElement.currentTime;
+    const idx = this.#chapterCues.findIndex((c) => t >= c.start && t < c.end);
+    if (idx !== -1 && idx !== this.#currentChapterIndex) {
+      this.#currentChapterIndex = idx;
+      this.#emit("video-chapter-change", {
+        index: idx,
+        title: this.#chapterCues[idx].title,
+        start: this.#chapterCues[idx].start,
+      });
+    }
+  }
+
+  // ── HOTSPOTS ─────────────────────────────────────────────────────────────
+  #checkHotspots(): void {
+    const layer = this.#$hotspotLayer;
+    if (!layer || this.#hotspotDefs.length === 0 || !this.#videoElement) return;
+    const t = this.#videoElement.currentTime;
+
+    this.#hotspotDefs.forEach((def, i) => {
+      const id = `hs-${i}`;
+      let el = layer.querySelector<HTMLElement>(`[data-hs="${id}"]`);
+      const active = t >= def.startTime && (def.endTime === undefined || t <= def.endTime);
+
+      if (active && !el) {
+        // Create element
+        el = document.createElement(def.link ? "a" : "div");
+        el.setAttribute("data-hs", id);
+        el.className = "hotspot";
+        el.style.cssText = `left:${def.x}%;top:${def.y}%;width:${def.width ?? 10}%;height:${def.height ?? 8}%;pointer-events:auto;`;
+        if (def.link && el instanceof HTMLAnchorElement) {
+          el.href = def.link;
+          el.target = def.newTab !== false ? "_blank" : "_self";
+          el.rel = "noopener noreferrer";
+        }
+        if (def.label) {
+          const lbl = document.createElement("span");
+          lbl.className = "hotspot-label";
+          lbl.textContent = def.label;
+          el.appendChild(lbl);
+        }
+        const pulse = document.createElement("div");
+        pulse.className = "hotspot-pulse";
+        el.appendChild(pulse);
+        layer.appendChild(el);
+        // Trigger visible transition
+        requestAnimationFrame(() => el!.classList.add("visible"));
+      } else if (!active && el) {
+        el.remove();
+      }
+    });
+  }
+
+  // ── AUTO QUALITY (BANDWIDTH DETECTION) ───────────────────────────────────
+  /**
+   * Pick the best source for a given quality label, respecting media queries.
+   * Sources with a more specific `min-width` are preferred (desktop over mobile).
+   * Falls back to any matching source if none has a media query.
+   */
+  #bestSourceForLabel(label: string): { src: string; type: string; label: string; media: string | null } | null {
+    const getMin = (m: any) => m?.match(/min-width:\s*(\d+)/)?.[1] || 0;
+    return this.#manualQualities
+      .filter(q => q.label === label)
+      .sort((a, b) =>
+        parseInt(b.media?.includes("min-width") ? getMin(b.media) : "0") -
+        parseInt(a.media?.includes("min-width") ? getMin(a.media) : "0")
+      )
+      .find(q => q.media ? window.matchMedia(q.media).matches : true) ?? null;
+  }
+
+  /** Synchronous bandwidth-based quality pick (used before video loads). */
+  #pickQualityForBandwidth(): { src: string; type: string; label: string } | null {
+    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    // Network Info API gives Mbps instantly (Chromium); default 5 Mbps otherwise
+    const mbps: number = conn?.downlink > 0 ? conn.downlink : 5;
+    const tiers = [
+      { min: 8,   label: 1080 },
+      { min: 4,   label: 720  },
+      { min: 1.5, label: 480  },
+      { min: 0,   label: 360  },
+    ];
+    const preferred = (tiers.find(t => mbps >= t.min) ?? tiers[tiers.length - 1]).label;
+
+    // Get unique labels sorted ascending, pick highest that fits bandwidth
+    const labels = [...new Set(this.#manualQualities.map(q => parseInt(q.label)))].sort((a, b) => a - b);
+    const bestLabel = labels.filter(l => l <= preferred).pop() ?? labels[0];
+    if (bestLabel === undefined) return null;
+
+    // From entries with that label, pick the best device match
+    return this.#bestSourceForLabel(String(bestLabel));
+  }
+
+  async #detectBandwidthMbps(): Promise<number> {
+    // 1. Try Network Information API first (Chrome/Android)
+    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (conn?.downlink && conn.downlink > 0) return conn.downlink as number;
+
+    // 2. Fall back to timing a small fetch probe (~100 KB public resource)
+    try {
+      const probe = "https://cdn.jsdelivr.net/npm/@elementmints/shadow-plyr@latest/dist/index.js";
+      const start = performance.now();
+      const res = await fetch(probe, { cache: "no-store", mode: "cors" });
+      const buf = await res.arrayBuffer();
+      const elapsed = (performance.now() - start) / 1000; // seconds
+      const mbps = (buf.byteLength * 8) / (elapsed * 1_000_000);
+      return mbps;
+    } catch {
+      return 5; // assume decent connection on failure
+    }
+  }
+
+  async #autoSelectQuality(): Promise<void> {
+    if (!this.#videoElement || this.#manualQualities.length === 0) return;
+    const mbps = await this.#detectBandwidthMbps();
+
+    const tiers = [
+      { min: 8,   label: 1080 },
+      { min: 4,   label: 720  },
+      { min: 1.5, label: 480  },
+      { min: 0,   label: 360  },
+    ];
+    const preferred = (tiers.find(t => mbps >= t.min) ?? tiers[tiers.length - 1]).label;
+
+    // Deduplicate labels, pick highest that fits bandwidth
+    const labels = [...new Set(this.#manualQualities.map(q => parseInt(q.label)))].sort((a, b) => a - b);
+    const bestLabel = labels.filter(l => l <= preferred).pop() ?? labels[0];
+    if (bestLabel === undefined) return;
+
+    // Use device-aware source selection
+    const best = this.#bestSourceForLabel(String(bestLabel));
+    if (best && best.label !== this.#currentQualityLabel) {
+      this.#setManualQuality(best.label);
+      this.#emit("video-quality-auto", { quality: best.label, bandwidth: mbps });
+    }
+  }
+
+  // ── ARIA ANNOUNCE ─────────────────────────────────────────────────────────
+  #announce(msg: string): void {
+    if (!this.#$ariaLive) return;
+    this.#$ariaLive.textContent = "";
+    // Brief timeout forces screen readers to re-announce even if text is the same
+    setTimeout(() => { if (this.#$ariaLive) this.#$ariaLive.textContent = msg; }, 50);
+  }
+
+  // ── LOOP A→B ──────────────────────────────────────────────────────────────
+  /** Set the Loop A start point to current time, or clear if already set there. */
+  #setLoopAbStart(): void {
+    if (!this.#videoElement) return;
+    const t = this.#videoElement.currentTime;
+    if (this.#loopAbStart !== null && Math.abs(this.#loopAbStart - t) < 0.5) {
+      // Tap same point again → clear both
+      this.#loopAbStart = null;
+      this.#loopAbEnd = null;
+    } else {
+      this.#loopAbStart = t;
+      if (this.#loopAbEnd !== null && this.#loopAbEnd <= t) this.#loopAbEnd = null;
+    }
+    this.#renderLoopAbHandles();
+    this.#announce(this.#loopAbStart !== null ? `Loop start: ${t.toFixed(1)}s` : "Loop cleared");
+  }
+
+  /** Set the Loop A→B end point to current time. */
+  #setLoopAbEnd(): void {
+    if (!this.#videoElement || this.#loopAbStart === null) return;
+    const t = this.#videoElement.currentTime;
+    if (t <= this.#loopAbStart) return; // end must be after start
+    this.#loopAbEnd = t;
+    this.#renderLoopAbHandles();
+    this.#announce(`Loop end: ${t.toFixed(1)}s`);
+  }
+
+  /** Enforce loop A→B in the RAF loop. */
+  #checkLoopAb(): void {
+    if (
+      !this.#getConfig().loopAb ||
+      this.#loopAbStart === null ||
+      this.#loopAbEnd === null ||
+      !this.#videoElement
+    ) return;
+    if (this.#videoElement.currentTime >= this.#loopAbEnd)
+      this.#videoElement.currentTime = this.#loopAbStart;
+  }
+
+  /** Render or update the loop A→B handles on the seekbar. */
+  #renderLoopAbHandles(): void {
+    const seekbar = this.#$seekbar;
+    if (!seekbar || !this.#videoElement || !isFinite(this.#videoElement.duration)) return;
+    const dur = this.#videoElement.duration;
+
+    // Remove old handles
+    this.#$loopAbStartHandle?.remove();
+    this.#$loopAbEndHandle?.remove();
+    this.#$loopAbRange?.remove();
+    this.#$loopAbStartHandle = null;
+    this.#$loopAbEndHandle = null;
+    this.#$loopAbRange = null;
+
+    if (this.#loopAbStart === null) return;
+
+    const mkHandle = (cls: string, pct: number, title: string, onDrag: (t: number) => void): HTMLElement => {
+      const h = document.createElement("div");
+      h.className = `loop-ab-handle ${cls}`;
+      h.style.left = `${pct}%`;
+      h.title = title;
+      // Stop propagation so the seekbar mousedown/touchstart don't intercept
+      h.addEventListener("mousedown", (e: MouseEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const rect = seekbar.getBoundingClientRect();
+        const clamp = (x: number) => Math.max(0, Math.min(1, x));
+        const onMove = (ev: MouseEvent) => {
+          const t = clamp((ev.clientX - rect.left) / rect.width) * dur;
+          onDrag(t);
+          this.#renderLoopAbHandles();
+        };
+        const onUp = () => {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+        };
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+      h.addEventListener("touchstart", (e: TouchEvent) => {
+        e.stopPropagation();
+        const rect = seekbar.getBoundingClientRect();
+        const clamp = (x: number) => Math.max(0, Math.min(1, x));
+        const onMove = (ev: TouchEvent) => {
+          const t = clamp((ev.touches[0].clientX - rect.left) / rect.width) * dur;
+          onDrag(t);
+          this.#renderLoopAbHandles();
+        };
+        const onEnd = () => {
+          document.removeEventListener("touchmove", onMove);
+          document.removeEventListener("touchend", onEnd);
+        };
+        document.addEventListener("touchmove", onMove, { passive: true });
+        document.addEventListener("touchend", onEnd);
+      }, { passive: true });
+      seekbar.appendChild(h);
+      return h;
+    };
+
+    const startPct = (this.#loopAbStart / dur) * 100;
+    this.#$loopAbStartHandle = mkHandle(
+      "loop-ab-start", startPct,
+      `Loop start: ${this.#loopAbStart.toFixed(1)}s`,
+      (t) => { this.#loopAbStart = Math.min(t, this.#loopAbEnd ?? dur - 0.5); }
+    );
+
+    if (this.#loopAbEnd !== null) {
+      const endPct = (this.#loopAbEnd / dur) * 100;
+      this.#$loopAbEndHandle = mkHandle(
+        "loop-ab-end", endPct,
+        `Loop end: ${this.#loopAbEnd.toFixed(1)}s`,
+        (t) => { this.#loopAbEnd = Math.max(t, (this.#loopAbStart ?? 0) + 0.5); }
+      );
+
+      const range = document.createElement("div");
+      range.className = "loop-ab-range";
+      range.style.left = `${startPct}%`;
+      range.style.width = `${endPct - startPct}%`;
+      seekbar.appendChild(range);
+      this.#$loopAbRange = range;
+    }
+  }
+
+  // ── PLAYLIST ─────────────────────────────────────────────────────────────
+  #playlistNext(): void {
+    if (this.#playlistItems.length === 0) return;
+    this.#playlistIndex = (this.#playlistIndex + 1) % this.#playlistItems.length;
+    this.#loadPlaylistItem(this.#playlistIndex);
+  }
+
+  #playlistPrev(): void {
+    if (this.#playlistItems.length === 0) return;
+    this.#playlistIndex = (this.#playlistIndex - 1 + this.#playlistItems.length) % this.#playlistItems.length;
+    this.#loadPlaylistItem(this.#playlistIndex);
+  }
+
+  #loadPlaylistItem(index: number): void {
+    const item = this.#playlistItems[index];
+    if (!item) return;
+    // Update the src attribute — this will trigger attributeChangedCallback → reinitialize
+    if (item.src) this.setAttribute("src", item.src);
+    if (item.poster) this.setAttribute("desktop-poster", item.poster);
+    this.#reinitialize();
   }
 
   #emit(name: string, detail: Record<string, any> = {}): void {
