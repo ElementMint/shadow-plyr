@@ -16,3 +16,22 @@ export function throttle<T extends (...args: any[]) => any>(
     }
   };
 }
+
+/**
+ * Lightweight SVG / HTML sanitizer that strips the most dangerous
+ * vectors (inline event handlers, script tags, javascript: URLs).
+ * Used in place of the ~45 KB DOMPurify dependency for user-supplied
+ * icon and loader strings.
+ */
+export function sanitizeSvg(input: string): string {
+  if (!input || typeof input !== "string") return "";
+  return input
+    // Remove <script> blocks entirely
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    // Strip inline event handlers  on*="…" / on*='…' / on*=value
+    .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>/]+)/gi, "")
+    // Strip javascript: in href / xlink:href / src
+    .replace(/(href|src|xlink:href)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, "")
+    // Strip <base> tags (can redirect relative URLs)
+    .replace(/<base[\s\S]*?>/gi, "");
+}
