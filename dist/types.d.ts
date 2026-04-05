@@ -70,8 +70,46 @@ export interface VideoPlayerConfig {
     showRetry?: boolean;
     loaderSrc?: string;
     loaderHtml?: string;
+    loaderType?: "spinner" | "skeleton";
     showThumbnails?: boolean;
     thumbnailsVtt?: string;
+    showChapters?: boolean;
+    mediaTitle?: string;
+    mediaArtist?: string;
+    mediaAlbum?: string;
+    mediaThumbnail?: string;
+    analyticsEvents?: boolean;
+    speedMemory?: boolean;
+    watermark?: string;
+    watermarkPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
+    watermarkOpacity?: number;
+    watermarkLink?: string;
+    subtitleFontSize?: string;
+    subtitleColor?: string;
+    subtitleBackground?: string;
+    subtitleFontFamily?: string;
+    subtitleFontWeight?: string;
+    loopAb?: boolean;
+    playlist?: PlaylistItem[];
+    hotspots?: HotspotDef[];
+    autoQuality?: boolean;
+}
+export interface PlaylistItem {
+    src: string;
+    title?: string;
+    poster?: string;
+    type?: string;
+}
+export interface HotspotDef {
+    startTime: number;
+    endTime?: number;
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+    label?: string;
+    link?: string;
+    newTab?: boolean;
 }
 export interface VideoPlayerState {
     observer: IntersectionObserver | null;
@@ -124,6 +162,11 @@ export interface ThumbnailVttCue {
     y: number;
     w: number;
     h: number;
+}
+export interface ChapterCue {
+    start: number;
+    end: number;
+    title: string;
 }
 export interface VideoEventDetail {
     [key: string]: any;
