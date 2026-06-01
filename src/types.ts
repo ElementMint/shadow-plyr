@@ -106,10 +106,15 @@ export interface VideoPlayerConfig {
   loaderSrc?: string;
   /**
    * Inline HTML string for a fully custom loader (e.g. an SVG animation).
-   * Sanitised with DOMPurify before insertion.
+   * Sanitised before insertion.
    * `loader-src` takes precedence when both are set.
    */
   loaderHtml?: string;
+  /**
+   * Loader type: `"spinner"` (default CSS spinner), `"skeleton"` (animated
+   * skeleton shimmer mimicking the controls layout).
+   */
+  loaderType?: "spinner" | "skeleton";
 
   /**
    * Enable seekbar thumbnail preview on hover and while dragging.
@@ -124,6 +129,155 @@ export interface VideoPlayerConfig {
    * video element.
    */
   thumbnailsVtt?: string;
+
+  // ── Chapters ─────────────────────────────────────────────────────────────
+
+  /**
+   * Show chapter markers on the seekbar derived from a
+   * `<track kind="chapters">` child element or the `chapters-vtt` attribute.
+   */
+  showChapters?: boolean;
+
+  // ── Media Session ─────────────────────────────────────────────────────────
+
+  /**
+   * Title shown in the OS / browser media session controls (lock screen,
+   * headphone buttons, media hub). Falls back to the page `<title>`.
+   */
+  mediaTitle?: string;
+  /** Artist / creator name shown in media session controls. */
+  mediaArtist?: string;
+  /** Album / series name shown in media session controls. */
+  mediaAlbum?: string;
+  /**
+   * URL of the artwork image shown in media session controls.
+   * Defaults to the poster image when omitted.
+   */
+  mediaThumbnail?: string;
+
+  // ── Analytics ─────────────────────────────────────────────────────────────
+
+  /**
+   * When `true`, fires `video-quartile` CustomEvents at the 25 %, 50 %,
+   * 75 % and 100 % playback milestones.
+   * Event detail: `{ quartile: 25 | 50 | 75 | 100, currentTime: number }`
+   */
+  analyticsEvents?: boolean;
+
+  // ── Speed Memory ──────────────────────────────────────────────────────────
+
+  /**
+   * When `true`, the last-used playback speed is saved per-video to
+   * localStorage (key: `shadowplyr-speed-<src>`) and restored on next load.
+   * Each unique video source URL gets its own saved speed entry.
+   */
+  speedMemory?: boolean;
+
+  // ── Watermark ─────────────────────────────────────────────────────────────
+
+  /**
+   * Watermark text or image URL to overlay on the player.
+   * A URL ending in an image extension (png/jpg/gif/svg/webp) is rendered
+   * as an `<img>`, otherwise the string is treated as text.
+   */
+  watermark?: string;
+  /**
+   * Position of the watermark.
+   * One of: `top-left` | `top-right` | `bottom-left` | `bottom-right` | `center`.
+   * Default: `top-right`.
+   */
+  watermarkPosition?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "center";
+  /** Opacity of the watermark (0–1). Default: 0.5. */
+  watermarkOpacity?: number;
+  /**
+   * URL to navigate to when the watermark is clicked.
+   * When set the watermark becomes an `<a>` element (opens in a new tab).
+   */
+  watermarkLink?: string;
+
+  // ── Subtitle style overrides ──────────────────────────────────────────────
+
+  /** Font size for subtitles, e.g. `"1.2em"` or `"18px"`. */
+  subtitleFontSize?: string;
+  /** CSS colour for subtitle text, e.g. `"#ffffff"`. */
+  subtitleColor?: string;
+  /** CSS colour / value for the subtitle background, e.g. `"rgba(0,0,0,0.6)"`. */
+  subtitleBackground?: string;
+  /** Font family for subtitle text. */
+  subtitleFontFamily?: string;
+  /** Font weight for subtitle text, e.g. `"bold"` or `"600"`. */
+  subtitleFontWeight?: string;
+
+  // ── Loop A→B ──────────────────────────────────────────────────────────────
+
+  /**
+   * Enable Loop A→B mode.
+   * When active the user can mark a start point (`[` key) and an end point
+   * (`]` key); playback loops between those two positions.
+   * Set via the `loop-ab` attribute.
+   */
+  loopAb?: boolean;
+
+  // ── Playlist ──────────────────────────────────────────────────────────────
+
+  /**
+   * JSON array of playlist items.
+   * Each item: `{ src: string, title?: string, poster?: string, type?: string }`.
+   * When set, the player shows Prev / Next buttons and auto-advances on ended.
+   */
+  playlist?: PlaylistItem[];
+
+  // ── Hotspots ──────────────────────────────────────────────────────────────
+
+  /**
+   * JSON array of time-based clickable hotspot overlays.
+   * Example: `[{"startTime":5,"endTime":15,"x":20,"y":30,"label":"Buy now","link":"https://…"}]`
+   */
+  hotspots?: HotspotDef[];
+
+  // ── Auto quality ──────────────────────────────────────────────────────────
+
+  /**
+   * When `true`, the player measures available bandwidth on load and
+   * automatically selects the best quality tier from the available `<source>`
+   * elements (matched via `data-quality`).
+   * Uses the Network Information API when available, falls back to a timed
+   * fetch probe otherwise.
+   */
+  autoQuality?: boolean;
+}
+
+/** A single item in a playlist. */
+export interface PlaylistItem {
+  src: string;
+  title?: string;
+  poster?: string;
+  type?: string;
+}
+
+/**
+ * A time-based clickable hotspot overlaid on the video.
+ * Coordinates are percentages of the player width/height (0–100).
+ */
+export interface HotspotDef {
+  /** Time (seconds) at which the hotspot becomes visible. */
+  startTime: number;
+  /** Time (seconds) at which the hotspot disappears. Omit for persistent. */
+  endTime?: number;
+  /** Horizontal position as % of player width. */
+  x: number;
+  /** Vertical position as % of player height. */
+  y: number;
+  /** Width as % of player width. Default 10. */
+  width?: number;
+  /** Height as % of player height. Default 8. */
+  height?: number;
+  /** Label text shown inside the hotspot. */
+  label?: string;
+  /** URL to navigate to when clicked. */
+  link?: string;
+  /** Open link in new tab. Default true. */
+  newTab?: boolean;
 }
 
 /**
@@ -189,6 +343,15 @@ export interface ThumbnailVttCue {
   y: number;
   w: number;
   h: number;
+}
+
+/**
+ * Parsed WebVTT chapter cue.
+ */
+export interface ChapterCue {
+  start: number;
+  end: number;
+  title: string;
 }
 
 /**
