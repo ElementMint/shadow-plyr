@@ -27,6 +27,8 @@
   ],
   "scripts": {
     "build": "rollup -c",
+    "demo": "cp -r dist demo/dist && serve demo",
+    "dev": "npm run build && npm run demo",
     "prepublishOnly": "npm run build",
     "test": "jest --coverage --passWithNoTests",
     "prepare": "husky"
