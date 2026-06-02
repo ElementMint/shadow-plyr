@@ -93,6 +93,10 @@ export interface VideoPlayerConfig {
     playlist?: PlaylistItem[];
     hotspots?: HotspotDef[];
     autoQuality?: boolean;
+    src?: string;
+    type?: "youtube" | string;
+    youtubePrivacyEnhanced?: boolean;
+    youtubeAutoThumbnail?: boolean;
 }
 export interface PlaylistItem {
     src: string;

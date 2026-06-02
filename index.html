@@ -12,7 +12,7 @@
   <script type="importmap">
     {
       "imports": {
-        "shadow-plyr": "./dist/index.js",
+        "shadow-plyr": "/dist/index.js",
         "hls.js": "https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.mjs"
       }
     }
@@ -488,6 +488,137 @@
       <!-- Chapters (markers on seekbar — separate from subtitles) -->
       <track kind="chapters" label="Chapters" srclang="en" src="chapters.vtt">
     </shadow-plyr>
+  </div>
+</section>
+
+<!-- ── YouTube Demo ───────────────────────────────────────────── -->
+<section class="player-section container" id="youtube-demo">
+  <p class="section-label">YouTube Support</p>
+  <h2 class="section-title">YouTube Videos — Same Controls</h2>
+  <p class="section-desc">Drop in any YouTube URL and get the same custom theme, seekbar, keyboard shortcuts, lazy loading and auto-thumbnail. No YouTube branding or native controls.</p>
+
+  <!-- ── Full-width hero YouTube player ── -->
+  <!-- Big Buck Bunny on YouTube — reliably embeddable worldwide -->
+  <div class="player-wrapper" style="margin-top:2rem;">
+    <shadow-plyr
+      src="https://www.youtube.com/watch?v=YE7VzlLtp-4"
+      show-controls="true"
+      show-center-play="true"
+      show-play-pause="true"
+      show-seekbar="true"
+      show-volume="true"
+      show-fullscreen="true"
+      show-speed="true"
+      show-loop="true"
+      show-tooltips="true"
+      lazy="true"
+      pause-on-out-of-view="true"
+      accent-color="#c27e44"
+      controls-background="#1C274C"
+      center-play-size="88"
+      responsive-controls="true"
+      media-title="Big Buck Bunny"
+      media-artist="Blender Foundation"
+    ></shadow-plyr>
+  </div>
+
+  <!-- Usage snippet for hero player -->
+  <pre style="margin-top:.75rem;margin-bottom:2.5rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:1rem;font-size:.78rem;overflow-x:auto;color:var(--text-muted);">&lt;!-- Full YouTube URL — auto-detected, lazy loads when visible, pauses when scrolled out --&gt;
+&lt;shadow-plyr
+  src="https://www.youtube.com/watch?v=YE7VzlLtp-4"
+  show-controls="true" show-center-play="true"
+  lazy="true"
+  pause-on-out-of-view="true"
+  accent-color="#c27e44"
+&gt;&lt;/shadow-plyr&gt;
+
+&lt;!-- Short URL works too --&gt;
+&lt;shadow-plyr src="https://youtu.be/YE7VzlLtp-4" show-controls="true"&gt;&lt;/shadow-plyr&gt;
+
+&lt;!-- Bare video ID needs explicit type --&gt;
+&lt;shadow-plyr src="YE7VzlLtp-4" type="youtube" show-controls="true"&gt;&lt;/shadow-plyr&gt;
+
+&lt;!-- Autoplay (muted required by browser policy) --&gt;
+&lt;shadow-plyr src="https://youtu.be/YE7VzlLtp-4" autoplay="true" muted="true" show-controls="true"&gt;&lt;/shadow-plyr&gt;</pre>
+
+  <!-- ── Two smaller players side by side ── -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2rem;">
+
+    <!-- youtu.be short URL — Cosmos: A Spacetime Odyssey trailer (embeddable) -->
+    <div>
+      <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:.5rem;">youtu.be short URL &middot; custom theme &middot; lazy</p>
+      <div class="player-wrapper">
+        <shadow-plyr
+          src="https://youtu.be/ScMzIvxBSi4"
+          show-controls="true"
+          show-center-play="true"
+          show-play-pause="true"
+          show-seekbar="true"
+          show-volume="true"
+          show-fullscreen="true"
+          show-speed="true"
+          show-tooltips="true"
+          lazy="true"
+          pause-on-out-of-view="true"
+          accent-color="#18d89a"
+          controls-background="#001a12"
+          center-play-size="72"
+          responsive-controls="true"
+        ></shadow-plyr>
+      </div>
+    </div>
+
+    <!-- Bare ID + type="youtube" + privacy-enhanced — Google I/O keynote (embeddable) -->
+    <div>
+      <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:.5rem;">Bare ID &middot; type="youtube" &middot; privacy-enhanced</p>
+      <div class="player-wrapper">
+        <shadow-plyr
+          src="jNQXAC9IVRw"
+          type="youtube"
+          show-controls="true"
+          show-center-play="true"
+          show-play-pause="true"
+          show-seekbar="true"
+          show-volume="true"
+          show-fullscreen="true"
+          show-speed="true"
+          show-tooltips="true"
+          lazy="true"
+          pause-on-out-of-view="true"
+          accent-color="#6f8dff"
+          controls-background="#0a0a1a"
+          responsive-controls="true"
+          youtube-privacy-enhanced="true"
+        ></shadow-plyr>
+      </div>
+    </div>
+
+    <!-- Autoplay + muted — starts playing as soon as it enters the viewport -->
+    <div>
+      <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:.5rem;">Autoplay &middot; muted &middot; starts on scroll-in</p>
+      <div class="player-wrapper">
+        <shadow-plyr
+          src="https://www.youtube.com/watch?v=YE7VzlLtp-4"
+          autoplay="true"
+          muted="true"
+          show-controls="true"
+          show-center-play="true"
+          show-play-pause="true"
+          show-seekbar="true"
+          show-volume="true"
+          show-fullscreen="true"
+          show-speed="true"
+          show-tooltips="true"
+          lazy="true"
+          pause-on-out-of-view="true"
+          accent-color="#ff6b6b"
+          controls-background="#1a0808"
+          center-play-size="72"
+          responsive-controls="true"
+        ></shadow-plyr>
+      </div>
+    </div>
+
   </div>
 </section>
 
