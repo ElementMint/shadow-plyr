@@ -11,8 +11,9 @@
 import { VideoPlayerConfig, IconSet, ThumbnailVttCue, ChapterCue, HotspotDef } from "./types";
 import { DEFAULT_ICONS, IconCache } from "./icons";
 import { throttle, sanitizeSvg } from "./utils";
+import { YouTubeProvider, isYouTubeSource, extractYouTubeId, youTubeThumbnailUrl } from "./providers/youtube";
 const sheet = new CSSStyleSheet();
-sheet.replaceSync(`:host{display:block;position:relative;width:100%;max-width:100%;height:100%;}*{box-sizing:border-box;}.video-container{position:relative;width:100%;aspect-ratio:var(--aspect-ratio,16/9);background:#000;overflow:hidden;height:100%;}.shadow-plyr-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;outline:none;}video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block;pointer-events:auto;opacity:0;transition:opacity .3s ease;will-change:opacity,transform;transform:translateZ(0);}.video-loaded.is-playing video,.video-loaded:not(.poster-visible) video{opacity:1;}video::-webkit-media-controls{display:none;}picture{position:absolute;top:0;left:0;width:100%;height:100%;display:block;z-index:5;opacity:0;transition:opacity .3s ease;pointer-events:none;cursor:pointer;}picture img{width:100%;height:100%;object-fit:contain;display:block;}.poster-visible picture{opacity:1;pointer-events:auto;}.video-loading::after{content:'';position:absolute;top:50%;left:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;z-index:10;}.has-custom-loader.video-loading::after{display:none;}@keyframes spin{to{transform:rotate(360deg);}}.video-custom-loader{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:11;pointer-events:none;display:none;align-items:center;justify-content:center;max-width:80px;max-height:80px;}.video-loading .video-custom-loader{display:flex;}.video-custom-loader img,.video-custom-loader svg{max-width:80px;max-height:80px;display:block;}.video-error-overlay{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.88);padding:20px;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s ease;}.has-error .video-error-overlay{opacity:1;pointer-events:auto;}.error-icon{margin-bottom:12px;}.error-icon svg{width:44px;height:44px;fill:#ff5252;color:#ff5252;}.error-title{color:#fff;font-size:.95rem;font-weight:700;margin:0 0 6px;font-family:inherit;}.error-message{color:rgba(255,255,255,.7);font-size:.83rem;line-height:1.6;margin:0 0 16px;font-family:inherit;}.error-retry-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:.82rem;font-weight:600;transition:background .2s;font-family:inherit;}.error-retry-btn:hover{background:rgba(255,255,255,.24);}.video-center-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:var(--center-play-size,80px);height:var(--center-play-size,80px);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s ease;z-index:20;opacity:0;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.3);background:var(--center-play-bg,rgba(0,0,0,.7));will-change:transform,opacity;}.video-center-play svg{width:calc(var(--center-play-size,80px) * 0.5);height:calc(var(--center-play-size,80px) * 0.5);fill:var(--accent-color,#fff);color:var(--accent-color,#fff);}.video-loaded .video-center-play{opacity:.8;pointer-events:auto;}.video-loaded.is-playing .video-center-play{opacity:0;pointer-events:none;}.video-loaded.is-playing.show-controls .video-center-play{opacity:.8;pointer-events:auto;}.video-center-play:hover{transform:translate(-50%,-50%) scale(1.1);}.video-controls-bar{position:absolute;bottom:0;left:0;right:0;padding:40px 15px 15px;display:flex;flex-direction:column;gap:10px;transition:opacity .3s ease,transform .3s ease;z-index:25;opacity:0;transform:translateY(100%);pointer-events:none;will-change:transform,opacity;background:var(--controls-bg,linear-gradient(to top,rgba(0,0,0,.8),transparent));}.video-loaded:not(.is-playing) .video-controls-bar{opacity:1;transform:translateY(0);pointer-events:auto;}.video-loaded.is-playing .video-controls-bar{opacity:0;transform:translateY(100%);pointer-events:none;}.video-loaded.show-controls .video-controls-bar{opacity:1;transform:translateY(0);pointer-events:auto;}.video-seekbar{position:relative;width:100%;height:14px;cursor:pointer;}.video-seekbar-track{position:absolute;top:50%;left:0;width:100%;height:8px;transform:translateY(-50%);background:rgba(255,255,255,.3);border-radius:6px;overflow:hidden;}.video-seekbar-buffer{position:absolute;inset:0;background:rgba(255,255,255,.2);transform-origin:left center;transform:scaleX(0);}.video-seekbar-progress{height:8px;}.video-seekbar-fill{height:100%;width:100%;background:var(--accent-color,#ff8c42);transform-origin:left center;transform:scaleX(0);}.video-seekbar-handle{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;background:var(--accent-color,#ff8c42);transform:translate(-50%,-50%);}.video-seekbar:hover .video-seekbar-handle{opacity:1;}.seek-thumbnail-preview{position:absolute;bottom:calc(100% + 14px);transform:translateX(-50%);pointer-events:none;opacity:0;z-index:40;transition:opacity .12s ease;}.video-loaded .video-seekbar:hover .seek-thumbnail-preview{opacity:1;}.seek-thumbnail-canvas,.seek-thumbnail-img-el{display:block;width:160px;height:90px;border-radius:4px;border:2px solid rgba(255,255,255,.5);background:#000;object-fit:cover;}.seek-thumbnail-time{text-align:center;font-size:11px;color:#fff;margin-top:4px;font-family:monospace;text-shadow:0 1px 4px rgba(0,0,0,.9);}.video-controls-row{display:flex;align-items:center;gap:15px;}.video-control-btn{background:none;border:none;cursor:pointer;padding:5px;display:flex;align-items:center;justify-content:center;transition:transform .2s;position:relative;}.video-control-btn:hover{transform:scale(1.1);background:rgba(255,255,255,.1);}.video-control-btn svg{width:24px;height:24px;fill:var(--accent-color,#fff);color:var(--accent-color,#fff);}.video-control-btn.play-pause svg{width:28px;height:28px;}.video-volume-control{display:flex;align-items:center;gap:8px;}.video-volume-slider{width:0;height:3px;background:rgba(255,255,255,.3);border-radius:3px;cursor:pointer;position:relative;overflow:hidden;transition:width .3s ease;}.video-volume-control:hover .video-volume-slider{width:60px;}.video-volume-progress{height:100%;width:100%;transition:width .1s;background:var(--accent-color,#fff);will-change:width;}.video-controls-spacer{flex:1;}.video-time-display{font-size:13px;font-family:monospace;user-select:none;color:var(--accent-color,#fff);}.video-speed-control,.video-quality-control,.video-subtitle-control,.video-more-control{position:relative;}.video-speed-btn,.video-quality-btn,.video-subtitle-btn,.video-more-btn{min-width:45px;font-size:13px;font-weight:600;color:var(--accent-color,#fff);}.video-speed-menu,.video-quality-menu,.video-subtitle-menu,.video-more-menu{position:absolute;bottom:100%;right:0;border-radius:4px;padding:5px 0;margin-bottom:10px;min-width:80px;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s ease;z-index:100;background:var(--controls-bg,rgba(0,0,0,.8));}.video-speed-menu.active,.video-quality-menu.active,.video-subtitle-menu.active,.video-more-menu.active{opacity:1;visibility:visible;transform:translateY(0);}.settings-page .video-quality-menu,.settings-page .video-speed-menu,.settings-page .video-subtitle-menu{position:static;opacity:1;visibility:visible;transform:none;transition:none;background:transparent;padding:0;margin:0;min-width:0;}.video-speed-option,.video-quality-option,.video-subtitle-option,.video-more-option{display:block;width:100%;padding:8px 15px;background:none;border:none;font-size:13px;text-align:left;cursor:pointer;transition:background .2s;color:var(--accent-color,#fff);}.video-speed-option:hover,.video-quality-option:hover,.video-subtitle-option:hover,.video-more-option:hover{background:rgba(255,255,255,.1);}.video-speed-option.active,.video-quality-option.active,.video-subtitle-option.active,.video-more-option.active{background:rgba(255,255,255,.2);font-weight:600;}.video-settings-control{position:relative;}.video-settings-menu{position:absolute;bottom:100%;right:0;min-width:220px;border-radius:6px;margin-bottom:10px;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s ease;z-index:100;overflow:hidden;background:var(--controls-bg,rgba(0,0,0,.85));box-shadow:0 8px 28px rgba(0,0,0,.45); max-height:120px; overflow-y:auto;}.video-settings-menu.active{opacity:1;visibility:visible;transform:translateY(0);}.settings-page{display:none;}.settings-page.active{display:block;animation:sfade .15s ease;}@keyframes sfade{from{opacity:0;transform:translateX(6px);}to{opacity:1;transform:translateX(0);}}.settings-main-item{display:flex;align-items:center;gap:8px;width:100%;padding:11px 15px;background:none;border:none;color:var(--accent-color,#fff);font-size:13px;cursor:pointer;transition:background .15s;text-align:left;}.settings-main-item:hover{background:rgba(255,255,255,.1);}.settings-main-label{flex:1;}.settings-main-value{opacity:.55;font-size:12px;white-space:nowrap;}.settings-main-arrow{opacity:.35;font-size:15px;line-height:1;}.settings-sub-header{display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:none;border-bottom:1px solid rgba(255,255,255,.1);color:var(--accent-color,#fff);font-size:13px;cursor:pointer;font-weight:700;text-align:left;transition:background .15s; position:sticky; top:0; z-index:1; background-color:var(--controls-bg)}.settings-sub-header:hover{background:rgba(255,255,255,.1);}.settings-sub-back{font-size:18px;opacity:.65;line-height:1;}.settings-option{display:block;width:100%;padding:9px 15px;background:none;border:none;font-size:13px;text-align:left;cursor:pointer;transition:background .15s;color:var(--accent-color,#fff);}.settings-option:hover{background:rgba(255,255,255,.1);}.settings-option.active{background:rgba(255,255,255,.15);font-weight:600;}.chapter-marker span{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);padding:3px 8px;background:rgba(0,0,0,0.85);color:#fff;font-size:11px;white-space:nowrap;border-radius:4px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:40;}.chapter-marker{top:50%;position:absolute;transform:translate(-50%,-50%);width:3px;height:14px;background:rgba(255,255,255,0.7);border-radius:2px;pointer-events:auto;z-index:4;cursor:pointer;}.video-control-btn:focus-visible,.video-seekbar:focus-visible,.video-volume-slider:focus-visible{outline:2px solid var(--accent-color,#fff);outline-offset:2px;}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0;}.tooltip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:8px;padding:4px 8px;background:var(--tooltip-bg,rgba(0,0,0,0.8));color:var(--tooltip-color,#fff);font-size:var(--tooltip-font-size,12px);white-space:nowrap;border-radius:4px;pointer-events:none;opacity:0;transition:opacity 0.2s;z-index:30;}.video-control-btn:hover .tooltip,.video-center-play:hover .tooltip{opacity:1;}.video-control-btn.disabled,.video-control-btn:disabled{opacity:0.4;cursor:not-allowed;pointer-events:auto;}@media (max-width:768px){.video-center-play{width:60px;height:60px;}.video-center-play svg{width:30px;height:30px;}.video-controls-bar{padding:30px 10px 10px;}.video-control-btn svg{width:20px;height:20px;}.video-volume-slider{display:none;}.video-time-display{font-size:11px;}}.responsive-hidden{display:none;}.responsive-more-menu .video-control-btn{display:flex;width:100%;padding:10px;}.tap-ripple{position:absolute;width:20px;height:20px;background:rgba(255,255,255,0.4);border-radius:50%;transform:translate(-50%,-50%);animation:ripple-expand 0.6s ease-out forwards;pointer-events:none;z-index:50;}@keyframes ripple-expand{from{opacity:1;transform:translate(-50%,-50%) scale(1);}to{opacity:0;transform:translate(-50%,-50%) scale(8);}}.video-seek-buttons{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;pointer-events:none;}.video-seek-buttons button{pointer-events:auto;width:30%;height:60%;background:transparent;border:none;color:#fff;font-size:20px;font-weight:bold;opacity:0.6;}.seek-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:white;font-weight:bold;pointer-events:none;animation:fadeOut 0.6s forwards;}@keyframes fadeOut{from{opacity:1;}to{opacity:0;}}.video-container.theater-mode{max-width:none;aspect-ratio:auto;}.mini-player{position:fixed;bottom:20px;right:20px;width:320px;height:180px;z-index:9999;box-shadow:0 0 20px rgba(0,0,0,.5);top:auto;left:auto;border-radius:8px;overflow:hidden;cursor:move;user-select:none;transition:box-shadow .15s ease;}.mini-player.is-dragging{box-shadow:0 8px 40px rgba(0,0,0,.7);transition:none;}.mini-player .video-volume-slider,.mini-player .video-time-display,.mini-player .fullscreen-btn,.mini-player .video-more-control{display:none !important;}.mini-player .miniplayer-btn{display:block !important;}.mini-player .video-controls-bar{gap:0;padding:16px 6px 2px;cursor:default;}.mini-player video,.mini-player img{border-radius:8px;}::cue{font-family:var(--subtitle-font-family,inherit);font-size:var(--subtitle-font-size,1em);color:var(--subtitle-color,#fff);background:var(--subtitle-bg,rgba(0,0,0,0.75));text-shadow:var(--subtitle-text-shadow,none);font-weight:var(--subtitle-font-weight,normal);white-space:pre-line;padding:.1em .3em;border-radius:var(--subtitle-border-radius,2px);}::cue(b){font-weight:bold;}::cue(i){font-style:italic;}::cue(u){text-decoration:underline;}.video-watermark{position:absolute;z-index:30;pointer-events:none;max-width:30%;max-height:30%;display:flex;align-items:center;justify-content:center;padding:6px 10px;}.video-watermark.wm-top-left{top:10px;left:10px;}.video-watermark.wm-top-right{top:10px;right:10px;}.video-watermark.wm-bottom-left{bottom:60px;left:10px;}.video-watermark.wm-bottom-right{bottom:60px;right:10px;}.video-watermark.wm-center{top:50%;left:50%;transform:translate(-50%,-50%);}.video-watermark a{pointer-events:auto;display:flex;}.video-watermark img{max-width:120px;max-height:48px;object-fit:contain;display:block;}.video-watermark span{font-size:12px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap;user-select:none;}.aria-live-region{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;pointer-events:none;}.loop-ab-handle{position:absolute;top:50%;width:4px;height:16px;border-radius:2px;transform:translate(-50%,-50%);cursor:ew-resize;z-index:5;pointer-events:auto;}.loop-ab-start{background:#4caf50;}.loop-ab-end{background:#f44336;}.loop-ab-range{position:absolute;top:50%;height:8px;transform:translateY(-50%);background:rgba(255,255,255,0.25);pointer-events:none;z-index:1;border-radius:3px;}.playlist-controls{display:flex;align-items:center;gap:6px;}.playlist-controls button{background:none;border:none;cursor:pointer;padding:4px;color:var(--accent-color,#fff);opacity:.8;transition:opacity .2s;display:flex;align-items:center;justify-content:center;}.playlist-controls button:hover{opacity:1;}.playlist-controls button svg{width:20px;height:20px;fill:currentColor;}@media(prefers-contrast:more){.video-controls-bar{background:rgba(0,0,0,.95) !important;}.video-control-btn svg{fill:#fff !important;color:#fff !important;}.video-seekbar-track{background:rgba(255,255,255,.6);}.video-time-display{color:#fff;font-weight:700;}.tooltip{background:#000;border:1px solid #fff;color:#fff;}}.hotspot{position:absolute;cursor:pointer;border:2px solid rgba(255,255,255,.7);border-radius:4px;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;pointer-events:auto;z-index:28;opacity:0;transition:opacity .2s;backdrop-filter:blur(2px);}.hotspot.visible{opacity:1;}.hotspot-label{font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);padding:3px 6px;white-space:nowrap;pointer-events:none;}.hotspot-pulse{position:absolute;inset:0;border-radius:3px;animation:hotspot-ping 1.5s ease-out infinite;border:2px solid rgba(255,255,255,.5);}@keyframes hotspot-ping{0%{transform:scale(1);opacity:.8;}70%{transform:scale(1.2);opacity:0;}100%{transform:scale(1.2);opacity:0;}}.skeleton-loader{position:absolute;inset:0;z-index:10;background:#111;display:none;flex-direction:column;justify-content:flex-end;padding:12px;gap:8px;pointer-events:none;}.video-loading .skeleton-loader{display:flex;}.skeleton-bar{border-radius:4px;background:linear-gradient(90deg,rgba(255,255,255,.06) 25%,rgba(255,255,255,.12) 50%,rgba(255,255,255,.06) 75%);background-size:200% 100%;animation:shimmer 1.5s ease infinite;}@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}.skeleton-bar.sk-seekbar{height:6px;width:100%;}.skeleton-bar.sk-row{height:28px;width:100%;display:flex;gap:8px;}.skeleton-btn{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:inherit;background-size:inherit;animation:inherit;}.skeleton-time{width:90px;height:14px;border-radius:3px;align-self:center;background:inherit;background-size:inherit;animation:inherit;}:host(.theater-mode){position:fixed;top:0;left:0;width:100vw !important;max-width:100vw !important;height:100vh;z-index:9990;}:host(.theater-mode) .video-container{aspect-ratio:auto;height:100vh;}`);
+sheet.replaceSync(`:host{display:block;position:relative;width:100%;max-width:100%;height:100%;}*{box-sizing:border-box;}.video-container{position:relative;width:100%;aspect-ratio:var(--aspect-ratio,16/9);background:#000;overflow:hidden;height:100%;}.shadow-plyr-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;outline:none;}video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;display:block;pointer-events:auto;opacity:0;transition:opacity .3s ease;will-change:opacity,transform;transform:translateZ(0);}.video-loaded.is-playing video,.video-loaded:not(.poster-visible) video{opacity:1;}video::-webkit-media-controls{display:none;}picture{position:absolute;top:0;left:0;width:100%;height:100%;display:block;z-index:5;opacity:0;transition:opacity .3s ease;pointer-events:none;cursor:pointer;}picture img{width:100%;height:100%;object-fit:contain;display:block;}.poster-visible picture{opacity:1;pointer-events:auto;}.video-loading::after{content:'';position:absolute;top:50%;left:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;z-index:10;}.has-custom-loader.video-loading::after{display:none;}@keyframes spin{to{transform:rotate(360deg);}}.video-custom-loader{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:11;pointer-events:none;display:none;align-items:center;justify-content:center;max-width:80px;max-height:80px;}.video-loading .video-custom-loader{display:flex;}.video-custom-loader img,.video-custom-loader svg{max-width:80px;max-height:80px;display:block;}.video-error-overlay{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.88);padding:20px;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s ease;}.has-error .video-error-overlay{opacity:1;pointer-events:auto;}.error-icon{margin-bottom:12px;}.error-icon svg{width:44px;height:44px;fill:#ff5252;color:#ff5252;}.error-title{color:#fff;font-size:.95rem;font-weight:700;margin:0 0 6px;font-family:inherit;}.error-message{color:rgba(255,255,255,.7);font-size:.83rem;line-height:1.6;margin:0 0 16px;font-family:inherit;}.error-retry-btn{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:.82rem;font-weight:600;transition:background .2s;font-family:inherit;}.error-retry-btn:hover{background:rgba(255,255,255,.24);}.video-center-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:var(--center-play-size,80px);height:var(--center-play-size,80px);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .3s ease;z-index:20;opacity:0;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.3);background:var(--center-play-bg,rgba(0,0,0,.7));will-change:transform,opacity;}.video-center-play svg{width:calc(var(--center-play-size,80px) * 0.5);height:calc(var(--center-play-size,80px) * 0.5);fill:var(--accent-color,#fff);color:var(--accent-color,#fff);}.video-loaded .video-center-play{opacity:.8;pointer-events:auto;}.video-loaded.is-playing .video-center-play{opacity:0;pointer-events:none;}.video-loaded.is-playing.show-controls .video-center-play{opacity:.8;pointer-events:auto;}.video-center-play:hover{transform:translate(-50%,-50%) scale(1.1);}.video-controls-bar{position:absolute;bottom:0;left:0;right:0;padding:40px 15px 15px;display:flex;flex-direction:column;gap:10px;transition:opacity .3s ease,transform .3s ease;z-index:25;opacity:0;transform:translateY(100%);pointer-events:none;will-change:transform,opacity;background:var(--controls-bg,linear-gradient(to top,rgba(0,0,0,.8),transparent));}.video-loaded:not(.is-playing) .video-controls-bar{opacity:1;transform:translateY(0);pointer-events:auto;}.video-loaded.is-playing .video-controls-bar{opacity:0;transform:translateY(100%);pointer-events:none;}.video-loaded.show-controls .video-controls-bar{opacity:1;transform:translateY(0);pointer-events:auto;}.video-seekbar{position:relative;width:100%;height:14px;cursor:pointer;}.video-seekbar-track{position:absolute;top:50%;left:0;width:100%;height:8px;transform:translateY(-50%);background:rgba(255,255,255,.3);border-radius:6px;overflow:hidden;}.video-seekbar-buffer{position:absolute;inset:0;background:rgba(255,255,255,.2);transform-origin:left center;transform:scaleX(0);}.video-seekbar-progress{height:8px;}.video-seekbar-fill{height:100%;width:100%;background:var(--accent-color,#ff8c42);transform-origin:left center;transform:scaleX(0);}.video-seekbar-handle{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;background:var(--accent-color,#ff8c42);transform:translate(-50%,-50%);}.video-seekbar:hover .video-seekbar-handle{opacity:1;}.seek-thumbnail-preview{position:absolute;bottom:calc(100% + 14px);transform:translateX(-50%);pointer-events:none;opacity:0;z-index:40;transition:opacity .12s ease;}.video-loaded .video-seekbar:hover .seek-thumbnail-preview{opacity:1;}.seek-thumbnail-canvas,.seek-thumbnail-img-el{display:block;width:160px;height:90px;border-radius:4px;border:2px solid rgba(255,255,255,.5);background:#000;object-fit:cover;}.seek-thumbnail-time{text-align:center;font-size:11px;color:#fff;margin-top:4px;font-family:monospace;text-shadow:0 1px 4px rgba(0,0,0,.9);}.video-controls-row{display:flex;align-items:center;gap:15px;}.video-control-btn{background:none;border:none;cursor:pointer;padding:5px;display:flex;align-items:center;justify-content:center;transition:transform .2s;position:relative;}.video-control-btn:hover{transform:scale(1.1);background:rgba(255,255,255,.1);}.video-control-btn svg{width:24px;height:24px;fill:var(--accent-color,#fff);color:var(--accent-color,#fff);}.video-control-btn.play-pause svg{width:28px;height:28px;}.video-volume-control{display:flex;align-items:center;gap:8px;}.video-volume-slider{width:0;height:3px;background:rgba(255,255,255,.3);border-radius:3px;cursor:pointer;position:relative;overflow:hidden;transition:width .3s ease;}.video-volume-control:hover .video-volume-slider{width:60px;}.video-volume-progress{height:100%;width:100%;transition:width .1s;background:var(--accent-color,#fff);will-change:width;}.video-controls-spacer{flex:1;}.video-time-display{font-size:13px;font-family:monospace;user-select:none;color:var(--accent-color,#fff);}.video-speed-control,.video-quality-control,.video-subtitle-control,.video-more-control{position:relative;}.video-speed-btn,.video-quality-btn,.video-subtitle-btn,.video-more-btn{min-width:45px;font-size:13px;font-weight:600;color:var(--accent-color,#fff);}.video-speed-menu,.video-quality-menu,.video-subtitle-menu,.video-more-menu{position:absolute;bottom:100%;right:0;border-radius:4px;padding:5px 0;margin-bottom:10px;min-width:80px;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s ease;z-index:100;background:var(--controls-bg,rgba(0,0,0,.8));}.video-speed-menu.active,.video-quality-menu.active,.video-subtitle-menu.active,.video-more-menu.active{opacity:1;visibility:visible;transform:translateY(0);}.settings-page .video-quality-menu,.settings-page .video-speed-menu,.settings-page .video-subtitle-menu{position:static;opacity:1;visibility:visible;transform:none;transition:none;background:transparent;padding:0;margin:0;min-width:0;}.video-speed-option,.video-quality-option,.video-subtitle-option,.video-more-option{display:block;width:100%;padding:8px 15px;background:none;border:none;font-size:13px;text-align:left;cursor:pointer;transition:background .2s;color:var(--accent-color,#fff);}.video-speed-option:hover,.video-quality-option:hover,.video-subtitle-option:hover,.video-more-option:hover{background:rgba(255,255,255,.1);}.video-speed-option.active,.video-quality-option.active,.video-subtitle-option.active,.video-more-option.active{background:rgba(255,255,255,.2);font-weight:600;}.video-settings-control{position:relative;}.video-settings-menu{position:absolute;bottom:100%;right:0;min-width:220px;border-radius:6px;margin-bottom:10px;opacity:0;visibility:hidden;transform:translateY(10px);transition:all .2s ease;z-index:100;overflow:hidden;background:var(--controls-bg,rgba(0,0,0,.85));box-shadow:0 8px 28px rgba(0,0,0,.45); max-height:120px; overflow-y:auto;}.video-settings-menu.active{opacity:1;visibility:visible;transform:translateY(0);}.settings-page{display:none;}.settings-page.active{display:block;animation:sfade .15s ease;}@keyframes sfade{from{opacity:0;transform:translateX(6px);}to{opacity:1;transform:translateX(0);}}.settings-main-item{display:flex;align-items:center;gap:8px;width:100%;padding:11px 15px;background:none;border:none;color:var(--accent-color,#fff);font-size:13px;cursor:pointer;transition:background .15s;text-align:left;}.settings-main-item:hover{background:rgba(255,255,255,.1);}.settings-main-label{flex:1;}.settings-main-value{opacity:.55;font-size:12px;white-space:nowrap;}.settings-main-arrow{opacity:.35;font-size:15px;line-height:1;}.settings-sub-header{display:flex;align-items:center;gap:8px;width:100%;padding:10px 14px;background:rgba(255,255,255,.06);border:none;border-bottom:1px solid rgba(255,255,255,.1);color:var(--accent-color,#fff);font-size:13px;cursor:pointer;font-weight:700;text-align:left;transition:background .15s; position:sticky; top:0; z-index:1; background-color:var(--controls-bg)}.settings-sub-header:hover{background:rgba(255,255,255,.1);}.settings-sub-back{font-size:18px;opacity:.65;line-height:1;}.settings-option{display:block;width:100%;padding:9px 15px;background:none;border:none;font-size:13px;text-align:left;cursor:pointer;transition:background .15s;color:var(--accent-color,#fff);}.settings-option:hover{background:rgba(255,255,255,.1);}.settings-option.active{background:rgba(255,255,255,.15);font-weight:600;}.chapter-marker span{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);padding:3px 8px;background:rgba(0,0,0,0.85);color:#fff;font-size:11px;white-space:nowrap;border-radius:4px;pointer-events:none;opacity:0;transition:opacity .15s;z-index:40;}.chapter-marker{top:50%;position:absolute;transform:translate(-50%,-50%);width:3px;height:14px;background:rgba(255,255,255,0.7);border-radius:2px;pointer-events:auto;z-index:4;cursor:pointer;}.video-control-btn:focus-visible,.video-seekbar:focus-visible,.video-volume-slider:focus-visible{outline:2px solid var(--accent-color,#fff);outline-offset:2px;}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0;}.tooltip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:8px;padding:4px 8px;background:var(--tooltip-bg,rgba(0,0,0,0.8));color:var(--tooltip-color,#fff);font-size:var(--tooltip-font-size,12px);white-space:nowrap;border-radius:4px;pointer-events:none;opacity:0;transition:opacity 0.2s;z-index:30;}.video-control-btn:hover .tooltip,.video-center-play:hover .tooltip{opacity:1;}.video-control-btn.disabled,.video-control-btn:disabled{opacity:0.4;cursor:not-allowed;pointer-events:auto;}@media (max-width:768px){.video-center-play{width:60px;height:60px;}.video-center-play svg{width:30px;height:30px;}.video-controls-bar{padding:30px 10px 10px;}.video-control-btn svg{width:20px;height:20px;}.video-volume-slider{display:none;}.video-time-display{font-size:11px;}}.responsive-hidden{display:none;}.responsive-more-menu .video-control-btn{display:flex;width:100%;padding:10px;}.tap-ripple{position:absolute;width:20px;height:20px;background:rgba(255,255,255,0.4);border-radius:50%;transform:translate(-50%,-50%);animation:ripple-expand 0.6s ease-out forwards;pointer-events:none;z-index:50;}@keyframes ripple-expand{from{opacity:1;transform:translate(-50%,-50%) scale(1);}to{opacity:0;transform:translate(-50%,-50%) scale(8);}}.video-seek-buttons{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;pointer-events:none;}.video-seek-buttons button{pointer-events:auto;width:30%;height:60%;background:transparent;border:none;color:#fff;font-size:20px;font-weight:bold;opacity:0.6;}.seek-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;color:white;font-weight:bold;pointer-events:none;animation:fadeOut 0.6s forwards;}@keyframes fadeOut{from{opacity:1;}to{opacity:0;}}.video-container.theater-mode{max-width:none;aspect-ratio:auto;}.mini-player{position:fixed;bottom:20px;right:20px;width:320px;height:180px;z-index:9999;box-shadow:0 0 20px rgba(0,0,0,.5);top:auto;left:auto;border-radius:8px;overflow:hidden;cursor:move;user-select:none;transition:box-shadow .15s ease;}.mini-player.is-dragging{box-shadow:0 8px 40px rgba(0,0,0,.7);transition:none;}.mini-player .video-volume-slider,.mini-player .video-time-display,.mini-player .fullscreen-btn,.mini-player .video-more-control{display:none !important;}.mini-player .miniplayer-btn{display:block !important;}.mini-player .video-controls-bar{gap:0;padding:16px 6px 2px;cursor:default;}.mini-player video,.mini-player img{border-radius:8px;}::cue{font-family:var(--subtitle-font-family,inherit);font-size:var(--subtitle-font-size,1em);color:var(--subtitle-color,#fff);background:var(--subtitle-bg,rgba(0,0,0,0.75));text-shadow:var(--subtitle-text-shadow,none);font-weight:var(--subtitle-font-weight,normal);white-space:pre-line;padding:.1em .3em;border-radius:var(--subtitle-border-radius,2px);}::cue(b){font-weight:bold;}::cue(i){font-style:italic;}::cue(u){text-decoration:underline;}.video-watermark{position:absolute;z-index:30;pointer-events:none;max-width:30%;max-height:30%;display:flex;align-items:center;justify-content:center;padding:6px 10px;}.video-watermark.wm-top-left{top:10px;left:10px;}.video-watermark.wm-top-right{top:10px;right:10px;}.video-watermark.wm-bottom-left{bottom:60px;left:10px;}.video-watermark.wm-bottom-right{bottom:60px;right:10px;}.video-watermark.wm-center{top:50%;left:50%;transform:translate(-50%,-50%);}.video-watermark a{pointer-events:auto;display:flex;}.video-watermark img{max-width:120px;max-height:48px;object-fit:contain;display:block;}.video-watermark span{font-size:12px;font-weight:600;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.7);white-space:nowrap;user-select:none;}.aria-live-region{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;pointer-events:none;}.loop-ab-handle{position:absolute;top:50%;width:4px;height:16px;border-radius:2px;transform:translate(-50%,-50%);cursor:ew-resize;z-index:5;pointer-events:auto;}.loop-ab-start{background:#4caf50;}.loop-ab-end{background:#f44336;}.loop-ab-range{position:absolute;top:50%;height:8px;transform:translateY(-50%);background:rgba(255,255,255,0.25);pointer-events:none;z-index:1;border-radius:3px;}.playlist-controls{display:flex;align-items:center;gap:6px;}.playlist-controls button{background:none;border:none;cursor:pointer;padding:4px;color:var(--accent-color,#fff);opacity:.8;transition:opacity .2s;display:flex;align-items:center;justify-content:center;}.playlist-controls button:hover{opacity:1;}.playlist-controls button svg{width:20px;height:20px;fill:currentColor;}@media(prefers-contrast:more){.video-controls-bar{background:rgba(0,0,0,.95) !important;}.video-control-btn svg{fill:#fff !important;color:#fff !important;}.video-seekbar-track{background:rgba(255,255,255,.6);}.video-time-display{color:#fff;font-weight:700;}.tooltip{background:#000;border:1px solid #fff;color:#fff;}}.hotspot{position:absolute;cursor:pointer;border:2px solid rgba(255,255,255,.7);border-radius:4px;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;pointer-events:auto;z-index:28;opacity:0;transition:opacity .2s;backdrop-filter:blur(2px);}.hotspot.visible{opacity:1;}.hotspot-label{font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);padding:3px 6px;white-space:nowrap;pointer-events:none;}.hotspot-pulse{position:absolute;inset:0;border-radius:3px;animation:hotspot-ping 1.5s ease-out infinite;border:2px solid rgba(255,255,255,.5);}@keyframes hotspot-ping{0%{transform:scale(1);opacity:.8;}70%{transform:scale(1.2);opacity:0;}100%{transform:scale(1.2);opacity:0;}}.skeleton-loader{position:absolute;inset:0;z-index:10;background:#111;display:none;flex-direction:column;justify-content:flex-end;padding:12px;gap:8px;pointer-events:none;}.video-loading .skeleton-loader{display:flex;}.skeleton-bar{border-radius:4px;background:linear-gradient(90deg,rgba(255,255,255,.06) 25%,rgba(255,255,255,.12) 50%,rgba(255,255,255,.06) 75%);background-size:200% 100%;animation:shimmer 1.5s ease infinite;}@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}.skeleton-bar.sk-seekbar{height:6px;width:100%;}.skeleton-bar.sk-row{height:28px;width:100%;display:flex;gap:8px;}.skeleton-btn{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:inherit;background-size:inherit;animation:inherit;}.skeleton-time{width:90px;height:14px;border-radius:3px;align-self:center;background:inherit;background-size:inherit;animation:inherit;}:host(.theater-mode){position:fixed;top:0;left:0;width:100vw !important;max-width:100vw !important;height:100vh;z-index:9990;}:host(.theater-mode) .video-container{aspect-ratio:auto;height:100vh;}.yt-player-container{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;overflow:hidden;}.yt-player-container iframe{position:absolute;top:-75px;left:-10%;width:120%;height:calc(100% + 150px);border:none;pointer-events:none;}.yt-click-shield{position:absolute;top:0;left:0;width:100%;height:100%;z-index:6;cursor:pointer;}`);
 const GlobalVideoEngine = (() => {
   const instances = new Set<ShadowPlyr>();
   let activeInstance: ShadowPlyr | null = null;
@@ -143,6 +144,12 @@ export class ShadowPlyr extends HTMLElement {
   #hotspotDefs: HotspotDef[] = [];
   #$hotspotLayer: HTMLElement | null = null;
 
+  // ── YouTube provider ───────────────────────────────────────────────────────
+  #ytProvider: YouTubeProvider | null = null;
+  #ytVideoId: string | null = null;
+  /** True when the active video is a YouTube embed (not HTML5). */
+  #isYouTube = false;
+
   // ── Controls auto-hide ──────────────────────────────────────────────────
   #controlsHideTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -156,7 +163,7 @@ export class ShadowPlyr extends HTMLElement {
 
   // KEYBOARD
   #handleKeyboard = (e: KeyboardEvent): void => {
-    if (!this.#videoElement) return;
+    if (!this.#videoElement && !this.#isYouTube) return;
     const key = e.key.toLowerCase();
     const actions: Record<string, () => void> = {
       " ": () => this.#togglePlayPause(),
@@ -167,8 +174,8 @@ export class ShadowPlyr extends HTMLElement {
       arrowdown: () => this.#adjustVolume(-0.1),
       m: () => this.#toggleMute(),
       f: () => this.#toggleFullscreen(),
-      home: () => { if (this.#videoElement) this.#videoElement.currentTime = 0; },
-      end: () => { if (this.#videoElement) this.#videoElement.currentTime = this.#videoElement.duration; },
+      home: () => { this.seek(0); },
+      end: () => { const d = this.#isYouTube ? (this.#ytProvider?.duration ?? 0) : (this.#videoElement?.duration ?? 0); this.seek(d); },
       l: () => this.#toggleLoop(),
       p: () => this.#togglePip(),
       t: () => this.#toggleTheaterMode(),
@@ -180,22 +187,28 @@ export class ShadowPlyr extends HTMLElement {
       e.preventDefault();
       actions[key]();
       if (this.#$wrapper) this.#$wrapper.classList.add("show-controls");
-    } else if (key >= "0" && key <= "9" && this.#videoElement.duration) {
-      e.preventDefault();
-      this.#videoElement.currentTime =
-        this.#videoElement.duration * (parseInt(key) / 10);
+    } else if (key >= "0" && key <= "9") {
+      const dur = this.#isYouTube ? (this.#ytProvider?.duration ?? 0) : (this.#videoElement?.duration ?? 0);
+      if (dur) {
+        e.preventDefault();
+        this.seek(dur * (parseInt(key) / 10));
+      }
     }
   };
 
   // TOGGLE HELPERS
   #togglePlayPause = (e?: Event): void => {
     if (e) e.stopPropagation();
-    if (!this.#videoElement) return;
+    if (!this.#videoElement && !this.#isYouTube) return;
     if (this.#isPlaying) this.pauseVideo(); else this.playVideo();
   };
 
   #toggleMute = (e?: Event): void => {
     if (e) e.stopPropagation();
+    if (this.#isYouTube && this.#ytProvider) {
+      this.#ytProvider.muted = !this.#ytProvider.muted;
+      return;
+    }
     if (this.#videoElement) this.#videoElement.muted = !this.#videoElement.muted;
   };
 
@@ -220,6 +233,12 @@ export class ShadowPlyr extends HTMLElement {
 
   #toggleLoop = (e?: Event): void => {
     if (e) e.stopPropagation();
+    if (this.#isYouTube && this.#ytProvider) {
+      this.#ytProvider.loop = !this.#ytProvider.loop;
+      this.#updateLoopIcon(this.#ytProvider.loop);
+      this.#emit("video-loop-change", { loop: this.#ytProvider.loop });
+      return;
+    }
     if (!this.#videoElement) return;
     this.#videoElement.loop = !this.#videoElement.loop;
     this.#updateLoopIcon(this.#videoElement.loop);
@@ -228,6 +247,7 @@ export class ShadowPlyr extends HTMLElement {
 
   #togglePip = async (e?: Event): Promise<void> => {
     if (e) e.stopPropagation();
+    if (this.#isYouTube) return; // PiP not supported for YouTube
     if (!this.#videoElement) return;
     try {
       if (document.pictureInPictureElement === this.#videoElement) {
@@ -421,22 +441,38 @@ export class ShadowPlyr extends HTMLElement {
 
   // SEEK / VOLUME / SPEED
   #seekTo = (percent: number): void => {
-    if (this.#videoElement?.duration)
-      this.#videoElement.currentTime =
-        this.#videoElement.duration * Math.max(0, Math.min(1, percent));
+    const duration = this.#isYouTube
+      ? (this.#ytProvider?.duration ?? 0)
+      : (this.#videoElement?.duration ?? 0);
+    if (!duration) return;
+    const t = duration * Math.max(0, Math.min(1, percent));
+    if (this.#isYouTube && this.#ytProvider) {
+      this.#ytProvider.currentTime = t;
+    } else if (this.#videoElement) {
+      this.#videoElement.currentTime = t;
+    }
   };
 
   #setVolume = (percent: number): void => {
-    if (!this.#videoElement) return;
     const vol = Math.max(0, Math.min(1, percent));
+    if (this.#isYouTube && this.#ytProvider) {
+      this.#ytProvider.volume = vol;
+      return;
+    }
+    if (!this.#videoElement) return;
     this.#videoElement.volume = vol;
     this.#videoElement.muted = vol === 0;
   };
 
   #setSpeed = (speed: number, wrapper?: HTMLElement): void => {
-    if (!this.#videoElement) return;
-    this.#videoElement.playbackRate = speed;
-    this.#currentSpeed = speed;
+    if (this.#isYouTube && this.#ytProvider) {
+      this.#ytProvider.playbackRate = speed;
+      this.#currentSpeed = this.#ytProvider.playbackRate; // clamped value
+    } else if (this.#videoElement) {
+      this.#videoElement.playbackRate = speed;
+    }
+    if (!this.#isYouTube && !this.#videoElement) return;
+    if (!this.#isYouTube) this.#currentSpeed = speed;
     const target = wrapper ?? this.#$wrapper;
     target
       ?.querySelectorAll(".video-speed-option, .settings-option[data-speed]")
@@ -1082,6 +1118,11 @@ export class ShadowPlyr extends HTMLElement {
       "hotspots",
       // Auto quality
       "auto-quality",
+      // YouTube
+      "src",
+      "type",
+      "youtube-privacy-enhanced",
+      "youtube-auto-thumbnail",
     ];
   }
 
@@ -1245,6 +1286,11 @@ export class ShadowPlyr extends HTMLElement {
       })(),
       // Auto quality
       autoQuality: ga("auto-quality") === "true",
+      // YouTube
+      src:  ga("src")  || "",
+      type: ga("type") || "",
+      youtubePrivacyEnhanced: ga("youtube-privacy-enhanced") !== "false",
+      youtubeAutoThumbnail:   ga("youtube-auto-thumbnail")   !== "false",
     };
     this.#configCache = config;
     this.#configCacheTime = now;
@@ -1342,6 +1388,16 @@ export class ShadowPlyr extends HTMLElement {
     wrapper.setAttribute("role", "application");
     wrapper.setAttribute("aria-label", "Video player");
     wrapper.setAttribute("part", "shadow-plyr-wrapper");
+
+    // Click anywhere on the video body (not on a control) toggles play/pause.
+    // Controls have class names starting with "video-" or "settings-"; anything
+    // else is treated as a bare-video click.
+    wrapper.addEventListener("click", (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[class*="video-"],[class*="settings-"],[class*="yt-"]')) {
+        this.#togglePlayPause(e);
+      }
+    });
 
     // Show poster immediately — without this the wrapper has no poster-visible class
     // until loadeddata fires, leaving a black screen on first load.
@@ -2432,11 +2488,239 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   // VIDEO LOADING
+  // ── YouTube detection ──────────────────────────────────────────────────────
+
+  /** Resolve the src and decide whether it is a YouTube video. */
+  #resolveYouTubeSrc(config: VideoPlayerConfig): string | null {
+    // Explicit src attribute
+    const src = config.src;
+    if (src) {
+      if (config.type === "youtube") return extractYouTubeId(src);
+      if (isYouTubeSource(src))      return extractYouTubeId(src);
+    }
+    // Fall back to the first harvested <source> element
+    const firstSrc = this.#savedSources[0]?.getAttribute("src") || "";
+    if (firstSrc) {
+      if (config.type === "youtube") return extractYouTubeId(firstSrc);
+      if (isYouTubeSource(firstSrc)) return extractYouTubeId(firstSrc);
+    }
+    return null;
+  }
+
+  // ── YouTube load path ─────────────────────────────────────────────────────
+
+  #loadYouTube(wrapper: HTMLElement, config: VideoPlayerConfig, videoId: string): void {
+    this.#isYouTube = true;
+    this.#ytVideoId = videoId;
+
+    wrapper.classList.add("video-loading");
+    this.classList.add("video-loading");
+
+    // Auto-thumbnail: inject a <picture> poster if none was provided
+    if (config.youtubeAutoThumbnail && !this.#hasPoster) {
+      const thumbUrl = youTubeThumbnailUrl(videoId, "hqdefault");
+      const picture = document.createElement("picture");
+      picture.setAttribute("part", "poster");
+      const img = document.createElement("img");
+      img.src = thumbUrl;
+      img.alt = "Video thumbnail";
+      img.loading = "lazy";
+      picture.appendChild(img);
+      wrapper.insertBefore(picture, wrapper.firstChild);
+      this.#hasPoster = true;
+      this.#posterVisible = true;
+      wrapper.classList.add("poster-visible");
+      this.classList.add("poster-visible");
+    }
+
+    // Mount the placeholder for the YT iframe
+    const placeholder = wrapper.querySelector(".video-placeholder") as HTMLElement | null;
+
+    this.#ytProvider = new YouTubeProvider(placeholder ?? wrapper, {
+      videoId,
+      autoplay: config.autoplay,
+      muted:    config.muted,
+      loop:     config.loop,
+      privacyEnhanced: config.youtubePrivacyEnhanced,
+      onEvent: (data) => this.#onYouTubeEvent(wrapper, config, data),
+    });
+
+    // Expose a thin #videoElement-compatible shim so all existing helpers
+    // (seekbar, time display, volume, speed, keyboard, RAF loop) work unchanged.
+    this.#videoElement = this.#ytProvider as unknown as HTMLVideoElement;
+    this.#exposeYouTubeAPI();
+
+    // Transparent shield sits above the iframe so YouTube's native UI (title
+    // cards, info overlays, watch-on-YouTube button) is never reachable.
+    // Clicks on the shield toggle play/pause via our own controls.
+    const shield = document.createElement("div");
+    shield.className = "yt-click-shield";
+    shield.addEventListener("click", (e) => { e.stopPropagation(); this.#togglePlayPause(e); });
+    (placeholder ?? wrapper).appendChild(shield);
+
+
+    if (config.showControls) this.#setupControlButtons(wrapper);
+  }
+
+  /** Re-expose the public API pointing at the YT provider instead of <video>. */
+  #exposeYouTubeAPI(): void {
+    const yt = this.#ytProvider!;
+    const props: Array<[string, () => any, ((v: any) => void)?]> = [
+      ["currentTime",   () => yt.currentTime,   (v) => { yt.currentTime = v; }],
+      ["duration",      () => yt.duration],
+      ["paused",        () => yt.paused],
+      ["ended",         () => yt.ended],
+      ["muted",         () => yt.muted,          (v) => { yt.muted = v; }],
+      ["volume",        () => yt.volume,         (v) => { yt.volume = v; }],
+      ["loop",          () => yt.loop,           (v) => { yt.loop = v; }],
+      ["playbackRate",  () => yt.playbackRate,   (v) => { yt.playbackRate = v; }],
+      ["readyState",    () => yt.readyState],
+      ["networkState",  () => yt.networkState],
+      ["videoWidth",    () => yt.videoWidth],
+      ["videoHeight",   () => yt.videoHeight],
+      ["src",           () => this.#ytVideoId ?? ""],
+    ];
+    props.forEach(([key, get, set]) => {
+      Object.defineProperty(this, key, {
+        get,
+        ...(set ? { set } : {}),
+        configurable: true,
+      });
+    });
+    (this as any).play  = () => this.playVideo();
+    (this as any).pause = () => this.pauseVideo();
+    (this as any).load  = () => {};
+    (this as any).requestPictureInPicture = () => Promise.reject(new Error("PiP not supported for YouTube"));
+  }
+
+  /** Handle events emitted by the YouTubeProvider. */
+  #onYouTubeEvent(wrapper: HTMLElement, config: VideoPlayerConfig, data: { type: string; currentTime?: number; duration?: number; volume?: number; muted?: boolean; code?: number }): void {
+    switch (data.type) {
+      case "yt-ready":
+        wrapper.classList.remove("video-loading");
+        wrapper.classList.add("video-loaded");
+        this.classList.remove("video-loading");
+        this.classList.add("video-loaded");
+        this.#isInitialized = true;
+        this.#videoLoaded = true;
+        this.#hasError = false;
+        if (!config.autoplay) {
+          this.#posterVisible = true;
+          wrapper.classList.add("poster-visible");
+          this.classList.add("poster-visible");
+        } else {
+          // Optimistically mark as playing so the center-play button stays
+          // hidden during the gap between yt-ready and the first yt-playing event.
+          wrapper.classList.add("is-playing");
+          this.classList.add("is-playing");
+        }
+        this.#updateFullscreenIcon(false, wrapper);
+        this.#emit("video-ready", { duration: data.duration ?? 0 });
+        if (config.responsiveControls) this.#setupResponsive(wrapper);
+        // Speed menu: disable unavailable speeds for YT
+        this.#disableUnsupportedYTSpeeds(wrapper, config);
+        break;
+
+      case "yt-playing":
+        this.#emit("video-playing", { currentTime: data.currentTime ?? 0, duration: data.duration ?? 0 });
+        wrapper.classList.add("is-playing");
+        wrapper.classList.remove("poster-visible");
+        this.classList.add("is-playing");
+        this.classList.remove("poster-visible");
+        this.#isPlaying = true;
+        this.#hasPlayedOnce = true;
+        this.#posterVisible = false;
+        this.#updatePlayPauseIcon(true, wrapper);
+        this.#startYTFrameLoop();
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+        this.#announce("Playing");
+        this.#resetControlsHideTimer();
+        break;
+
+      case "yt-paused":
+        this.#emit("video-paused", { currentTime: data.currentTime ?? 0 });
+        wrapper.classList.remove("is-playing");
+        this.classList.remove("is-playing");
+        this.#isPlaying = false;
+        this.#updatePlayPauseIcon(false, wrapper);
+        this.#announce("Paused");
+        this.#clearControlsHideTimer();
+        this.#cancelFrameLoop();
+        break;
+
+      case "yt-ended":
+        this.#emit("video-ended", { duration: data.duration ?? 0 });
+        wrapper.classList.remove("is-playing");
+        this.classList.remove("is-playing");
+        this.#isPlaying = false;
+        this.#updatePlayPauseIcon(false, wrapper);
+        this.#cancelFrameLoop();
+        if (config.showPosterOnEnded && this.#hasPoster) {
+          wrapper.classList.add("poster-visible");
+          this.classList.add("poster-visible");
+          this.#posterVisible = true;
+        }
+        break;
+
+      case "yt-seeking":
+        this.#emit("video-seeking", { currentTime: data.currentTime ?? 0 });
+        break;
+
+      case "yt-seeked":
+        this.#emit("video-seeked", { currentTime: data.currentTime ?? 0 });
+        break;
+
+      case "yt-volumechange":
+        this.#updateVolumeIcon(!!(data.muted) || (data.volume ?? 1) === 0, wrapper);
+        this.#updateVolumeSlider(data.volume ?? 1, wrapper);
+        this.#emit("video-volume-change", { volume: data.volume ?? 1, muted: !!data.muted });
+        break;
+
+      case "yt-error":
+        console.warn(`[ShadowPlyr] YouTube error code ${data.code}. Common causes: 101/150 = embedding disabled for this video; 2 = invalid video ID; 5 = HTML5 player error.`);
+        this.#onError(wrapper);
+        break;
+    }
+  }
+
+  /** RAF loop for YouTube — mirrors #startVideoFrameLoop but sources time from YT provider. */
+  #startYTFrameLoop(): void {
+    const tick = () => {
+      if (!this.#ytProvider || !this.#isPlaying || this.#isYouTube === false) return;
+      this.#updateSeekbar();
+      this.#updateTimeDisplay();
+      this.#checkQuartile();
+      this.#checkHotspots();
+      this.#rafId = requestAnimationFrame(tick);
+    };
+    this.#cancelFrameLoop();
+    this.#rafId = requestAnimationFrame(tick);
+  }
+
+  /** Grey out speed options that YouTube doesn't support. */
+  #disableUnsupportedYTSpeeds(wrapper: HTMLElement, _config: VideoPlayerConfig): void {
+    const allowed = new Set([0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]);
+    wrapper.querySelectorAll<HTMLButtonElement>(".video-speed-option, .settings-option[data-speed]").forEach((btn) => {
+      const s = parseFloat(btn.getAttribute("data-speed") || "1");
+      if (!allowed.has(s)) {
+        btn.disabled = true;
+        btn.classList.add("disabled");
+      }
+    });
+  }
+
   #loadVideo(wrapper: HTMLElement, config: VideoPlayerConfig): void {
     if (this.#isInitialized) return;
     // Stamp this load cycle so stale async callbacks (timeouts, source error
     // listeners) from a previous load can detect they are outdated and bail.
     const myGeneration = ++this.#loadGeneration;
+
+    // ── YouTube branch ────────────────────────────────────────────────────────
+    const ytId = this.#resolveYouTubeSrc(config);
+    if (ytId) {
+      this.#loadYouTube(wrapper, config, ytId);
+      return;
+    }
     wrapper.classList.add("video-loading");
     this.classList.add("video-loading");
 
@@ -2563,7 +2847,10 @@ export class ShadowPlyr extends HTMLElement {
       "volumechange",
       this.#onVolumeChange.bind(this, wrapper)
     );
-    video.addEventListener("error", this.#onError.bind(this, wrapper));
+    video.addEventListener("error", () => {
+      if (myGeneration !== this.#loadGeneration) return; // stale — ignore errors from a replaced video element
+      this.#onError(wrapper);
+    }, { once: true });
     video.addEventListener("enterpictureinpicture", this.#onPipEnter);
     video.addEventListener("leavepictureinpicture", this.#onPipLeave);
 
@@ -2687,11 +2974,16 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   public playVideo(): void {
-    if (!this.#videoElement) return;
     const config = this.#getConfig();
-    if (config.autoplay) this.#videoElement.muted = true;
     if (config.singleActive || this.getAttribute("virtual-playback") === "true")
       GlobalVideoEngine.requestPlay(this);
+
+    if (this.#isYouTube) {
+      if (this.#ytProvider) this.#ytProvider.play();
+      return;
+    }
+    if (!this.#videoElement) return;
+    if (config.autoplay) this.#videoElement.muted = true;
     const p = this.#videoElement.play();
     if (p)
       p.catch(() => {
@@ -2704,6 +2996,11 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   public pauseVideo(silent?: boolean): void {
+    if (this.#isYouTube) {
+      if (this.#ytProvider) this.#ytProvider.pause();
+      if (!silent) this.#emit("video-paused", {});
+      return;
+    }
     if (this.#videoElement) { this.#videoElement.pause(); if (!silent) this.#emit("video-paused"); }
   }
 
@@ -2743,6 +3040,7 @@ export class ShadowPlyr extends HTMLElement {
       const ctl = target.closest(
         '[class*="video-"],[class*="settings-"]'
       ) as HTMLElement | null;
+
       if (!ctl) return;
 
       // Settings button toggle
@@ -2832,7 +3130,7 @@ export class ShadowPlyr extends HTMLElement {
         this.#onVolumeMouseDown as EventListener
       );
 
-    if (this.#videoElement)
+    if (this.#videoElement && !this.#isYouTube)
       this.#videoElement.addEventListener("click", this.#togglePlayPause);
 
     this.#setupControlsInteraction(wrapper);
@@ -3443,20 +3741,28 @@ export class ShadowPlyr extends HTMLElement {
 
   // MISC HELPERS
   #seekBackward(): void {
-    if (this.#videoElement)
-      this.#videoElement.currentTime = Math.max(
-        0,
-        this.#videoElement.currentTime - this.#getConfig().seekStep
-      );
+    const step = this.#getConfig().seekStep;
+    if (this.#isYouTube && this.#ytProvider) {
+      this.#ytProvider.currentTime = Math.max(0, this.#ytProvider.currentTime - step);
+    } else if (this.#videoElement) {
+      this.#videoElement.currentTime = Math.max(0, this.#videoElement.currentTime - step);
+    }
   }
   #seekForward(): void {
-    if (this.#videoElement)
-      this.#videoElement.currentTime = Math.min(
-        this.#videoElement.duration,
-        this.#videoElement.currentTime + this.#getConfig().seekStep
-      );
+    const step = this.#getConfig().seekStep;
+    if (this.#isYouTube && this.#ytProvider) {
+      this.#ytProvider.currentTime = Math.min(this.#ytProvider.duration, this.#ytProvider.currentTime + step);
+    } else if (this.#videoElement) {
+      this.#videoElement.currentTime = Math.min(this.#videoElement.duration, this.#videoElement.currentTime + step);
+    }
   }
-  #adjustVolume(delta: number): void { if (this.#videoElement) this.#setVolume(this.#videoElement.volume + delta); }
+  #adjustVolume(delta: number): void {
+    if (this.#isYouTube && this.#ytProvider) {
+      this.#setVolume(this.#ytProvider.volume + delta);
+    } else if (this.#videoElement) {
+      this.#setVolume(this.#videoElement.volume + delta);
+    }
+  }
 
   #enablePerformanceMode(): void {
     if (this.#$wrapper) { this.#$wrapper.classList.add("perf-mode"); this.classList.add("perf-mode"); }
@@ -3476,14 +3782,21 @@ export class ShadowPlyr extends HTMLElement {
       this.#$wrapper.removeEventListener("keydown", this.#handleKeyboard);
       document.removeEventListener("click", () => this.#closeAllMenus());
     }
+    if (this.#ytProvider) {
+      this.#ytProvider.destroy();
+      this.#ytProvider = null;
+      this.#ytVideoId = null;
+      this.#videoElement = null; // shim pointed at provider — clear it before isYouTube flips
+      this.#isYouTube = false;
+    }
     if (this.#videoElement) {
       this.#videoElement.pause();
       this.#videoElement.removeEventListener("click", this.#togglePlayPause);
       this.#videoElement.removeEventListener("enterpictureinpicture", this.#onPipEnter);
       this.#videoElement.removeEventListener("leavepictureinpicture",  this.#onPipLeave);
       this.#videoElement.src = ""; this.#videoElement.load();
-      this.#videoElement = null;
     }
+    this.#videoElement = null;
     // Thumbnail cleanup
     if (this.#thumbnailVideo) {
       this.#thumbnailVideo.src = "";
