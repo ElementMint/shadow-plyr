@@ -245,6 +245,39 @@ export interface VideoPlayerConfig {
    * fetch probe otherwise.
    */
   autoQuality?: boolean;
+
+  // ── YouTube ───────────────────────────────────────────────────────────────
+
+  /**
+   * Video source URL or YouTube video ID.
+   * When `type="youtube"` is set, a bare 11-character video ID is accepted.
+   * YouTube URLs are auto-detected regardless of `type`.
+   * Examples:
+   *   src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+   *   src="https://youtu.be/dQw4w9WgXcQ"
+   *   src="dQw4w9WgXcQ" type="youtube"
+   */
+  src?: string;
+
+  /**
+   * Provider type.  Set `type="youtube"` to force YouTube mode for a bare
+   * video ID.  HTML5 video is used when omitted and the URL is not a YouTube
+   * URL.
+   */
+  type?: "youtube" | string;
+
+  /**
+   * When `true` (default), uses `youtube-nocookie.com` for the YouTube embed
+   * to avoid setting tracking cookies until the user interacts with the player.
+   */
+  youtubePrivacyEnhanced?: boolean;
+
+  /**
+   * When `true` (default), shows a static YouTube thumbnail image as the
+   * poster when no explicit `<picture>` or `desktop-poster` is provided and
+   * the video type is YouTube.
+   */
+  youtubeAutoThumbnail?: boolean;
 }
 
 /** A single item in a playlist. */

@@ -56,7 +56,9 @@
     "hls.js": ">=1.0.0"
   },
   "peerDependenciesMeta": {
-    "hls.js": { "optional": true }
+    "hls.js": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "hls.js": "^1.6.15",
