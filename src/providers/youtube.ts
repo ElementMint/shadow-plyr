@@ -141,6 +141,8 @@ export class YouTubeProvider {
   private _opts: YouTubeProviderOptions;
   // seek requested before player is ready
   private _pendingSeek: number | null = null;
+  // play requested before player is ready
+  private _pendingPlay = false;
 
   constructor(mountInto: HTMLElement, opts: YouTubeProviderOptions) {
     this._opts = opts;
@@ -207,7 +209,10 @@ export class YouTubeProvider {
       type: "yt-ready",
       duration: this._duration,
     });
-    if (this._opts.autoplay) this.player.playVideo();
+    if (this._opts.autoplay || this._pendingPlay) {
+      this._pendingPlay = false;
+      this.player.playVideo();
+    }
   }
 
   private _onStateChange(e: any): void {
@@ -344,11 +349,16 @@ export class YouTubeProvider {
   play(): Promise<void> {
     if (this._ready && this.player?.playVideo) {
       this.player.playVideo();
+    } else {
+      // Boot still in progress — start as soon as onReady fires instead of
+      // silently dropping the request (a click during load must always land)
+      this._pendingPlay = true;
     }
     return Promise.resolve();
   }
 
   pause(): void {
+    this._pendingPlay = false;
     if (this._ready && this.player?.pauseVideo) {
       this.player.pauseVideo();
     }
