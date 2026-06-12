@@ -41,6 +41,7 @@ export declare class YouTubeProvider {
     private _rafId;
     private _opts;
     private _pendingSeek;
+    private _pendingPlay;
     constructor(mountInto: HTMLElement, opts: YouTubeProviderOptions);
     private _createPlayer;
     private _onReady;
