@@ -2337,11 +2337,11 @@ export class ShadowPlyr extends HTMLElement {
   disconnectedCallback(): void {
     this.#destroy();
     this.#removeVisibilityHandling();
-    // Release saved light DOM data — element is leaving the page
-    this.#savedPicture = null;
-    this.#savedSources = [];
-    this.#savedTracks = [];
-    this.#lightDOMHarvested = false;
+    // Keep harvested light DOM (#savedPicture/#savedSources/#savedTracks):
+    // disconnect also fires on a plain DOM move (Swiper loop mode, drag
+    // reorder, reparenting), and the originals were removed from light DOM at
+    // harvest time — wiping the copies here would leave the player with no
+    // sources when connectedCallback re-renders after the move.
     document.removeEventListener(
       "fullscreenchange",
       this.#boundFullscreenChange
