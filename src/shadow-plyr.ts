@@ -790,6 +790,7 @@ export class ShadowPlyr extends HTMLElement {
     if (config.autoQuality && !this.#currentQualityLabel) this.#autoSelectQuality();
 
     if (config.showControls) this.#setupControlButtons(wrapper);
+    else if (config.showCenterPlay) this.#setupCenterPlayOnly(wrapper);
     if (!config.autoplay) {
       this.#hasPlayedOnce = false;
       this.#posterVisible = true;
@@ -2560,6 +2561,7 @@ export class ShadowPlyr extends HTMLElement {
 
 
     if (config.showControls) this.#setupControlButtons(wrapper);
+    else if (config.showCenterPlay) this.#setupCenterPlayOnly(wrapper);
   }
 
   /** Re-expose the public API pointing at the YT provider instead of <video>. */
@@ -3129,6 +3131,21 @@ export class ShadowPlyr extends HTMLElement {
         "mousedown",
         this.#onVolumeMouseDown as EventListener
       );
+
+    if (this.#videoElement && !this.#isYouTube)
+      this.#videoElement.addEventListener("click", this.#togglePlayPause);
+
+    this.#setupControlsInteraction(wrapper);
+  }
+
+  // Minimal wiring for show-center-play without show-controls: the full
+  // delegated handler in #setupControlButtons never runs in that case, so the
+  // center button, bare-video click, and hover reveal must be bound here.
+  #setupCenterPlayOnly(wrapper: HTMLElement): void {
+    wrapper.addEventListener("click", (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest(".video-center-play"))
+        this.#togglePlayPause(e);
+    });
 
     if (this.#videoElement && !this.#isYouTube)
       this.#videoElement.addEventListener("click", this.#togglePlayPause);
