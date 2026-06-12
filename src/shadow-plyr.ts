@@ -54,6 +54,17 @@ export class ShadowPlyr extends HTMLElement {
   #posterVisible = false;
   #hasPlayedOnce = false;
   #wasPlayingBeforeHidden = false;
+  // Playback state captured on disconnect so a DOM move (Swiper loop mode,
+  // drag reorder) restores position instead of restarting from 0
+  #moveResumeTime: number | null = null;
+  #moveWasPlaying = false;
+  // Last visibility from the lazy/pause observer — playback that starts after
+  // the user scrolled away (slow load) checks this to pause itself
+  #isInView = true;
+  // One-shot guard for the yt-ready watchdog rebuild (dead iframe bridge)
+  #ytBootRetried = false;
+  // True from the moment #loadVideo starts until #destroy — blocks re-entry
+  #loadStarted = false;
   #isPageVisible = true;
   #rafId: number | null = null;
   #hasError = false;
@@ -720,6 +731,10 @@ export class ShadowPlyr extends HTMLElement {
     this.#isInitialized = true;
     this.#videoLoaded = true;
     this.#hasError = false;
+    // A slow load may have already tripped the load-timeout error overlay —
+    // data arriving means the error is stale
+    wrapper.classList.remove("has-error");
+    this.classList.remove("has-error");
 
     // Subtitle tracks
     this.#subtitlesTracks = Array.from(this.#videoElement.textTracks).filter(
@@ -772,6 +787,17 @@ export class ShadowPlyr extends HTMLElement {
       }
     }
 
+    // Restore position captured on disconnect (DOM move) — fresher than the
+    // localStorage resume above, so it wins when both apply
+    if (this.#moveResumeTime !== null) {
+      const t = this.#moveResumeTime;
+      this.#moveResumeTime = null;
+      const dur = this.#videoElement.duration;
+      if (!isFinite(dur) || t < dur - 1) this.#videoElement.currentTime = t;
+      if (this.#moveWasPlaying) this.playVideo();
+      this.#moveWasPlaying = false;
+    }
+
     // Speed memory — restore saved playback speed for this video
     if (config.speedMemory && this.#speedKey) {
       const savedSpeed = localStorage.getItem(this.#speedKey);
@@ -808,6 +834,13 @@ export class ShadowPlyr extends HTMLElement {
   };
 
   #onPlaying = (wrapper: HTMLElement): void => {
+    // Playback can start after the user has already swiped/scrolled away
+    // (slow load) — pause and let the visibility observer resume it
+    if (this.#getConfig().pauseOnOutOfView && !this.#isInView) {
+      this.#wasPlayingBeforeHidden = true;
+      this.#videoElement?.pause();
+      return;
+    }
     this.#emit("video-playing", {
       currentTime: this.#videoElement!.currentTime,
       duration: this.#videoElement!.duration,
@@ -2336,6 +2369,17 @@ export class ShadowPlyr extends HTMLElement {
   }
 
   disconnectedCallback(): void {
+    // Capture playback state before teardown — if this disconnect is a DOM
+    // move rather than removal, reconnect restores position instead of
+    // restarting from 0. Works for YouTube too: #videoElement is the provider
+    // shim there, exposing the same currentTime getter.
+    if (this.#videoElement && this.#videoLoaded) {
+      const t = this.#videoElement.currentTime;
+      if (isFinite(t) && t > 0) {
+        this.#moveResumeTime = t;
+        this.#moveWasPlaying = this.#isPlaying || this.#wasPlayingBeforeHidden;
+      }
+    }
     this.#destroy();
     this.#removeVisibilityHandling();
     // Keep harvested light DOM (#savedPicture/#savedSources/#savedTracks):
@@ -2452,6 +2496,9 @@ export class ShadowPlyr extends HTMLElement {
     this.#observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          this.#isInView =
+            entry.isIntersecting &&
+            entry.intersectionRatio >= config.pauseThreshold;
           if (
             config.lazy &&
             !this.#isInitialized &&
@@ -2511,6 +2558,11 @@ export class ShadowPlyr extends HTMLElement {
   // ── YouTube load path ─────────────────────────────────────────────────────
 
   #loadYouTube(wrapper: HTMLElement, config: VideoPlayerConfig, videoId: string): void {
+    // Never stack a second player — kill any in-flight provider first
+    if (this.#ytProvider) {
+      this.#ytProvider.destroy();
+      this.#ytProvider = null;
+    }
     this.#isYouTube = true;
     this.#ytVideoId = videoId;
 
@@ -2616,6 +2668,36 @@ export class ShadowPlyr extends HTMLElement {
           wrapper.classList.add("is-playing");
           this.classList.add("is-playing");
         }
+        // Restore playback captured on disconnect (DOM move). Seeking here
+        // would target an unstarted player and cancel the playback start —
+        // the seek is deferred to the first yt-playing event instead.
+        {
+          const wantsPlay = config.autoplay || this.#moveWasPlaying;
+          if (this.#moveWasPlaying) {
+            this.#moveWasPlaying = false;
+            if (!config.autoplay) this.#ytProvider?.play();
+          }
+          // Watchdog: after loop/DOM churn a recreated iframe occasionally
+          // boots with a dead message bridge — yt-ready fires but every
+          // playVideo() is silently dropped. If playback was requested and
+          // never starts while in view, rebuild the player once.
+          if (wantsPlay) {
+            const gen = this.#loadGeneration;
+            setTimeout(() => {
+              if (gen !== this.#loadGeneration) return; // re-inited meanwhile
+              if (this.#isPlaying || !this.#isInView || !this.#isYouTube) return;
+              if (this.#ytBootRetried) {
+                // Second failure — stop pretending: drop the optimistic
+                // playing state so the poster and play button show
+                this.#$wrapper?.classList.remove("is-playing");
+                this.classList.remove("is-playing");
+                return;
+              }
+              this.#ytBootRetried = true;
+              this.#reinitialize();
+            }, 3000);
+          }
+        }
         this.#updateFullscreenIcon(false, wrapper);
         this.#emit("video-ready", { duration: data.duration ?? 0 });
         if (config.responsiveControls) this.#setupResponsive(wrapper);
@@ -2624,6 +2706,21 @@ export class ShadowPlyr extends HTMLElement {
         break;
 
       case "yt-playing":
+        // Playback can start after the user has already swiped/scrolled away
+        // (slow iframe boot) — pause and let the visibility observer resume it
+        if (config.pauseOnOutOfView && !this.#isInView) {
+          this.#wasPlayingBeforeHidden = true;
+          this.#ytProvider?.pause();
+          break;
+        }
+        this.#ytBootRetried = false; // bridge is alive — re-arm the watchdog
+        // Deferred move-restore seek — safe now that playback has started
+        if (this.#moveResumeTime !== null && this.#ytProvider) {
+          const t = this.#moveResumeTime;
+          this.#moveResumeTime = null;
+          if (t < (this.#ytProvider.duration || Infinity) - 1)
+            this.#ytProvider.currentTime = t;
+        }
         this.#emit("video-playing", { currentTime: data.currentTime ?? 0, duration: data.duration ?? 0 });
         wrapper.classList.add("is-playing");
         wrapper.classList.remove("poster-visible");
@@ -2713,6 +2810,12 @@ export class ShadowPlyr extends HTMLElement {
 
   #loadVideo(wrapper: HTMLElement, config: VideoPlayerConfig): void {
     if (this.#isInitialized) return;
+    // A load is already in flight. #isInitialized only flips at loadeddata /
+    // yt-ready, so without this guard a second observer callback during the
+    // boot window (Swiper transitions cross the threshold repeatedly) would
+    // stack a second <video>/YT iframe and orphan the first one.
+    if (this.#loadStarted) return;
+    this.#loadStarted = true;
     // Stamp this load cycle so stale async callbacks (timeouts, source error
     // listeners) from a previous load can detect they are outdated and bail.
     const myGeneration = ++this.#loadGeneration;
@@ -3848,6 +3951,7 @@ export class ShadowPlyr extends HTMLElement {
     this.#isInitialized = false;
     this.#isPlaying = false;
     this.#videoLoaded = false;
+    this.#loadStarted = false;
     this.#loadGeneration++; // invalidate any in-flight async callbacks from previous load
     this.#wasPlayingBeforeHidden = false;
     this.#hasPlayedOnce = false;
